@@ -2252,6 +2252,13 @@ function initApp(){
 }
 
 // Safari-safe init
+// NOTA: esta función NO se ejecuta actualmente (nada la llama — ver comentario más
+// abajo: "El login MSAL se difiere hasta generar PDF", controlado por gateBoot).
+// Queda como código de reserva/histórico. Si algún día se decide volver a autenticar
+// contra Graph/SharePoint apenas carga la página (en vez de recién al generar el PDF),
+// este sería el punto de partida — pero aplicar ahí el mismo criterio que en
+// _initMSAL: usar loginPopup siempre, no loginRedirect, por el bug de Safari/PWA
+// que rompía el estado del formulario.
 async function initAll(){
   initApp();
   // Authenticate immediately on page load — before user does anything
@@ -3037,30 +3044,41 @@ async function _initMSAL(){
       _gToken=r.accessToken;console.log('Token silent OK, len:',_gToken.length);return true;
     }catch(e){console.warn('Silent failed:',e);}
   }
-  // Login
-  var isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  if(isSafari){
-    // Save current state before redirect
-    try{
-      sessionStorage.setItem('labo_redirect_pending','1');
-      sessionStorage.setItem('labo_redirect_step','3');
-      // Save cotizador state
-      var state={
-        sel:sel, opts:opts, kmVal:kmVal,
-        cant:document.getElementById('cant')?document.getElementById('cant').value:'1',
-        cNombre:gv('cNombre'),cContacto:gv('cContacto'),cEmail:gv('cEmail'),
-        cTel:gv('cTel'),oLugar:gv('oLugar'),oVendedor:gv('oVendedor'),
-        oNum:gv('oNum'),oFecha:gv('oFecha'),oPago:document.getElementById('oPago')?document.getElementById('oPago').value:'',
-        oPlazo:gv('oPlazo'),oNotas:gv('oNotas'),oValidez:gv('oValidez')
-      };
-      sessionStorage.setItem('labo_redirect_state',JSON.stringify(state));
-    }catch(e){}
-    await _msalInst.loginRedirect({scopes:['https://graph.microsoft.com/.default'],redirectUri:MSAL_CONFIG.redirectUri});
-    return false;
-  }else{
-    var r2=await _msalInst.loginPopup({scopes:['https://graph.microsoft.com/.default'],redirectUri:MSAL_CONFIG.redirectUri});
-    _gToken=r2.accessToken;return true;
-  }
+  // Login — SIEMPRE via popup (incluso en Safari/PWA de Dock).
+  // Motivo: loginRedirect navegaba fuera de la página y, al volver, la restauración
+  // de estado desde sessionStorage podía fallar (sobre todo en la PWA agregada al
+  // Dock de Mac), dejando al usuario "de vuelta en el CRM" sin cotización ni PDF.
+  // loginPopup evita esto por completo: la página nunca se recarga, el estado del
+  // formulario nunca se pierde.
+  //
+  // BLOQUE DE RESERVA — NO ELIMINAR:
+  // Si en el futuro loginPopup resulta bloqueado de forma consistente en algún
+  // navegador/PWA (Safari es más estricto con popups que Chrome), este es el punto
+  // exacto donde reintroducir un loginRedirect con guardado de estado en
+  // sessionStorage. El código de restauración post-redirect sigue intacto más abajo
+  // en _initMSAL (bloque "Restore state — auto-generate PDF after redirect"), así que
+  // solo haría falta volver a activar la rama de abajo:
+  //
+  // var isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  // if(isSafari){
+  //   try{
+  //     sessionStorage.setItem('labo_redirect_pending','1');
+  //     sessionStorage.setItem('labo_redirect_step','3');
+  //     var state={
+  //       sel:sel, opts:opts, kmVal:kmVal,
+  //       cant:document.getElementById('cant')?document.getElementById('cant').value:'1',
+  //       cNombre:gv('cNombre'),cContacto:gv('cContacto'),cEmail:gv('cEmail'),
+  //       cTel:gv('cTel'),oLugar:gv('oLugar'),oVendedor:gv('oVendedor'),
+  //       oNum:gv('oNum'),oFecha:gv('oFecha'),oPago:document.getElementById('oPago')?document.getElementById('oPago').value:'',
+  //       oPlazo:gv('oPlazo'),oNotas:gv('oNotas'),oValidez:gv('oValidez')
+  //     };
+  //     sessionStorage.setItem('labo_redirect_state',JSON.stringify(state));
+  //   }catch(e){}
+  //   await _msalInst.loginRedirect({scopes:['https://graph.microsoft.com/.default'],redirectUri:MSAL_CONFIG.redirectUri});
+  //   return false;
+  // }
+  var r2=await _msalInst.loginPopup({scopes:['https://graph.microsoft.com/.default'],redirectUri:MSAL_CONFIG.redirectUri});
+  _gToken=r2.accessToken;return true;
 }
 async function _gFetch(url,opts){
   if(!_gToken)await _initMSAL();
