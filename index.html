@@ -85,6 +85,8 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--white);color:var(--
 .cot-pdf-btn{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;padding:3px 8px;border:1px solid var(--blue);background:transparent;color:var(--blue);cursor:pointer;text-decoration:none;border-radius:2px;transition:all .15s;white-space:nowrap}
 .cot-pdf-btn:hover{background:var(--blue);color:var(--white)}
 .cot-pdf-none{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.5px;color:var(--mid);opacity:.6}
+.cot-del-btn{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;padding:3px 8px;border:1px solid var(--red);background:transparent;color:var(--red);cursor:pointer;border-radius:2px;transition:all .15s;white-space:nowrap}
+.cot-del-btn:hover{background:var(--red);color:var(--white)}
 .cot-card-num{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--mid);letter-spacing:1px}
 .cot-card-date{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--mid)}
 .cot-card-body{padding:8px 12px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -1381,6 +1383,27 @@ let allLeads=[], activeFilter='all', sortCol='fecha', sortAsc=false, searchVal='
 let currentLeadId=null, pendingEtapaChange=null, selectedMotivo=null;
 
 // ── Load ──────────────────────────────────────────────────────────────────────
+// ── Cotizaciones archivadas (soft-delete) ──────────────────────────────────────
+// Una cotización con archivada===true queda guardada en Supabase pero no computa
+// en KPIs, totales ni tabla. Un lead sin cotizaciones activas se considera archivado.
+function cotsActivas(l){return (l.cotizaciones||[]).filter(function(c){return !c.archivada;});}
+function leadArchivado(l){
+  var cots=l.cotizaciones||[];
+  return cots.length>0 && cots.every(function(c){return c.archivada;});
+}
+// Recalcula totalPipeline, ultimaCot y fechaUltimaCot de un lead según las cotizaciones activas
+function recomputeLead(l){
+  var act=cotsActivas(l);
+  l.totalPipeline=act.reduce(function(s,c){return s+(+c.total||0);},0);
+  if(act.length>0){
+    var last=act.slice().sort(function(a,b){return new Date(a.fecha||0)-new Date(b.fecha||0);})[act.length-1];
+    l.ultimaCot=last;
+    l.fechaUltimaCot=last.fecha||l.fechaUltimaCot;
+  }else{
+    l.ultimaCot=null;
+  }
+  return l;
+}
 async function loadData(){
   try{
     const leads=await readLeads();
@@ -1409,7 +1432,8 @@ async function loadData(){
       // Ensure leadNum exists
       if(!l.leadNum) l.leadNum=null;
       return l;
-    }).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+    }).filter(function(l){return !leadArchivado(l);})
+      .sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
   }catch(e){console.error('loadData error:',e);allLeads=[];}
   render();
 }
@@ -1486,7 +1510,7 @@ function getFiltered(){
     } else {
       const[field,val]=activeFilter.split(':');
       if(field==='temp') leads=leads.filter(l=>getTemp(l)===val);
-      else if(field==='linea') leads=leads.filter(l=>(l.cotizaciones||[{linea:l.linea}]).some(c=>c.linea===val));
+      else if(field==='linea') leads=leads.filter(l=>cotsActivas(l).some(c=>c.linea===val)||(!(l.cotizaciones||[]).length&&l.linea===val));
       else leads=leads.filter(l=>l[field]===val);
     }
   }
@@ -1512,8 +1536,8 @@ function updateCounts(){
   document.getElementById('cnt-negociacion').textContent=allLeads.filter(l=>l.etapa==='En negociación').length;
   document.getElementById('cnt-ganado').textContent=allLeads.filter(l=>l.etapa==='Cerrado ganado').length;
   document.getElementById('cnt-perdido').textContent=allLeads.filter(l=>l.etapa==='Cerrado perdido').length;
-  document.getElementById('cnt-madera').textContent=allLeads.filter(l=>(l.cotizaciones||[{linea:l.linea}]).some(c=>c.linea==='LABO Madera')).length;
-  document.getElementById('cnt-modular').textContent=allLeads.filter(l=>(l.cotizaciones||[{linea:l.linea}]).some(c=>c.linea==='LABO Modular')).length;
+  document.getElementById('cnt-madera').textContent=allLeads.filter(l=>cotsActivas(l).some(c=>c.linea==='LABO Madera')||(!(l.cotizaciones||[]).length&&l.linea==='LABO Madera')).length;
+  document.getElementById('cnt-modular').textContent=allLeads.filter(l=>cotsActivas(l).some(c=>c.linea==='LABO Modular')||(!(l.cotizaciones||[]).length&&l.linea==='LABO Modular')).length;
   document.getElementById('cnt-caliente').textContent=allLeads.filter(l=>getTemp(l)==='caliente').length;
   document.getElementById('cnt-tibio').textContent=allLeads.filter(l=>getTemp(l)==='tibio').length;
   document.getElementById('cnt-frio').textContent=allLeads.filter(l=>getTemp(l)==='frio').length;
@@ -1876,7 +1900,7 @@ function openDetail(id){
   var cls=ETAPA_CLS[l.etapa]||'e-cotizado';
   var edot=ETAPAS.find(function(e){return e.key===l.etapa;})||ETAPAS[0];
   var temp=getTemp(l);
-  var cots=l.cotizaciones||[];
+  var cots=cotsActivas(l);
 
   // Cotizaciones HTML
   var cotsHtml='';
@@ -1888,11 +1912,12 @@ function openDetail(id){
       var pdfBtn=c.pdfUrl
         ? '<a class="cot-pdf-btn" href="'+esc(c.pdfUrl)+'" target="_blank" rel="noopener" title="Abrir PDF en SharePoint'+(c.pdfName?' ('+esc(c.pdfName)+')':'')+'">PDF'+(c.pdfVersion?' v'+esc(String(c.pdfVersion)):'')+' ↗</a>'
         : '<span class="cot-pdf-none">sin PDF</span>';
+      var delBtn='<button class="cot-del-btn" title="Eliminar esta cotización" onclick="archivarCotizacion(\''+esc(String(l.id))+'\',\''+esc(String(c.id||c.num))+'\')">Eliminar</button>';
       return '<div class="cot-card">'+
         '<div class="cot-card-hdr">'+
           '<span class="cot-card-num">OC N\u00b0 '+esc(c.num||'—')+'</span>'+
           '<span style="display:flex;align-items:center;gap:8px">'+
-            '<span class="cot-card-date">'+d+'</span>'+pdfBtn+
+            '<span class="cot-card-date">'+d+'</span>'+pdfBtn+delBtn+
           '</span>'+
         '</div>'+
         '<div class="cot-card-body">'+
@@ -1990,6 +2015,34 @@ function _applyEtapa(id,etapa,fromDetail,motivo){
   document.querySelectorAll('.etapa-dropdown.open').forEach(d=>d.classList.remove('open'));
   render();
   if(fromDetail&&currentLeadId)openDetail(currentLeadId);
+}
+
+// ── Archivar cotización (soft-delete) ───────────────────────────────────────────
+// Marca una cotización como archivada: se guarda en Supabase pero deja de computar
+// en KPIs, totales y tablas. Pide confirmación. Si el lead queda sin cotizaciones
+// activas, se retira de la vista (allLeads) aunque la fila persiste en la base.
+function archivarCotizacion(leadId,cotId){
+  const l=allLeads.find(x=>x.id===leadId);if(!l)return;
+  const cot=(l.cotizaciones||[]).find(c=>String(c.id)===String(cotId)||String(c.num)===String(cotId));
+  if(!cot){console.warn('Cotización no encontrada',cotId);return;}
+  const label='OC N° '+(cot.num||'—')+(cot.total?' (USD '+fmt(cot.total)+')':'');
+  if(!confirm('¿Eliminar la cotización '+label+'?\n\nDejará de contar en los indicadores. Quedará archivada en la base (no se borra definitivamente).'))return;
+  cot.archivada=true;
+  cot.fechaArchivado=new Date().toISOString();
+  if(!l.actividad)l.actividad=[];
+  l.actividad.push({fecha:new Date().toLocaleDateString('es-AR'),texto:'Cotización archivada: OC N° '+(cot.num||'—')});
+  recomputeLead(l);
+  saveLeadToDB(l).catch(e=>console.warn(e));
+  const quedaVacio=leadArchivado(l);
+  if(quedaVacio){
+    // Sacar de la vista: sin cotizaciones activas no debe aparecer en tabla ni KPIs
+    allLeads=allLeads.filter(x=>x.id!==leadId);
+    closeDetailPanel();
+    render();
+  }else{
+    render();
+    if(currentLeadId===leadId)openDetail(leadId);
+  }
 }
 
 function toggleDD(id){
@@ -3267,7 +3320,7 @@ async function _spSaveLead(lead){
       // Add cotización to existing lead
       var cots=existing.cotizaciones||[];
       cots.unshift(cot);
-      var totalPipeline=cots.reduce(function(s,c){return s+(c.total||0);},0);
+      var totalPipeline=cots.reduce(function(s,c){return c.archivada?s:s+(c.total||0);},0);
       var pr=await _sbFetch('labo_leads?id=eq.'+existing.id,{
         method:'PATCH',
         headers:{'Prefer':'return=minimal'},
