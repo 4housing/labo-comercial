@@ -2780,6 +2780,7 @@ function _buildOfferPDF(){
   const colL_x = mg;
   const colR_x = mg + colL_w + colGap;
   const colTop = y;  // y after header + client box
+  const dotSz = 1.2; // tamaño de viñeta (usado en ambas columnas)
 
   // ── COLUMNA IZQUIERDA ────────────────────────────────────────────────
   let yL = colTop;
@@ -2836,7 +2837,10 @@ function _buildOfferPDF(){
   doc.text('CONDICIÓN DE PAGO',colL_x+3,yL+3.5);
   doc.text('PLAZO DE ENTREGA',colL_x+colL_w/2+3,yL+3.5);
   doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(10,10,10);
-  doc.text(pago.substring(0,32),colL_x+3,yL+8.5);
+  const pagoLines=doc.splitTextToSize(pago,colL_w/2-6);
+  doc.setFontSize(pagoLines.length>1?6.5:7.5);
+  doc.text(pagoLines.slice(0,2),colL_x+3,yL+8.5);
+  doc.setFontSize(7.5);
   doc.text(gv('oPlazo').substring(0,24),colL_x+colL_w/2+3,yL+8.5);
   yL+=14;
 
@@ -2852,11 +2856,33 @@ function _buildOfferPDF(){
     doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(10,10,10);
     const notasLines=doc.splitTextToSize(notas,colL_w-7);
     doc.text(notasLines.slice(0,4),colL_x+4,yL+5);
+    yL+=Math.min(notasLines.length,4)*3.4+8;
+  }
+
+  // Exclusiones — en la columna IZQUIERDA, aprovechando el espacio inferior libre
+  const exclPDF=getExclusiones();
+  if(exclPDF.length>0){
+    yL+=2;
+    doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(138,135,127);
+    doc.text('EXCLUSIONES',colL_x,yL);
+    doc.setDrawColor(200,197,188);doc.setLineWidth(0.2);
+    doc.line(colL_x+doc.getTextWidth('EXCLUSIONES')+2,yL-0.5,colL_x+colL_w,yL-0.5);
+    yL+=4;
+    doc.setFont('helvetica','normal');doc.setFontSize(5.6);doc.setTextColor(10,10,10);
+    const exBottom=H-19;
+    const exLineH=2.9, exGap=3.4;
+    exclPDF.forEach(inc=>{
+      const wrapped=doc.splitTextToSize(inc,colL_w-5);
+      const blockH=exGap+(wrapped.length-1)*exLineH;
+      if(yL+blockH>exBottom)return; // no desbordar sobre el footer
+      doc.setFillColor(192,57,43);doc.rect(colL_x,yL-1,dotSz,dotSz,'F');
+      wrapped.forEach((ln,li)=>{doc.text(ln,colL_x+4,yL);if(li<wrapped.length-1)yL+=exLineH;});
+      yL+=exGap;
+    });
   }
 
   // ── COLUMNA DERECHA ──────────────────────────────────────────────────
   let yR = colTop;
-  const dotSz = 1.2;
   const yBottom = H-20;           // límite inferior útil (colchón sobre el footer negro)
   const colR_top2 = 20;          // y inicial de la columna en páginas 2+
 
@@ -2927,12 +2953,7 @@ function _buildOfferPDF(){
     yR+=2;
   }
 
-  // Exclusiones
-  const exclPDF=getExclusiones();
-  if(exclPDF.length>0){
-    sectionHeader('EXCLUSIONES', itemBlockH(exclPDF[0]));
-    exclPDF.forEach(inc=>drawItem(inc,[192,57,43]));
-  }
+  // (Exclusiones se dibujan en la columna izquierda, más arriba)
 
   /* ── FOOTER (página final) ── */
   drawFooter();
