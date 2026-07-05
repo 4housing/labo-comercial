@@ -2857,70 +2857,85 @@ function _buildOfferPDF(){
   // ── COLUMNA DERECHA ──────────────────────────────────────────────────
   let yR = colTop;
   const dotSz = 1.2;
+  const yBottom = H-20;           // límite inferior útil (colchón sobre el footer negro)
+  const colR_top2 = 20;          // y inicial de la columna en páginas 2+
 
-  // Vertical separator
-  doc.setDrawColor(210,207,198);doc.setLineWidth(0.3);
-  doc.line(colR_x-3,colTop,colR_x-3,H-16);
+  // Footer reutilizable (se dibuja en cada página)
+  function drawFooter(){
+    const fY=H-12;
+    doc.setFillColor(10,10,10);doc.rect(0,fY-4,W,H,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(138,135,127);
+    doc.text(`Generado el ${fecha}  |  LABO — Gerencia Comercial  |  ${vend}  |  labo.com.ar`,mg,fY+2);
+    doc.text(`OE N° ${num}`,W-mg,fY+2,{align:'right'});
+  }
+  // Separador vertical (solo hasta donde llega la columna izquierda en pág. 1)
+  function drawSeparator(fromY,toY){
+    doc.setDrawColor(210,207,198);doc.setLineWidth(0.3);
+    doc.line(colR_x-3,fromY,colR_x-3,toY);
+  }
+  drawSeparator(colTop,yBottom);
+
+  // Ancho de texto: en páginas 2+ usamos todo el ancho útil; en pág 1, la columna derecha
+  let colTextX = colR_x, colTextW = colR_w, onFirstPage = true;
+  // Si falta espacio para `needed` mm, cierra la página y abre una nueva a ancho completo
+  function ensureSpace(needed){
+    if(yR + needed <= yBottom) return;
+    drawFooter();
+    doc.addPage();
+    onFirstPage=false;
+    colTextX = mg; colTextW = tW;   // en pág. 2+ el bloque ocupa todo el ancho
+    yR = colR_top2;
+  }
+  // Dibuja un encabezado de sección con su línea.
+  // Reserva espacio para el encabezado + el primer ítem, para no dejarlo huérfano al pie.
+  function sectionHeader(label,firstItemH){
+    ensureSpace(9+(firstItemH||8));
+    doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(138,135,127);
+    doc.text(label,colTextX,yR);
+    doc.setDrawColor(200,197,188);doc.setLineWidth(0.2);
+    doc.line(colTextX+doc.getTextWidth(label)+2,yR-0.5,colTextX+colTextW,yR-0.5);
+    yR+=4.5;
+  }
+  // Calcula la altura de bloque de un ítem (para reservar espacio del primer ítem)
+  function itemBlockH(text){
+    const wrapped=doc.splitTextToSize(text,colTextW-5);
+    return 4.2 + (wrapped.length-1)*3.4;
+  }
+  // Dibuja un ítem con viñeta (color rgb array), envolviendo líneas
+  function drawItem(text,rgb){
+    const wrapped=doc.splitTextToSize(text,colTextW-5);
+    const blockH = 4.2 + (wrapped.length-1)*3.4;
+    ensureSpace(blockH+1);
+    doc.setFont('helvetica','normal');doc.setFontSize(6.2);doc.setTextColor(10,10,10);
+    doc.setFillColor(rgb[0],rgb[1],rgb[2]);doc.rect(colTextX,yR-1,dotSz,dotSz,'F');
+    wrapped.forEach((ln,li)=>{doc.text(ln,colTextX+4,yR);if(li<wrapped.length-1)yR+=3.4;});
+    yR+=4.2;
+  }
 
   // Precio base incluye
   const BINC=getBINC();
-  doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(138,135,127);
-  doc.text('PRECIO BASE INCLUYE',colR_x,yR);
-  doc.setDrawColor(200,197,188);doc.setLineWidth(0.2);
-  doc.line(colR_x+doc.getTextWidth('PRECIO BASE INCLUYE')+2,yR-0.5,colR_x+colR_w,yR-0.5);
-  yR+=4.5;
+  sectionHeader('PRECIO BASE INCLUYE', BINC.length?itemBlockH(BINC[0]):8);
+  BINC.forEach(inc=>drawItem(inc,[10,10,10]));
+  yR+=2;
 
-  doc.setFont('helvetica','normal');doc.setFontSize(6.2);doc.setTextColor(10,10,10);
-  BINC.forEach((inc)=>{
-    const wrapped=doc.splitTextToSize(inc,colR_w-5);
-    doc.setFillColor(10,10,10);doc.rect(colR_x,yR-1,dotSz,dotSz,'F');
-    wrapped.forEach((ln,li)=>{doc.text(ln,colR_x+4,yR);if(li<wrapped.length-1)yR+=3.4;});
-    yR+=4.2;
-  });
-  yR+=3;
-
-  // Opcionales incluidos — start below BINC OR at Condiciones level, whichever is lower
-  yR = Math.max(yR, yCondiciones);
+  // Opcionales incluidos — en pág. 1 alinea con Condiciones; en pág. 2+ sigue el flujo
+  if(onFirstPage) yR = Math.max(yR, yCondiciones);
   const opDescPDF=getOpcionalesDesc();
   if(opDescPDF.length>0){
-    doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(138,135,127);
-    doc.text('OPCIONALES INCLUIDOS',colR_x,yR);
-    doc.setDrawColor(200,197,188);doc.setLineWidth(0.2);
-    doc.line(colR_x+doc.getTextWidth('OPCIONALES INCLUIDOS')+2,yR-0.5,colR_x+colR_w,yR-0.5);
-    yR+=4.5;
-    doc.setFont('helvetica','normal');doc.setFontSize(6.2);doc.setTextColor(10,10,10);
-    opDescPDF.forEach((inc)=>{
-      const wrapped=doc.splitTextToSize(inc,colR_w-5);
-      doc.setFillColor(60,130,90);doc.rect(colR_x,yR-1,dotSz,dotSz,'F');
-      wrapped.forEach((ln,li)=>{doc.text(ln,colR_x+4,yR);if(li<wrapped.length-1)yR+=3.4;});
-      yR+=4.2;
-    });
-    yR+=3;
+    sectionHeader('OPCIONALES INCLUIDOS', itemBlockH(opDescPDF[0]));
+    opDescPDF.forEach(inc=>drawItem(inc,[60,130,90]));
+    yR+=2;
   }
 
   // Exclusiones
   const exclPDF=getExclusiones();
   if(exclPDF.length>0){
-    doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(138,135,127);
-    doc.text('EXCLUSIONES',colR_x,yR);
-    doc.setDrawColor(200,197,188);doc.setLineWidth(0.2);
-    doc.line(colR_x+doc.getTextWidth('EXCLUSIONES')+2,yR-0.5,colR_x+colR_w,yR-0.5);
-    yR+=4.5;
-    doc.setFont('helvetica','normal');doc.setFontSize(6.2);doc.setTextColor(10,10,10);
-    exclPDF.forEach((inc)=>{
-      const wrapped=doc.splitTextToSize(inc,colR_w-5);
-      doc.setFillColor(192,57,43);doc.rect(colR_x,yR-1,dotSz,dotSz,'F');
-      wrapped.forEach((ln,li)=>{doc.text(ln,colR_x+4,yR);if(li<wrapped.length-1)yR+=3.4;});
-      yR+=4.2;
-    });
+    sectionHeader('EXCLUSIONES', itemBlockH(exclPDF[0]));
+    exclPDF.forEach(inc=>drawItem(inc,[192,57,43]));
   }
 
-  /* ── FOOTER ── */
-  const fY=H-12;
-  doc.setFillColor(10,10,10);doc.rect(0,fY-4,W,H,'F');
-  doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(138,135,127);
-  doc.text(`Generado el ${fecha}  |  LABO — Gerencia Comercial  |  ${vend}  |  labo.com.ar`,mg,fY+2);
-  doc.text(`OE N° ${num}`,W-mg,fY+2,{align:'right'});
+  /* ── FOOTER (página final) ── */
+  drawFooter();
 
   const numPad=String(num||'0').replace(/\D/g,'').padStart(4,'0');
   const clientName=(gv('cNombre')||'Cliente').replace(/[\/\\:*?"<>|]/g,'-').trim();
