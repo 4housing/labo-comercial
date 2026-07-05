@@ -87,6 +87,9 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--white);color:var(--
 .cot-pdf-none{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.5px;color:var(--mid);opacity:.6}
 .cot-del-btn{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;padding:3px 8px;border:1px solid var(--red);background:transparent;color:var(--red);cursor:pointer;border-radius:2px;transition:all .15s;white-space:nowrap}
 .cot-del-btn:hover{background:var(--red);color:var(--white)}
+.cot-sp-btn{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;padding:3px 8px;border:1px solid var(--green);background:transparent;color:var(--green);cursor:pointer;border-radius:2px;transition:all .15s;white-space:nowrap}
+.cot-sp-btn:hover{background:var(--green);color:var(--white)}
+.cot-ext-badge{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:1px;padding:2px 5px;margin-left:6px;background:var(--amber);color:#fff;border-radius:2px;vertical-align:middle}
 .cot-card-num{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--mid);letter-spacing:1px}
 .cot-card-date{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--mid)}
 .cot-card-body{padding:8px 12px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -839,6 +842,19 @@ tr:hover td{background:#F5F3ED}
       <div class="lg-sub">Esta herramienta es exclusiva para el equipo de 4housing.<br>Ingresá con tu cuenta de Microsoft <strong>@4housing.com.ar</strong>.</div>
       <button class="lg-btn" id="lg-login-btn" onclick="gateLogin()">Ingresar con Microsoft</button>
       <div class="lg-err" id="lg-err"></div>
+      <div style="margin-top:22px"><a href="#" id="lg-ext-link" onclick="toggleExtLogin(true);return false;" style="color:#9A9690;font-size:12px;text-decoration:underline">Soy vendedor externo</a></div>
+    </div>
+    <div id="lg-state-ext" style="display:none">
+      <div class="lg-title">Acceso vendedor externo</div>
+      <div class="lg-sub">Ingresá con el usuario y contraseña que te asignaron.</div>
+      <input id="lg-ext-email" type="email" placeholder="Email" autocomplete="username"
+        style="width:100%;padding:11px 12px;margin-bottom:10px;border:1px solid #333;background:#141414;color:#F5F4F0;border-radius:2px;font-family:inherit;font-size:14px;outline:none">
+      <input id="lg-ext-pass" type="password" placeholder="Contraseña" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')gateLoginExterno()"
+        style="width:100%;padding:11px 12px;margin-bottom:14px;border:1px solid #333;background:#141414;color:#F5F4F0;border-radius:2px;font-family:inherit;font-size:14px;outline:none">
+      <button class="lg-btn" id="lg-ext-btn" onclick="gateLoginExterno()" style="width:100%">Ingresar</button>
+      <div class="lg-err" id="lg-ext-err"></div>
+      <div style="margin-top:22px"><a href="#" onclick="toggleExtLogin(false);return false;" style="color:#9A9690;font-size:12px;text-decoration:underline">Soy del equipo 4housing</a></div>
     </div>
     <div id="lg-state-loading" style="display:none">
       <div class="lg-spinner"></div>
@@ -1913,11 +1929,16 @@ function openDetail(id){
         ? '<a class="cot-pdf-btn" href="'+esc(c.pdfUrl)+'" target="_blank" rel="noopener" title="Abrir PDF en SharePoint'+(c.pdfName?' ('+esc(c.pdfName)+')':'')+'">PDF'+(c.pdfVersion?' v'+esc(String(c.pdfVersion)):'')+' ↗</a>'
         : '<span class="cot-pdf-none">sin PDF</span>';
       var delBtn='<button class="cot-del-btn" title="Eliminar esta cotización" onclick="archivarCotizacion(\''+esc(String(l.id))+'\',\''+esc(String(c.id||c.num))+'\')">Eliminar</button>';
+      var spBtn='';
+      if(!esExterno()&&c.pendienteSharePoint){
+        spBtn='<button class="cot-sp-btn" title="Crear carpeta y subir PDF a SharePoint" onclick="guardarEnSharePoint(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">↑ SharePoint</button>';
+      }
+      var extBadge=c.origenExterno?'<span class="cot-ext-badge" title="Cotización generada por vendedor externo'+(c.creadoPor?' ('+esc(c.creadoPor)+')':'')+'">EXTERNO</span>':'';
       return '<div class="cot-card">'+
         '<div class="cot-card-hdr">'+
-          '<span class="cot-card-num">OC N\u00b0 '+esc(c.num||'—')+'</span>'+
+          '<span class="cot-card-num">OC N\u00b0 '+esc(c.num||'—')+extBadge+'</span>'+
           '<span style="display:flex;align-items:center;gap:8px">'+
-            '<span class="cot-card-date">'+d+'</span>'+pdfBtn+delBtn+
+            '<span class="cot-card-date">'+d+'</span>'+pdfBtn+spBtn+delBtn+
           '</span>'+
         '</div>'+
         '<div class="cot-card-body">'+
@@ -2390,6 +2411,11 @@ async function initAll(){
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',gateBoot);}else{gateBoot();}
 
 // ── GATE DE ACCESO (login + validación de dominio @4housing.com.ar) ──────────
+// Rol de la sesión actual: 'interno' (cuenta @4housing, login Microsoft, acceso total)
+// o 'externo' (cuenta email/password creada en Supabase, solo cotizador + PDF local).
+var _userRole='interno';
+var _userEmail='';
+function esExterno(){return _userRole==='externo';}
 var _gateAccount=null;
 function _gateShowError(msg){
   var e=document.getElementById('lg-err');
@@ -2412,8 +2438,29 @@ function _gateEmailFromSession(session){
 function _gateEnterApp(){
   var g=document.getElementById('authGate');
   if(g)g.style.display='none';
+  if(esExterno()){
+    aplicarModoExterno();
+    try{initApp();}catch(e){console.warn('initApp:',e);}
+    // Los externos NO cargan el CRM (loadData lee todo el pipeline).
+    return;
+  }
   try{initApp();}catch(e){console.warn('initApp:',e);}
   try{loadData();}catch(e){console.warn('loadData:',e);}
+}
+// Ajusta la UI para vendedores externos: oculta pestañas de CRM y deja solo el cotizador
+function aplicarModoExterno(){
+  try{
+    var tabs=document.querySelectorAll('.tabs .tab');
+    tabs.forEach(function(t){
+      var isCotizador=/cotizador/i.test(t.getAttribute('onclick')||'');
+      t.style.display=isCotizador?'':'none';
+    });
+    // Mostrar directamente el cotizador
+    document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
+    var ct=document.getElementById('tab-cotizador');if(ct)ct.classList.add('active');
+    var ctab=Array.from(document.querySelectorAll('.tabs .tab')).find(function(t){return /cotizador/i.test(t.getAttribute('onclick')||'');});
+    if(ctab)ctab.classList.add('active');
+  }catch(e){console.warn('aplicarModoExterno:',e);}
 }
 // Login disparado por el botón del gate: redirige a Microsoft vía Supabase
 async function gateLogin(){
@@ -2435,16 +2482,53 @@ async function gateLogin(){
     _gateShowError('No se pudo iniciar sesión con Microsoft. Probá de nuevo.');
   }
 }
-// Procesa la sesión: dominio correcto -> entra; incorrecto -> rechaza y cierra sesión
+// Alterna entre el login Microsoft (internos) y el formulario externo
+function toggleExtLogin(showExt){
+  document.getElementById('lg-state-login').style.display=showExt?'none':'';
+  document.getElementById('lg-state-ext').style.display=showExt?'':'none';
+  var e=document.getElementById('lg-ext-err');if(e)e.classList.remove('show');
+}
+function _gateShowExtError(msg){
+  var e=document.getElementById('lg-ext-err');
+  if(e){e.textContent=msg;e.classList.add('show');}
+  var b=document.getElementById('lg-ext-btn');if(b)b.disabled=false;
+}
+// Login de vendedor externo vía Supabase Auth (email + contraseña, sin Microsoft)
+async function gateLoginExterno(){
+  var email=(document.getElementById('lg-ext-email').value||'').trim().toLowerCase();
+  var pass=document.getElementById('lg-ext-pass').value||'';
+  if(!email||!pass){_gateShowExtError('Completá email y contraseña.');return;}
+  // Un email @4housing.com.ar NO debe entrar por acá: es un interno.
+  if(_gateDomainOk(email)){_gateShowExtError('Las cuentas @'+MSAL_CONFIG.allowedDomain+' ingresan con el botón de Microsoft.');return;}
+  var btn=document.getElementById('lg-ext-btn');if(btn)btn.disabled=true;
+  try{
+    try{await _ensureSbClient();}
+    catch(e){throw new Error('No se pudo cargar el módulo de Supabase. Recargá la página.');}
+    var res=await _sbClient.auth.signInWithPassword({email:email,password:pass});
+    if(res&&res.error)throw res.error;
+    var session=res&&res.data&&res.data.session;
+    if(!session){throw new Error('No se pudo iniciar sesión.');}
+    _sbAccessToken=session.access_token||null;
+    _userRole='externo';
+    _userEmail=email;
+    _gateAccount={username:email};
+    _gateEnterApp();
+  }catch(e){
+    console.warn('gateLoginExterno:',e);
+    _gateShowExtError('Usuario o contraseña incorrectos.');
+  }
+}
+// Procesa la sesión: dominio 4housing -> interno; otro dominio -> externo (cotizador)
 async function _gateApplySession(session){
   var email=_gateEmailFromSession(session);
   if(!email){_gateShowError('No se pudo leer el correo de la cuenta. Probá de nuevo.');return false;}
-  if(!_gateDomainOk(email)){
-    try{await _sbClient.auth.signOut();}catch(e){}
-    _sbAccessToken=null;
-    _gateShowError('La cuenta '+email+' no pertenece a @'+MSAL_CONFIG.allowedDomain+'. Acceso denegado.');
-    return false;
+  if(_gateDomainOk(email)){
+    _userRole='interno';
+  }else{
+    // Cuenta externa (login email/password). Solo cotizador + PDF local.
+    _userRole='externo';
   }
+  _userEmail=email;
   _sbAccessToken=session.access_token||null;
   _gateAccount={username:email};
   _gateEnterApp();
@@ -2688,6 +2772,69 @@ async function _doGeneratePDF(){
   await _finishPDF(finalBytes);
 }
 
+// ── Subida diferida a SharePoint (cotizaciones de externos) ─────────────────────
+// Regenera el PDF desde el snapshot guardado y lo sube a SharePoint usando la
+// sesión Microsoft del interno. Solo internos; requiere una cotización con snapshot.
+async function _regenerarBytesDesdeSnapshot(snap){
+  // Backup del estado global y de los campos del formulario
+  var bak={sel:sel,opts:opts,kmVal:kmVal,exportVal:exportVal};
+  var domIds=['oNum','oFecha','oValidez','oLugar','oVendedor','oPlazo','oPago','oNotas','cNombre','cContacto','cEmail','cTel','cant'];
+  var domBak={}; domIds.forEach(function(id){var el=document.getElementById(id);domBak[id]=el?el.value:null;});
+  try{
+    // Restaurar estado desde el snapshot
+    sel=snap.sel; opts=JSON.parse(JSON.stringify(snap.opts||{})); kmVal=snap.kmVal; exportVal=!!snap.exportacion;
+    function setv(id,v){var el=document.getElementById(id);if(el!=null&&v!=null)el.value=v;}
+    setv('oNum',snap.oNum);setv('oFecha',snap.oFecha);setv('oValidez',snap.oValidez);
+    setv('oLugar',snap.oLugar);setv('oVendedor',snap.oVendedor);setv('oPlazo',snap.oPlazo);
+    setv('oPago',snap.pago);setv('oNotas',snap.notas);
+    setv('cNombre',snap.cNombre);setv('cContacto',snap.cContacto);setv('cEmail',snap.cEmail);setv('cTel',snap.cTel);
+    setv('cant',snap.cant);
+    // Generar bytes (misma ruta que la generación normal)
+    var doc=_buildOfferPDF();
+    var linea=LINEA[sel], catalogKey=DNAME[sel];
+    var hasCatalog=(linea==='madera'||linea==='modular')&&CATALOG_MODEL_PAGES[linea]&&CATALOG_MODEL_PAGES[linea][catalogKey];
+    var bytes;
+    if(hasCatalog&&typeof PDFLib!=='undefined'){
+      try{bytes=await _buildMergedBytes(doc,linea,catalogKey);}
+      catch(e){console.error('Merge error en regeneración:',e);bytes=doc.output('arraybuffer');}
+    }else{bytes=doc.output('arraybuffer');}
+    return bytes;
+  }finally{
+    // Restaurar SIEMPRE el estado original
+    sel=bak.sel;opts=bak.opts;kmVal=bak.kmVal;exportVal=bak.exportVal;
+    domIds.forEach(function(id){var el=document.getElementById(id);if(el&&domBak[id]!=null)el.value=domBak[id];});
+  }
+}
+// Sube a SharePoint una cotización externa pendiente y actualiza el lead
+async function guardarEnSharePoint(leadId,cotId){
+  if(esExterno()){alert('Esta acción es solo para usuarios internos.');return;}
+  var l=allLeads.find(function(x){return x.id===leadId;});if(!l)return;
+  var cot=(l.cotizaciones||[]).find(function(c){return String(c.id)===String(cotId);});
+  if(!cot){alert('No se encontró la cotización.');return;}
+  if(!cot.snapshot){alert('Esta cotización no tiene los datos para regenerar el PDF (fue creada antes de esta función).');return;}
+  if(!confirm('¿Crear la carpeta y guardar el PDF de la cotización OC N° '+(cot.num||'—')+' en SharePoint?'))return;
+  try{
+    await _initMSAL(); await _getSiteDrive();
+    var bytes=await _regenerarBytesDesdeSnapshot(cot.snapshot);
+    var meta={num:cot.num,cliente:l.cliente,
+      linea:(cot.linea||'').indexOf('Madera')>=0?'Madera':'Modular',modelo:cot.modelo};
+    var pdfMeta=await _spUploadOfferPDF(bytes,meta);
+    // Actualizar la cotización con los datos de SharePoint y desmarcar pendiente
+    cot.pdfUrl=(pdfMeta&&pdfMeta.webUrl)||'';cot.pdfPath=(pdfMeta&&pdfMeta.path)||'';
+    cot.pdfName=(pdfMeta&&pdfMeta.name)||'';cot.pdfVersion=(pdfMeta&&pdfMeta.version)||null;
+    cot.pendienteSharePoint=false;
+    if(!l.actividad)l.actividad=[];
+    l.actividad.push({fecha:new Date().toLocaleDateString('es-AR'),texto:'PDF guardado en SharePoint: OC N° '+(cot.num||'—')});
+    await saveLeadToDB(l);
+    render();
+    if(currentLeadId===leadId)openDetail(leadId);
+    alert('✓ PDF guardado en SharePoint'+((pdfMeta&&pdfMeta.name)?':\n'+pdfMeta.name:'.'));
+  }catch(e){
+    console.error('guardarEnSharePoint:',e);
+    alert('No se pudo guardar en SharePoint:\n'+(e&&e.message||e));
+  }
+}
+
 // Devuelve los bytes del PDF (oferta + catálogo). No descarga ni sube.
 async function _buildMergedBytes(jspdfDoc,linea,modelKey){
   await _initMSAL();await _getSiteDrive();
@@ -2725,20 +2872,22 @@ async function _buildMergedBytes(jspdfDoc,linea,modelKey){
   return await merged.save(); // Uint8Array
 }
 
-// Rutina común: sube a SharePoint (siempre) + descarga local con el MISMO nombre + guarda lead
+// Rutina común: sube a SharePoint (solo internos) + descarga local + guarda lead
 async function _finishPDF(finalBytes){
   var meta={num:gv('oNum'),cliente:gv('cNombre'),
     linea:LINEA[sel]==='madera'?'Madera':'Modular',modelo:DNAME[sel]};
-  // 1) Subida a SharePoint primero (calcula la versión y devuelve el nombre definitivo)
   var pdfMeta=null;
-  try{
-    pdfMeta=await _spUploadOfferPDF(finalBytes,meta);
-  }catch(e){
-    console.error('[PDF] ✗ No se pudo subir a SharePoint:',e);
-    alert('No se pudo subir el PDF a SharePoint:\n'+e.message+'\nSe descargará localmente igual y el lead se guardará sin el archivo adjunto.');
+  if(!esExterno()){
+    // 1) Subida a SharePoint primero (calcula la versión y devuelve el nombre definitivo)
+    try{
+      pdfMeta=await _spUploadOfferPDF(finalBytes,meta);
+    }catch(e){
+      console.error('[PDF] ✗ No se pudo subir a SharePoint:',e);
+      alert('No se pudo subir el PDF a SharePoint:\n'+e.message+'\nSe descargará localmente igual y el lead se guardará sin el archivo adjunto.');
+    }
   }
   // 2) Descarga local con el MISMO nombre que SharePoint (incluida la versión).
-  //    Si SharePoint falló, usa el nombre base con v1 como respaldo.
+  //    Externos y respaldo interno: nombre base con v1.
   var dlName=(pdfMeta&&pdfMeta.name)||(_spBaseName(meta)+' - v1.pdf');
   try{
     var blob=new Blob([finalBytes],{type:'application/pdf'});
@@ -2748,7 +2897,7 @@ async function _finishPDF(finalBytes){
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }catch(e){console.warn('Descarga local falló:',e);}
-  // 3) Guardar lead con el link
+  // 3) Guardar lead con el link (o marcado como pendiente de SharePoint si es externo)
   await saveLead(pdfMeta);
 }
 
@@ -3302,6 +3451,8 @@ async function _spSaveLead(lead){
     id:'cot_'+Date.now(),
     fecha:lead.fecha,num:lead.num,linea:lead.linea,modelo:lead.modelo,
     sup:lead.sup,cant:lead.cant,total:lead.total,pago:lead.pago,plazo:lead.plazo,notas:lead.notas,
+    origenExterno:lead.origenExterno||false, creadoPor:lead.creadoPor||'',
+    pendienteSharePoint:lead.pendienteSharePoint||false, snapshot:lead.snapshot||null,
     pdfUrl:lead.pdfUrl||'',pdfPath:lead.pdfPath||'',pdfName:lead.pdfName||'',pdfVersion:lead.pdfVersion||null
   };
   const clienteName=(lead.cliente||'').trim();
@@ -3357,6 +3508,17 @@ function saveLead(pdfMeta){
     var items=getItems();
     var cant=parseInt(document.getElementById('cant').value)||1;
     var tot=items.reduce(function(s,i){return s+i.precio;},0)*cant;
+    // Snapshot de la cotización para poder regenerar el PDF fiel más adelante
+    // (necesario para la subida diferida a SharePoint de cotizaciones de externos).
+    var snapshot={
+      sel:sel, exportacion:exportVal, cant:cant,
+      opts:JSON.parse(JSON.stringify(opts)), kmVal:kmVal,
+      items:items.map(function(i){return {label:i.label,pdfLabel:i.pdfLabel||i.label,precio:i.precio};}),
+      oNum:gv('oNum'),oFecha:gv('oFecha'),oValidez:gv('oValidez'),
+      oLugar:gv('oLugar'),oVendedor:gv('oVendedor'),oPlazo:gv('oPlazo'),
+      pago:document.getElementById('oPago').value,notas:gv('oNotas'),
+      cNombre:gv('cNombre'),cContacto:gv('cContacto'),cEmail:gv('cEmail'),cTel:gv('cTel')
+    };
     var lead={
       id:'lead_'+Date.now(),
       fecha:new Date().toISOString(),
@@ -3366,6 +3528,8 @@ function saveLead(pdfMeta){
       modelo:DNAME[sel],sup:COSTOS[sel].sup,cant:cant,total:tot,
       pago:document.getElementById('oPago').value,plazo:gv('oPlazo'),
       etapa:'Cotizado',notas:gv('oNotas'),actividad:[],exportacion:exportVal,
+      origenExterno:esExterno(), creadoPor:_userEmail||'',
+      pendienteSharePoint:esExterno(), snapshot:snapshot,
       pdfUrl:(pdfMeta&&pdfMeta.webUrl)||'',pdfPath:(pdfMeta&&pdfMeta.path)||'',
       pdfName:(pdfMeta&&pdfMeta.name)||'',pdfVersion:(pdfMeta&&pdfMeta.version)||null
     };
