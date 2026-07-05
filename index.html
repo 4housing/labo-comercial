@@ -2146,25 +2146,26 @@ const BINC_MADERA=[
   "Termotanque eléctrico de 155 litros.",
 ];
 const BINC_MODULAR=[
-  "Estructura de acero autoportante y muros exteriores con panel sándwich prepintado de 50 mm.",
-  "Cubierta de panel sándwich de 50 mm con pometina y plegado perimetral de terminación.",
+  "Estructura de acero autoportante y muros exteriores en panel sándwich de acero galvanizado prepintado al horno, con 50 mm de aislación térmica de poliuretano inyectado (PIR), densidad 40 kg/m³.",
+  "Cubierta en panel sándwich de 50 mm (acero galvanizado prepintado + PIR 40 kg/m³), con membrana hidrófuga, piedra volcánica pometina y plegado perimetral de terminación.",
+  "Muros exteriores revestidos en listones de madera impregnada (opcional cerámica).",
   "Piso de mosaico granítico.",
-  "Divisiones interiores en placas de jequetibá.",
+  "Muros interiores en placas de madera natural Jequetibá con juntas buñadas.",
   "Muros de baño revestidos en cerámica blanca 15 × 15 cm.",
-  "Cielorrasos en placas de guatambú.",
+  "Cielorrasos en placas de madera natural Guatambú.",
   "Aberturas exteriores de aluminio anodizado natural con DVH.",
   "Puerta exterior en madera de pino impregnado.",
-  "Puertas interiores enchapadas en jequetibá.",
+  "Puertas interiores enchapadas en madera natural Jequetibá.",
   "Instalación eléctrica completa con provisión de artefactos (tipo copa escolar).",
-  "Mobiliario de cocina en acero inoxidable pulido con estructura de acero, zócalo y cajonera.",
+  "Mobiliario de cocina en acero inoxidable pulido con estructura de acero arenado y pintado, zócalo y cajonera.",
   "Artefactos sanitarios Ferrum línea Bari y griferías FV línea Puelo. Inodoro Smart con función bidet.",
   "Termotanque eléctrico de 155 litros.",
 ];
 // ── Descripciones de opcionales ───────────────────────────────────────────────
 const ODESC_MADERA={
-  "Platea de fundación + Granítico": "Platea de fundación con terminación en piso granítico.",
-  "Termomecánica por AA Split": "Sistema de climatización mediante equipos de aire acondicionado frío-calor tipo Split.",
-  "Piso Radiante": "Sistema de calefacción por piso radiante con caldera a gas y termostato.",
+  "Platea de fundación + Granítico": "Platea de fundación (esquema típico, a verificar según estudio de suelo y cálculo de fundación).",
+  "Termomecánica por AA Split": "Sistema de climatización mediante equipos de aire acondicionado frío-calor tipo Split, con espacio de guardado seguro para unidades exteriores.",
+  "Piso Radiante": "Sistema de calefacción por piso radiante con caldera y termostato ambiente.",
   "Línea Blanca": "Provisión de línea blanca: anafe, horno y campana extractora.",
   "Paquete Solar": "Paquete solar compuesto por equipamiento para generación/soporte energético.",
   "Estufa a Leña": "Estufa a leña con kit de salida, instalada y operativa.",
@@ -2174,9 +2175,9 @@ const ODESC_MADERA={
   "Montaje": "Montaje en obra de la unidad y componentes.",
 };
 const ODESC_MODULAR={
-  "Platea de fundación + Granítico": "Sistema de fundación de vigas cintas.",
-  "Termomecánica por AA Split": "Sistema de climatización mediante equipos de aire acondicionado frío-calor tipo Split.",
-  "Piso Radiante": "Sistema de calefacción por piso radiante con caldera a gas y termostato.",
+  "Platea de fundación + Granítico": "Sistema de fundación de vigas cintas (esquema típico, a verificar según estudio de suelo y cálculo de fundación).",
+  "Termomecánica por AA Split": "Sistema de climatización mediante equipos de aire acondicionado frío-calor tipo Split, con espacio de guardado seguro para unidades exteriores.",
+  "Piso Radiante": "Sistema de calefacción por piso radiante eléctrico con termostato ambiente.",
   "Línea Blanca": "Provisión de línea blanca: anafe, horno y campana extractora.",
   "Paquete Solar": "Paquete solar compuesto por equipamiento para generación/soporte energético.",
   "Estufa a Leña": "Estufa a leña con kit de salida, instalada y operativa.",
@@ -2199,6 +2200,30 @@ function getOpcionalesDesc(){
   });
   // Logística siempre si hay km
   if(kmVal&&kmVal>=100)result.push('Logística y transporte, calculados según distancia al destino.');
+  return result;
+}
+// Exclusiones fijas (siempre presentes)
+const EXCL_FIJAS=[
+  "Mobiliario y equipamiento interior (camas, sillones, mesas, sillas, etc.).",
+  "Tendido de instalaciones en terreno (agua, cloaca, electricidad, gas): requiere relevamiento previo para cotizar.",
+  "Movimiento de suelos con aporte de material: requiere relevamiento previo para cotizar.",
+  "Trámites y gestoría municipal (permisos, habilitaciones, aprobaciones).",
+];
+// Construye lista de exclusiones: fijas + opcionales NO seleccionados
+// Reutiliza las descripciones por línea (getODESC) para mantener coherencia
+function getExclusiones(){
+  const result=EXCL_FIJAS.slice();
+  const d=COSTOS[sel]; if(!d)return result;
+  const desc=getODESC();
+  // Opcionales disponibles para el modelo que NO fueron seleccionados
+  Object.keys(d.op).forEach(n=>{
+    if(!opts[n] && d.op[n]>0 && desc[n]) result.push(desc[n]);
+  });
+  // Montaje: opcional aparte (no está en d.op)
+  const hasMontaje=(COSTOS_MONTAJE[sel]||[]).some(v=>v>0);
+  if(hasMontaje && !opts['Montaje'] && desc['Montaje']) result.push(desc['Montaje']);
+  // Logística: excluida si no hay km válidos
+  if(!(kmVal&&kmVal>=100)) result.push('Logística y transporte (a cotizar según distancia al destino).');
   return result;
 }
 let sel=null,opts={},kmVal=null,exportVal=false;
@@ -2508,7 +2533,7 @@ function goStep(n){
 function gv(id){return document.getElementById(id).value||'—';}
 function fd(s){if(!s||s==='—')return '—';const[a,m,d]=s.split('-');return`${d}/${m}/${a}`;}
 
-function buildPreview(){const d=COSTOS[sel];const cant=parseInt(document.getElementById('cant').value)||1;const items=getItems();const tot=items.reduce((s,i)=>s+i.precio,0);const totO=tot*cant;const pago=document.getElementById('oPago').value;const notas=document.getElementById('oNotas').value;const rows=items.map(it=>`<tr><td>${it.label}</td><td style="text-align:center">${cant}</td><td style="text-align:right;font-family:'IBM Plex Mono',monospace">USD ${fmtCot(it.precio)}</td><td style="text-align:right;font-family:'IBM Plex Mono',monospace">USD ${fmtCot(it.precio*cant)}</td></tr>`).join('');const binc=getBINC();const inc=binc.map(i=>`<div class="iitem"><span class="dot"></span><span>${i}</span></div>`).join('');const opDesc=getOpcionalesDesc();const incOpts=opDesc.length>0?opDesc.map(i=>`<div class="iitem"><span class="dot" style="background:var(--black)"></span><span>${i}</span></div>`).join(''):'';
+function buildPreview(){const d=COSTOS[sel];const cant=parseInt(document.getElementById('cant').value)||1;const items=getItems();const tot=items.reduce((s,i)=>s+i.precio,0);const totO=tot*cant;const pago=document.getElementById('oPago').value;const notas=document.getElementById('oNotas').value;const rows=items.map(it=>`<tr><td>${it.label}</td><td style="text-align:center">${cant}</td><td style="text-align:right;font-family:'IBM Plex Mono',monospace">USD ${fmtCot(it.precio)}</td><td style="text-align:right;font-family:'IBM Plex Mono',monospace">USD ${fmtCot(it.precio*cant)}</td></tr>`).join('');const binc=getBINC();const inc=binc.map(i=>`<div class="iitem"><span class="dot"></span><span>${i}</span></div>`).join('');const opDesc=getOpcionalesDesc();const incOpts=opDesc.length>0?opDesc.map(i=>`<div class="iitem"><span class="dot" style="background:var(--black)"></span><span>${i}</span></div>`).join(''):'';const exclList=getExclusiones();const excl=exclList.map(i=>`<div class="iitem"><span class="dot" style="background:var(--red)"></span><span>${i}</span></div>`).join('');const nExcl=incOpts?4:3;const nNotas=nExcl+1;
 document.getElementById('pvw').innerHTML=`
 <div class="oempresa">
   <div>
@@ -2556,7 +2581,8 @@ document.getElementById('pvw').innerHTML=`
 <div class="ostitle">2. El precio base incluye</div>
 <div class="igrid">${inc}</div>
 ${incOpts?`<div class="ostitle">3. Opcionales incluidos</div><div class="igrid">${incOpts}</div>`:''}
-${notas?`<div class="ostitle">${incOpts?'4':'3'}. Notas adicionales</div><div class="nbox">${notas}</div>`:''}
+<div class="ostitle">${nExcl}. Exclusiones</div><div class="igrid">${excl}</div>
+${notas?`<div class="ostitle">${nNotas}. Notas adicionales</div><div class="nbox">${notas}</div>`:''}
 <div class="oftr">Generada el ${fd(gv('oFecha'))} — validez ${gv('oValidez')} días &nbsp;|&nbsp; LABO Gerencia Comercial &nbsp;|&nbsp; ${gv('oVendedor')}</div>`;}
 
 /* ═══════════════════════════════════════════════════════
@@ -2848,7 +2874,7 @@ function _buildOfferPDF(){
   BINC.forEach((inc)=>{
     const wrapped=doc.splitTextToSize(inc,colR_w-5);
     doc.setFillColor(10,10,10);doc.rect(colR_x,yR-1,dotSz,dotSz,'F');
-    doc.text(wrapped[0],colR_x+4,yR);
+    wrapped.forEach((ln,li)=>{doc.text(ln,colR_x+4,yR);if(li<wrapped.length-1)yR+=3.4;});
     yR+=4.2;
   });
   yR+=3;
@@ -2866,7 +2892,25 @@ function _buildOfferPDF(){
     opDescPDF.forEach((inc)=>{
       const wrapped=doc.splitTextToSize(inc,colR_w-5);
       doc.setFillColor(60,130,90);doc.rect(colR_x,yR-1,dotSz,dotSz,'F');
-      doc.text(wrapped[0],colR_x+4,yR);
+      wrapped.forEach((ln,li)=>{doc.text(ln,colR_x+4,yR);if(li<wrapped.length-1)yR+=3.4;});
+      yR+=4.2;
+    });
+    yR+=3;
+  }
+
+  // Exclusiones
+  const exclPDF=getExclusiones();
+  if(exclPDF.length>0){
+    doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(138,135,127);
+    doc.text('EXCLUSIONES',colR_x,yR);
+    doc.setDrawColor(200,197,188);doc.setLineWidth(0.2);
+    doc.line(colR_x+doc.getTextWidth('EXCLUSIONES')+2,yR-0.5,colR_x+colR_w,yR-0.5);
+    yR+=4.5;
+    doc.setFont('helvetica','normal');doc.setFontSize(6.2);doc.setTextColor(10,10,10);
+    exclPDF.forEach((inc)=>{
+      const wrapped=doc.splitTextToSize(inc,colR_w-5);
+      doc.setFillColor(192,57,43);doc.rect(colR_x,yR-1,dotSz,dotSz,'F');
+      wrapped.forEach((ln,li)=>{doc.text(ln,colR_x+4,yR);if(li<wrapped.length-1)yR+=3.4;});
       yR+=4.2;
     });
   }
