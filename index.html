@@ -1447,6 +1447,18 @@ async function loadData(){
       }
       // Ensure leadNum exists
       if(!l.leadNum) l.leadNum=null;
+      // Blindaje: toda cotización debe tener un id único y estable.
+      // Sin esto, el borrado podía matchear por 'num' (a veces '—' o repetido)
+      // y afectar a la cotización equivocada o al lead entero.
+      if(Array.isArray(l.cotizaciones)){
+        var _seen={};
+        l.cotizaciones.forEach(function(c,idx){
+          if(!c.id || _seen[c.id]){
+            c.id='cot_'+l.id+'_'+idx+'_'+(c.fecha||'')+'_'+(c.num||'')+'_'+Math.random().toString(36).slice(2,8);
+          }
+          _seen[c.id]=true;
+        });
+      }
       return l;
     }).filter(function(l){return !leadArchivado(l);})
       .sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
@@ -1928,7 +1940,7 @@ function openDetail(id){
       var pdfBtn=c.pdfUrl
         ? '<a class="cot-pdf-btn" href="'+esc(c.pdfUrl)+'" target="_blank" rel="noopener" title="Abrir PDF en SharePoint'+(c.pdfName?' ('+esc(c.pdfName)+')':'')+'">PDF'+(c.pdfVersion?' v'+esc(String(c.pdfVersion)):'')+' ↗</a>'
         : '<span class="cot-pdf-none">sin PDF</span>';
-      var delBtn='<button class="cot-del-btn" title="Eliminar esta cotización" onclick="archivarCotizacion(\''+esc(String(l.id))+'\',\''+esc(String(c.id||c.num))+'\')">Eliminar</button>';
+      var delBtn='<button class="cot-del-btn" title="Eliminar esta cotización" onclick="archivarCotizacion(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">Eliminar</button>';
       var spBtn='';
       if(!esExterno()&&c.pendienteSharePoint){
         spBtn='<button class="cot-sp-btn" title="Crear carpeta y subir PDF a SharePoint" onclick="guardarEnSharePoint(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">↑ SharePoint</button>';
@@ -2044,10 +2056,25 @@ function _applyEtapa(id,etapa,fromDetail,motivo){
 // activas, se retira de la vista (allLeads) aunque la fila persiste en la base.
 function archivarCotizacion(leadId,cotId){
   const l=allLeads.find(x=>x.id===leadId);if(!l)return;
-  const cot=(l.cotizaciones||[]).find(c=>String(c.id)===String(cotId)||String(c.num)===String(cotId));
-  if(!cot){console.warn('Cotización no encontrada',cotId);return;}
+  const cots=l.cotizaciones||[];
+  // Match SOLO por id único. Nunca por 'num' (puede ser '—' o repetirse entre
+  // varias cotizaciones del mismo lead y archivar la equivocada).
+  const matches=cots.filter(c=>String(c.id)===String(cotId));
+  if(matches.length===0){console.warn('Cotización no encontrada por id',cotId);return;}
+  if(matches.length>1){
+    console.error('id de cotización ambiguo, se aborta por seguridad',cotId,matches);
+    alert('No se pudo identificar de forma única esta cotización. No se archivó nada para evitar borrar la equivocada. Avisá a soporte.');
+    return;
+  }
+  const cot=matches[0];
+  if(cot.archivada){if(typeof toast==='function')toast('Esa cotización ya estaba archivada');return;}
+  const activasAntes=cotsActivas(l).length;
+  const restantes=activasAntes-1;
   const label='OC N° '+(cot.num||'—')+(cot.total?' (USD '+fmt(cot.total)+')':'');
-  if(!confirm('¿Eliminar la cotización '+label+'?\n\nDejará de contar en los indicadores. Quedará archivada en la base (no se borra definitivamente).'))return;
+  const msgFinal=restantes>0
+    ? '\n\nEl lead seguirá activo con '+restantes+' cotización(es).'
+    : '\n\nEs la única cotización activa: el lead dejará de aparecer en la vista (queda archivado en la base, no se borra).';
+  if(!confirm('¿Eliminar la cotización '+label+'?\n\nDejará de contar en los indicadores. Quedará archivada en la base (no se borra definitivamente).'+msgFinal))return;
   cot.archivada=true;
   cot.fechaArchivado=new Date().toISOString();
   if(!l.actividad)l.actividad=[];
@@ -2714,8 +2741,8 @@ document.getElementById('pvw').innerHTML=`
   <thead><tr><th>Concepto</th><th style="text-align:center">Cant.</th><th style="text-align:right">Precio unit. (USD)</th><th style="text-align:right">Subtotal (USD)</th></tr></thead>
   <tbody>${rows}<tr class="otrow"><td colspan="3"><strong>TOTAL OFERTA</strong></td><td style="font-family:'IBM Plex Mono',monospace"><strong>USD ${fmtCot(totO)}</strong></td></tr></tbody>
 </table>
-<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:1px">* Valores en USD. No incluyen IVA.</div>
-<div style="font-size:9px;font-style:italic;color:var(--mid);margin-top:-10px;margin-bottom:16px;line-height:1.4">Valores de referencia, sujetos a validación y ajuste según las definiciones finales de alcance, especificaciones y condiciones de ejecución del proyecto.</div>
+<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:1px">* Valores en USD. No incluyen IVA.</div>
+<div style="font-size:9px;font-style:italic;color:var(--mid);margin-bottom:16px;line-height:1.4">Valores de referencia, sujetos a validación y ajuste según las definiciones finales de alcance, especificaciones y condiciones de ejecución del proyecto.</div>
 <div class="ostitle">2. El precio base incluye</div>
 <div class="igrid">${inc}</div>
 ${incOpts?`<div class="ostitle">3. Opcionales incluidos</div><div class="igrid">${incOpts}</div>`:''}
@@ -3025,12 +3052,12 @@ function _buildOfferPDF(){
 
   doc.setFont('helvetica','italic');doc.setFontSize(5.5);doc.setTextColor(138,135,127);
   doc.text('* Valores en USD. No incluyen IVA.',colL_x,yL+3.5);
-  yL+=5.5;
+  yL+=3.5;
   // Disclaimer: carácter referencial de los valores
   const refNota='Valores de referencia, sujetos a validación y ajuste según las definiciones finales de alcance, especificaciones y condiciones de ejecución del proyecto.';
   const refLines=doc.splitTextToSize(refNota,colL_w);
-  doc.text(refLines,colL_x,yL+2);
-  yL+=refLines.length*2.4+2.5;
+  doc.text(refLines,colL_x,yL+3.5);
+  yL+=3.5+(refLines.length-1)*2.4+3.5;
 
   // Condiciones
   const yCondiciones = yL; // save this y to sync right column
