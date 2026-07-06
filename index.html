@@ -2715,6 +2715,7 @@ document.getElementById('pvw').innerHTML=`
   <tbody>${rows}<tr class="otrow"><td colspan="3"><strong>TOTAL OFERTA</strong></td><td style="font-family:'IBM Plex Mono',monospace"><strong>USD ${fmtCot(totO)}</strong></td></tr></tbody>
 </table>
 <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:1px">* Valores en USD. No incluyen IVA.</div>
+<div style="font-size:9px;font-style:italic;color:var(--mid);margin-top:-10px;margin-bottom:16px;line-height:1.4">Valores de referencia, sujetos a validación y ajuste según las definiciones finales de alcance, especificaciones y condiciones de ejecución del proyecto.</div>
 <div class="ostitle">2. El precio base incluye</div>
 <div class="igrid">${inc}</div>
 ${incOpts?`<div class="ostitle">3. Opcionales incluidos</div><div class="igrid">${incOpts}</div>`:''}
@@ -3024,7 +3025,12 @@ function _buildOfferPDF(){
 
   doc.setFont('helvetica','italic');doc.setFontSize(5.5);doc.setTextColor(138,135,127);
   doc.text('* Valores en USD. No incluyen IVA.',colL_x,yL+3.5);
-  yL+=8;
+  yL+=5.5;
+  // Disclaimer: carácter referencial de los valores
+  const refNota='Valores de referencia, sujetos a validación y ajuste según las definiciones finales de alcance, especificaciones y condiciones de ejecución del proyecto.';
+  const refLines=doc.splitTextToSize(refNota,colL_w);
+  doc.text(refLines,colL_x,yL+2);
+  yL+=refLines.length*2.4+2.5;
 
   // Condiciones
   const yCondiciones = yL; // save this y to sync right column
