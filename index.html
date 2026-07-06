@@ -1100,6 +1100,8 @@ tr:hover td{background:#F5F3ED}
   <div class="header-right">
     <span>Gerencia Comercial</span>
     <span class="step-indicator" id="stepLabel">PASO 1 / 3</span>
+    <span id="userEmailLabel" style="text-transform:none;letter-spacing:0;font-size:10px;color:var(--muted)"></span>
+    <button id="logoutBtn" onclick="cerrarSesion()" title="Cerrar sesión" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;background:transparent;color:var(--white);border:1px solid rgba(245,244,240,.35);border-radius:4px;padding:5px 10px;cursor:pointer">Salir</button>
   </div>
 </div>
 
@@ -2465,6 +2467,10 @@ function _gateEmailFromSession(session){
 function _gateEnterApp(){
   var g=document.getElementById('authGate');
   if(g)g.style.display='none';
+  try{
+    var lbl=document.getElementById('userEmailLabel');
+    if(lbl)lbl.textContent=_userEmail?(_userEmail+(esExterno()?' · externo':'')):'';
+  }catch(e){}
   if(esExterno()){
     aplicarModoExterno();
     try{initApp();}catch(e){console.warn('initApp:',e);}
@@ -2584,6 +2590,30 @@ async function gateBoot(){
   // Sin sesión válida: mostrar pantalla de login
   document.getElementById('lg-state-login').style.display='';
   document.getElementById('lg-state-loading').style.display='none';
+}
+
+// Cierra la sesión activa (interno o externo). Ambos roles mantienen sesión en
+// Supabase; el interno además puede tener sesión MSAL para SharePoint. Limpiamos
+// las dos y recargamos para volver al gate de acceso.
+async function cerrarSesion(){
+  if(!confirm('¿Cerrar sesión?'))return;
+  try{
+    if(_sbClient){await _sbClient.auth.signOut();}
+  }catch(e){console.warn('signOut Supabase:',e);}
+  try{
+    if(typeof _msalInst!=='undefined'&&_msalInst){
+      var accs=_msalInst.getAllAccounts();
+      if(accs&&accs.length){
+        // logoutPopup (no redirect) por el bug de Safari/PWA ya documentado.
+        try{await _msalInst.logoutPopup({account:accs[0]});}
+        catch(e){console.warn('logoutPopup MSAL:',e);}
+      }
+    }
+  }catch(e){console.warn('logout MSAL:',e);}
+  // Limpiar estado local y volver al gate
+  _sbAccessToken=null;_userRole='interno';_userEmail='';_gateAccount=null;
+  try{sessionStorage.clear();}catch(e){}
+  window.location.reload();
 }
 
 function buildGrid(){
