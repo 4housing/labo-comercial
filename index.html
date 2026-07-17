@@ -220,6 +220,22 @@ tr:hover td{background:#F5F3ED}
 .lb-madera{background:#F0E6D3;color:#7D4E27}
 .lb-modular{background:#D6E4F7;color:#1A5276}
 
+/* ── CONTACTOS WEB BADGES ── */
+.cw-etapa1{background:#EFEDE7;color:#5C574E}.cw-etapa1 .etapa-dot{background:#9A9690}
+.cw-etapa2{background:#D6E4F7;color:#1A5276}.cw-etapa2 .etapa-dot{background:#1A5276}
+.cw-etapa3{background:#E8DAEF;color:#5B2C6F}.cw-etapa3 .etapa-dot{background:#7D3C98}
+.cw-estado-encurso{background:#D6E4F7;color:#1A5276}.cw-estado-encurso .etapa-dot{background:#1A5276}
+.cw-estado-descartado{background:#FADBD8;color:#922B21}.cw-estado-descartado .etapa-dot{background:#C0392B}
+.cw-estado-cotizado{background:#D5F5E3;color:#1E8449}.cw-estado-cotizado .etapa-dot{background:#1E8449}
+.cw-calidad-bueno{background:#D5F5E3;color:#1E8449}.cw-calidad-bueno .etapa-dot{background:#1E8449}
+.cw-calidad-regular{background:#FAE5D3;color:#7D4E27}.cw-calidad-regular .etapa-dot{background:#D4870A}
+.cw-calidad-malo{background:#FADBD8;color:#922B21}.cw-calidad-malo .etapa-dot{background:#C0392B}
+.cw-na{background:#EFEDE7;color:var(--mid)}.cw-na .etapa-dot{background:var(--mid)}
+.cw-msg{font-size:12px;line-height:1.5;color:var(--black);background:var(--card);border:1px solid var(--border);padding:9px 11px;white-space:pre-wrap}
+.cw-convert-btn{width:100%;padding:9px;background:var(--green);color:var(--white);border:none;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:2px;cursor:pointer;margin-top:7px}
+.cw-convert-btn:hover{opacity:.85}
+.cw-convert-btn:disabled{background:var(--mid);cursor:default;opacity:.6}
+
 /* ── DETAIL PANEL ── */
 .detail-overlay{display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-start;justify-content:flex-end}
 .detail-overlay.open{display:flex}
@@ -878,7 +894,7 @@ tr:hover td{background:#F5F3ED}
     <span class="hdr-label">CRM — Gerencia Comercial</span>
     <div class="hdr-actions">
       <button class="btn-sm" onclick="exportCSV()">↓ Exportar</button>
-      <button class="btn-sm" onclick="loadData()">↺ Actualizar</button>
+      <button class="btn-sm" onclick="loadData();loadContactosWeb();">↺ Actualizar</button>
     </div>
   </div>
 </div>
@@ -887,6 +903,7 @@ tr:hover td{background:#F5F3ED}
   <div class="tab active" onclick="switchTab('pipeline',this)">Pipeline</div>
   <div class="tab" onclick="switchTab('analisis',this)">Análisis</div>
   <div class="tab" onclick="switchTab('seguimiento',this)">Seguimiento</div>
+  <div class="tab" onclick="switchTab('contactos',this)">Contactos Web</div>
   <div class="tab" onclick="switchTab('cotizador',this)">+ Cotizador</div>
 </div>
 
@@ -1023,6 +1040,50 @@ tr:hover td{background:#F5F3ED}
 </div>
 </div>
 
+<!-- ══ TAB: CONTACTOS WEB ═══════════════════════════════════════════════════ -->
+<div id="tab-contactos" class="tab-content">
+<div class="page">
+  <div class="sidebar">
+    <div class="s-section">
+      <div class="s-label">Vista</div>
+      <div class="s-item active" onclick="setContactoFilter('all',this)">Todos <span class="s-count" id="cw-cnt-all">0</span></div>
+    </div>
+    <div class="s-divider"></div>
+    <div class="s-section">
+      <div class="s-label">Estado</div>
+      <div class="s-item" onclick="setContactoFilter('estado:En curso',this)">En curso <span class="s-count" id="cw-cnt-encurso">0</span></div>
+      <div class="s-item" onclick="setContactoFilter('estado:Descartado',this)">Descartado <span class="s-count" id="cw-cnt-descartado">0</span></div>
+      <div class="s-item" onclick="setContactoFilter('estado:Cotizado',this)">Cotizado <span class="s-count" id="cw-cnt-cotizado">0</span></div>
+    </div>
+    <div class="s-divider"></div>
+    <div class="s-section">
+      <div class="s-label">Calidad</div>
+      <div class="s-item" onclick="setContactoFilter('calidad:Bueno',this)">Bueno <span class="s-count" id="cw-cnt-bueno">0</span></div>
+      <div class="s-item" onclick="setContactoFilter('calidad:Regular',this)">Regular <span class="s-count" id="cw-cnt-regular">0</span></div>
+      <div class="s-item" onclick="setContactoFilter('calidad:Malo',this)">Malo <span class="s-count" id="cw-cnt-malo">0</span></div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="cost-note" style="margin-bottom:16px">
+      Estos contactos llegan automáticamente desde la campaña de Google Ads (planilla de la agencia). Trabajá la etapa, el estado, la calidad y los comentarios desde acá — la agencia los sigue viendo reflejados en su planilla, sin necesidad de acceso a esta herramienta.
+    </div>
+    <div class="kpi-grid" style="margin-bottom:20px">
+      <div class="kpi dark"><div class="kpi-label">Total contactos</div><div class="kpi-value" id="cw-kpi-total">0</div></div>
+      <div class="kpi"><div class="kpi-label">En curso</div><div class="kpi-value" id="cw-kpi-encurso">0</div></div>
+      <div class="kpi green"><div class="kpi-label">Convertidos a cotización</div><div class="kpi-value" id="cw-kpi-cotizado">0</div></div>
+      <div class="kpi"><div class="kpi-label">Calidad buena</div><div class="kpi-value" id="cw-kpi-calidad">0%</div></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-hdr">
+        <span class="table-title">Contactos web</span>
+        <div class="search-wrap"><input type="text" placeholder="Buscar..." oninput="filterContactoSearch(this.value)"></div>
+      </div>
+      <div id="cw-table-container"><div class="empty"><div class="empty-icon">◫</div><div class="empty-text">Cargando...</div></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
 <!-- DETAIL PANEL -->
 <div class="detail-overlay" id="detailOverlay" onclick="closeDetail(event)">
   <div class="detail-panel">
@@ -1031,6 +1092,17 @@ tr:hover td{background:#F5F3ED}
       <button class="dp-close" onclick="closeDetailPanel()">✕</button>
     </div>
     <div class="dp-body" id="dp-body"></div>
+  </div>
+</div>
+
+<!-- CONTACTOS WEB — DETAIL PANEL -->
+<div class="detail-overlay" id="cwDetailOverlay" onclick="closeContactoDetailBg(event)">
+  <div class="detail-panel">
+    <div class="dp-hdr">
+      <span class="dp-title" id="cw-dp-title">Detalle</span>
+      <button class="dp-close" onclick="closeContactoDetail()">✕</button>
+    </div>
+    <div class="dp-body" id="cw-dp-body"></div>
   </div>
 </div>
 
@@ -1383,7 +1455,58 @@ function saveLeadById(id){
   if(l)saveLeadToDB(l).catch(e=>console.warn(e));
 }
 
-
+/* ════════════════ CONTACTOS WEB (leads de Google Ads, cargados por la agencia) ═══
+   La agencia carga Entry ID/Nombre/Teléfono/Correo/Modelo/Tipo de proyecto/URL desde
+   un Google Apps Script atado a su planilla (ver rpc/ingest_contacto_web). Nosotros
+   trabajamos acá etapa/estado/calidad/comentarios; el mismo script los lee de vuelta
+   desde la vista pública 'contactos_web_agencia' y los escribe en la planilla, así
+   la agencia ve el seguimiento sin tener acceso a esta herramienta. */
+function _rowToContacto(r){
+  return {
+    id:r.id, entryId:r.entry_id, fecha:r.fecha, nombre:r.nombre, telefono:r.telefono,
+    email:r.email, modelo:r.modelo, tipoProyecto:r.tipo_proyecto, mensaje:r.comentario_form,
+    url:r.url, etapa:r.etapa||'1er contacto', estado:r.estado||'En curso', calidad:r.calidad,
+    comentarios:r.comentarios||[], leadId:r.lead_id
+  };
+}
+// Solo se reenvían los campos que trabajamos nosotros — nunca los que carga la agencia.
+function _contactoToRow(c){
+  return {
+    etapa:c.etapa, estado:c.estado, calidad:c.calidad||null,
+    comentarios:c.comentarios||[], lead_id:c.leadId||null,
+    updated_at:new Date().toISOString()
+  };
+}
+async function readContactosWeb(){
+  try{
+    const r=await _sbFetch('labo_contactos_web?select=*&order=created_at.desc',{method:'GET'});
+    if(!r.ok)throw new Error('Supabase read '+r.status);
+    const rows=await r.json();
+    const contactos=rows.map(_rowToContacto);
+    try{localStorage.setItem('labo_contactos_web',JSON.stringify(contactos));}catch(e){}
+    return contactos;
+  }catch(e){
+    console.warn('Supabase contactos read failed, using cache:',e);
+    try{const c=localStorage.getItem('labo_contactos_web');return c?JSON.parse(c):[];}catch(e2){return[];}
+  }
+}
+async function saveContactoWeb(c){
+  try{
+    const row=_contactoToRow(c);
+    const r=await _sbFetch('labo_contactos_web?id=eq.'+encodeURIComponent(c.id),{
+      method:'PATCH',
+      headers:{'Prefer':'return=minimal'},
+      body:JSON.stringify(row)
+    });
+    if(!r.ok){console.warn('Supabase save contacto '+r.status,await r.text());}
+    return r.ok;
+  }catch(e){console.warn('saveContactoWeb error:',e);return false;}
+}
+async function loadContactosWeb(){
+  try{allContactosWeb=await readContactosWeb();}
+  catch(e){console.error('loadContactosWeb error:',e);allContactosWeb=[];}
+  renderContactos();
+}
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const ETAPAS=[
@@ -1396,9 +1519,17 @@ const ETAPA_CLS=Object.fromEntries(ETAPAS.map(e=>[e.key,e.cls]));
 const ETAPA_PROB=Object.fromEntries(ETAPAS.map(e=>[e.key,e.prob]));
 const ACTIVAS=['Cotizado','En negociación'];
 
+const CW_ETAPAS=['1er contacto','2do contacto','3er contacto','4to+ contacto'];
+const CW_ETAPA_CLS={'1er contacto':'cw-etapa1','2do contacto':'cw-etapa2','3er contacto':'cw-etapa3','4to+ contacto':'cw-etapa3'};
+const CW_ESTADOS=['En curso','Descartado','Cotizado'];
+const CW_ESTADO_CLS={'En curso':'cw-estado-encurso','Descartado':'cw-estado-descartado','Cotizado':'cw-estado-cotizado'};
+const CW_CALIDADES=['Bueno','Regular','Malo'];
+const CW_CALIDAD_CLS={'Bueno':'cw-calidad-bueno','Regular':'cw-calidad-regular','Malo':'cw-calidad-malo'};
+
 // ── State ─────────────────────────────────────────────────────────────────────
 let allLeads=[], activeFilter='all', sortCol='fecha', sortAsc=false, searchVal='';
 let currentLeadId=null, pendingEtapaChange=null, selectedMotivo=null;
+let allContactosWeb=[], contactoFilter='all', contactoSearchVal='', currentContactoId=null;
 
 // ── Load ──────────────────────────────────────────────────────────────────────
 // ── Cotizaciones archivadas (soft-delete) ──────────────────────────────────────
@@ -2154,6 +2285,170 @@ function exportCSV(){
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
+// ── Contactos Web: filtros + render ──────────────────────────────────────────────
+function setContactoFilter(f,el){
+  contactoFilter=f;
+  document.querySelectorAll('#tab-contactos .s-item').forEach(i=>i.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderContactos();
+}
+function filterContactoSearch(v){contactoSearchVal=v;renderContactos();}
+function getFilteredContactos(){
+  let list=allContactosWeb.slice();
+  if(contactoFilter.indexOf('estado:')===0) list=list.filter(c=>c.estado===contactoFilter.slice(7));
+  else if(contactoFilter.indexOf('calidad:')===0) list=list.filter(c=>c.calidad===contactoFilter.slice(8));
+  if(contactoSearchVal){
+    const q=contactoSearchVal.toLowerCase();
+    list=list.filter(c=>(c.nombre||'').toLowerCase().indexOf(q)>-1||(c.email||'').toLowerCase().indexOf(q)>-1||(c.telefono||'').toLowerCase().indexOf(q)>-1);
+  }
+  return list;
+}
+function renderContactos(){
+  const all=allContactosWeb;
+  const byEstado=k=>all.filter(c=>c.estado===k).length;
+  const byCalidad=k=>all.filter(c=>c.calidad===k).length;
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('cw-cnt-all',all.length);
+  set('cw-cnt-encurso',byEstado('En curso'));
+  set('cw-cnt-descartado',byEstado('Descartado'));
+  set('cw-cnt-cotizado',byEstado('Cotizado'));
+  set('cw-cnt-bueno',byCalidad('Bueno'));
+  set('cw-cnt-regular',byCalidad('Regular'));
+  set('cw-cnt-malo',byCalidad('Malo'));
+  set('cw-kpi-total',all.length);
+  set('cw-kpi-encurso',byEstado('En curso'));
+  set('cw-kpi-cotizado',byEstado('Cotizado'));
+  const calificados=all.filter(c=>c.calidad).length;
+  set('cw-kpi-calidad',calificados?Math.round(byCalidad('Bueno')/calificados*100)+'%':'—');
+  renderContactosTable();
+}
+function _cwDD(kind,ctId,current,options,clsMap,changeFn){
+  const ddId='cwdd_'+kind+'_'+ctId;
+  const cls=clsMap[current]||'cw-na';
+  const opts=options.map(o=>'<button class="'+(clsMap[o]||'cw-na')+'" onclick="event.stopPropagation();'+changeFn+'(\''+ctId+'\',\''+o+'\')"><span class="etapa-dot"></span>'+o+'</button>').join('');
+  return '<div class="etapa-dropdown" id="'+ddId+'">'+
+    '<button class="etapa '+cls+'" onclick="event.stopPropagation();toggleDD(\''+ddId+'\')"><span class="etapa-dot"></span>'+esc(current||'—')+'</button>'+
+    '<div class="etapa-menu">'+opts+'</div>'+
+  '</div>';
+}
+function renderContactosTable(){
+  const list=getFilteredContactos();
+  const c=document.getElementById('cw-table-container');
+  if(!list.length){c.innerHTML='<div class="empty"><div class="empty-icon">◫</div><div class="empty-text">Sin contactos</div></div>';return;}
+  const rows=list.map(function(ct){
+    const d=ct.fecha?new Date(ct.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
+    const etapaDD=_cwDD('e',ct.id,ct.etapa,CW_ETAPAS,CW_ETAPA_CLS,'changeContactoEtapa');
+    const estadoDD=_cwDD('s',ct.id,ct.estado,CW_ESTADOS,CW_ESTADO_CLS,'changeContactoEstado');
+    const calidadDD=_cwDD('q',ct.id,ct.calidad,CW_CALIDADES,CW_CALIDAD_CLS,'changeContactoCalidad');
+    const convBadge=ct.leadId?'<span class="cot-badge" title="Ya convertido al CRM">CRM</span>':'';
+    return '<tr class="lead-main-row" data-cid="'+ct.id+'" onclick="openContactoDetail(this.dataset.cid)" style="cursor:pointer">'+
+      '<td style="font-family:IBM Plex Mono,monospace;font-size:11px">'+d+'</td>'+
+      '<td><div class="td-bold">'+esc(ct.nombre||'—')+' '+convBadge+'</div><div class="td-muted" style="font-size:10px">'+esc(ct.telefono||'')+(ct.email?' · '+esc(ct.email):'')+'</div></td>'+
+      '<td style="font-size:11px"><div>'+esc(ct.modelo||'—')+'</div><div class="td-muted" style="font-size:10px">'+esc(ct.tipoProyecto||'—')+'</div></td>'+
+      '<td onclick="event.stopPropagation()">'+etapaDD+'</td>'+
+      '<td onclick="event.stopPropagation()">'+estadoDD+'</td>'+
+      '<td onclick="event.stopPropagation()">'+calidadDD+'</td>'+
+    '</tr>';
+  }).join('');
+  c.innerHTML=
+    '<table><thead><tr>'+
+      '<th style="width:80px">Fecha</th>'+
+      '<th>Contacto</th>'+
+      '<th>Modelo / Proyecto</th>'+
+      '<th style="width:140px">Etapa</th>'+
+      '<th style="width:120px">Estado</th>'+
+      '<th style="width:110px">Calidad</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table>';
+}
+function _cwFindAndSave(id,mut){
+  const ct=allContactosWeb.find(x=>x.id===id);if(!ct)return;
+  mut(ct);
+  saveContactoWeb(ct).catch(e=>console.warn(e));
+  document.querySelectorAll('.etapa-dropdown.open').forEach(d=>d.classList.remove('open'));
+  renderContactos();
+  if(currentContactoId===id)openContactoDetail(id);
+}
+function changeContactoEtapa(id,val){_cwFindAndSave(id,ct=>{ct.etapa=val;});}
+function changeContactoEstado(id,val){_cwFindAndSave(id,ct=>{ct.estado=val;});}
+function changeContactoCalidad(id,val){_cwFindAndSave(id,ct=>{ct.calidad=val;});}
+
+// ── Contactos Web: panel de detalle ──────────────────────────────────────────────
+function openContactoDetail(id){
+  const ct=allContactosWeb.find(x=>x.id===id);if(!ct)return;
+  currentContactoId=id;
+  document.getElementById('cw-dp-title').textContent=ct.nombre||'Contacto';
+  const notas=ct.comentarios||[];
+  let timelineHtml='';
+  if(notas.length>0){
+    timelineHtml='<div class="act-timeline">'+[].concat(notas).reverse().map(function(a){
+      return '<div class="act-entry"><div class="act-dot is-nota">✎</div><div class="act-body">'+
+        '<div class="act-fecha-txt">'+esc(a.fecha)+'</div><div class="act-texto-txt">'+esc(a.texto)+'</div>'+
+      '</div></div>';
+    }).join('')+'</div>';
+  }else{
+    timelineHtml='<div class="td-muted" style="padding:8px 0;font-size:12px">Sin comentarios registrados aún.</div>';
+  }
+  let html='';
+  html+='<div class="dp-section"><div class="dp-section-title">Contacto</div><div class="dp-grid">'+
+    field('Teléfono',ct.telefono?'<a href="tel:'+esc(ct.telefono)+'">'+esc(ct.telefono)+'</a>':'—')+
+    field('Email',ct.email?'<a href="mailto:'+esc(ct.email)+'">'+esc(ct.email)+'</a>':'—')+
+    field('Modelo',ct.modelo||'—')+
+    field('Tipo de proyecto',ct.tipoProyecto||'—')+
+  '</div></div>';
+  if(ct.mensaje) html+='<div class="dp-section"><div class="dp-section-title">Mensaje del formulario</div><div class="cw-msg">'+esc(ct.mensaje)+'</div></div>';
+  if(ct.url) html+='<div class="dp-section"><div class="dp-section-title">Cotización web</div><a href="'+esc(ct.url)+'" target="_blank" rel="noopener">'+esc(ct.url)+' ↗</a></div>';
+  html+='<div class="dp-section"><div class="dp-section-title">Registrar comentario</div>'+
+    '<textarea class="nota-input" id="cw-nota-input" placeholder="Llamado, WhatsApp, seguimiento..."></textarea>'+
+    '<button class="btn-nota" onclick="addNotaContacto()">+ Registrar</button>'+
+  '</div>';
+  html+='<div class="dp-section"><div class="dp-section-title">Historial de comentarios</div>'+timelineHtml+'</div>';
+  html+='<div class="dp-section"><div class="dp-section-title">CRM</div>'+
+    (ct.leadId
+      ? '<div class="td-muted" style="font-size:12px">Ya convertido a oportunidad del CRM.</div>'
+      : '<button class="cw-convert-btn" onclick="convertirContactoALead(\''+id+'\')">→ Convertir en oportunidad CRM</button>')+
+  '</div>';
+  document.getElementById('cw-dp-body').innerHTML=html;
+  document.getElementById('cwDetailOverlay').classList.add('open');
+}
+function closeContactoDetail(){document.getElementById('cwDetailOverlay').classList.remove('open');currentContactoId=null;}
+function closeContactoDetailBg(e){if(e.target===document.getElementById('cwDetailOverlay'))closeContactoDetail();}
+function addNotaContacto(){
+  const input=document.getElementById('cw-nota-input');
+  const texto=(input.value||'').trim();
+  if(!texto||!currentContactoId)return;
+  const ct=allContactosWeb.find(x=>x.id===currentContactoId);if(!ct)return;
+  if(!ct.comentarios)ct.comentarios=[];
+  ct.comentarios.push({fecha:new Date().toLocaleDateString('es-AR'),texto:texto});
+  saveContactoWeb(ct).catch(e=>console.warn(e));
+  openContactoDetail(currentContactoId);
+}
+// Crea una oportunidad en el CRM (labo_leads) a partir de este contacto. Si más
+// adelante se genera una cotización real para el mismo cliente desde el Cotizador,
+// _spSaveLead la va a enganchar sola por nombre de cliente.
+async function convertirContactoALead(id){
+  const ct=allContactosWeb.find(x=>x.id===id);if(!ct)return;
+  if(ct.leadId){alert('Este contacto ya fue convertido a un lead del CRM.');return;}
+  if(!confirm('¿Convertir "'+(ct.nombre||'este contacto')+'" en una oportunidad del CRM?'))return;
+  try{
+    const leadNum=await _sbNextCounter('lead_num',33);
+    const newId='lead_'+Date.now();
+    const newRow={
+      id:newId,lead_num:leadNum,fecha:new Date().toISOString(),
+      cliente:ct.nombre||'—',contacto:ct.nombre||'',email:ct.email||'',tel:ct.telefono||'',
+      terreno:'',vendedor:_userEmail||'',lugar:'',etapa:'Cotizado',motivo_perdida:'',
+      actividad:[{fecha:new Date().toLocaleDateString('es-AR'),texto:'Convertido desde Contactos Web (Modelo: '+(ct.modelo||'—')+', '+(ct.tipoProyecto||'—')+')'}],
+      cotizaciones:[],total_pipeline:0,ultima_cot:null,fecha_ultima_cot:null
+    };
+    const nr=await _sbFetch('labo_leads',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(newRow)});
+    if(!nr.ok){alert('No se pudo crear el lead. Probá de nuevo.');return;}
+    ct.leadId=newId;ct.estado='Cotizado';
+    await saveContactoWeb(ct);
+    closeContactoDetail();
+    loadData();
+    renderContactos();
+  }catch(e){console.warn('convertirContactoALead:',e);alert('Error al convertir el contacto.');}
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function diasDesde(l){
   if(!ACTIVAS.includes(l.etapa))return 0;
@@ -2479,6 +2774,7 @@ function _gateEnterApp(){
   }
   try{initApp();}catch(e){console.warn('initApp:',e);}
   try{loadData();}catch(e){console.warn('loadData:',e);}
+  try{loadContactosWeb();}catch(e){console.warn('loadContactosWeb:',e);}
 }
 // Ajusta la UI para vendedores externos: oculta pestañas de CRM y deja solo el cotizador
 function aplicarModoExterno(){
