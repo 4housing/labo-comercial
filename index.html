@@ -839,22 +839,9 @@ tr:hover td{background:#F5F3ED}
     <div class="lg-logo">LABO · COMERCIAL</div>
     <div id="lg-state-login">
       <div class="lg-title">Acceso restringido</div>
-      <div class="lg-sub">Esta herramienta es exclusiva para el equipo de 4housing.<br>Ingresá con tu cuenta de Microsoft <strong>@4housing.com.ar</strong>.</div>
+      <div class="lg-sub">Ingresá con tu cuenta de Microsoft.<br>Vendedores externos: con la cuenta invitada de 4housing (el mismo botón).</div>
       <button class="lg-btn" id="lg-login-btn" onclick="gateLogin()">Ingresar con Microsoft</button>
       <div class="lg-err" id="lg-err"></div>
-      <div style="margin-top:22px"><a href="#" id="lg-ext-link" onclick="toggleExtLogin(true);return false;" style="color:#9A9690;font-size:12px;text-decoration:underline">Soy vendedor externo</a></div>
-    </div>
-    <div id="lg-state-ext" style="display:none">
-      <div class="lg-title">Acceso vendedor externo</div>
-      <div class="lg-sub">Ingresá con el usuario y contraseña que te asignaron.</div>
-      <input id="lg-ext-email" type="email" placeholder="Email" autocomplete="username"
-        style="width:100%;padding:11px 12px;margin-bottom:10px;border:1px solid #333;background:#141414;color:#F5F4F0;border-radius:2px;font-family:inherit;font-size:14px;outline:none">
-      <input id="lg-ext-pass" type="password" placeholder="Contraseña" autocomplete="current-password"
-        onkeydown="if(event.key==='Enter')gateLoginExterno()"
-        style="width:100%;padding:11px 12px;margin-bottom:14px;border:1px solid #333;background:#141414;color:#F5F4F0;border-radius:2px;font-family:inherit;font-size:14px;outline:none">
-      <button class="lg-btn" id="lg-ext-btn" onclick="gateLoginExterno()" style="width:100%">Ingresar</button>
-      <div class="lg-err" id="lg-ext-err"></div>
-      <div style="margin-top:22px"><a href="#" onclick="toggleExtLogin(false);return false;" style="color:#9A9690;font-size:12px;text-decoration:underline">Soy del equipo 4housing</a></div>
     </div>
     <div id="lg-state-loading" style="display:none">
       <div class="lg-spinner"></div>
@@ -1275,8 +1262,8 @@ tr:hover td{background:#F5F3ED}
 <script>
 /* ════════════════ CRM (pipeline / análisis / seguimiento) ════════════════ */
 // ── Supabase (datos) + Microsoft Azure AD (login) ────────────────────────────
-const SUPABASE_URL='https://rhajlvmneyvgqlyeyjsd.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoYWpsdm1uZXl2Z3FseWV5anNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExODc3MDYsImV4cCI6MjA5Njc2MzcwNn0.iXkFP1T4DEhPtzGn7xtIfM7msh9Ft35DZUvVtCErXOk';
+const SUPABASE_URL='https://wcpkpwxhqdcdljfwzcmy.supabase.co'; // proyecto del PORTAL unificado (2026-07-19)
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcGtwd3hocWRjZGxqZnd6Y215Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDM4NDAsImV4cCI6MjA5NjYxOTg0MH0.MSTk46VAwdAsn5qNBdrHmGIiLYyN-rAyAZC72xZW3D4';
 // Cliente Supabase (SDK) — maneja login con Microsoft y la sesión. La global 'supabase' viene del CDN.
 // Se crea esperando a que el SDK termine de cargar (mismo patrón que _initMSAL), para evitar
 // la condición de carrera donde el script corría antes de que 'supabase' estuviera disponible.
@@ -1339,7 +1326,7 @@ async function _sbFetch(path,opts){
 // Read all leads from Supabase
 async function readLeads(){
   try{
-    const r=await _sbFetch('labo_leads?select=*&order=fecha_ultima_cot.desc.nullslast',{method:'GET'});
+    const r=await _sbFetch('labocomercial_leads?select=*&order=fecha_ultima_cot.desc.nullslast',{method:'GET'});
     if(!r.ok)throw new Error('Supabase read '+r.status);
     const rows=await r.json();
     const leads=rows.map(_rowToLead);
@@ -1354,7 +1341,7 @@ async function readLeads(){
 async function saveLeadToDB(lead){
   try{
     const row=_leadToRow(lead);
-    const r=await _sbFetch('labo_leads?on_conflict=id',{
+    const r=await _sbFetch('labocomercial_leads?on_conflict=id',{
       method:'POST',
       headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
       body:JSON.stringify(row)
@@ -2339,7 +2326,7 @@ function calcMontaje(m,km){if(!km||km<1)return 0;const t=COSTOS_MONTAJE[m];const
 async function _sbNextCounter(name,fallbackStart){
   try{
     // Use atomic RPC function (no race conditions between vendors)
-    var r=await _sbFetch('rpc/next_counter',{
+    var r=await _sbFetch('rpc/labocomercial_next_counter',{
       method:'POST',
       body:JSON.stringify({counter_name:name})
     });
@@ -2348,11 +2335,11 @@ async function _sbNextCounter(name,fallbackStart){
       if(typeof val==='number')return val;
     }
     // Fallback: read + write (less safe but works)
-    var rd=await _sbFetch('labo_counters?select=value&name=eq.'+name,{method:'GET'});
+    var rd=await _sbFetch('labocomercial_counters?select=value&name=eq.'+name,{method:'GET'});
     var rows=await rd.json();
     var current=(rows&&rows.length)?rows[0].value:fallbackStart;
     var next=current+1;
-    await _sbFetch('labo_counters?name=eq.'+name,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({value:next})});
+    await _sbFetch('labocomercial_counters?name=eq.'+name,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({value:next})});
     return next;
   }catch(e){
     console.warn('Supabase counter failed:',e);
@@ -2515,42 +2502,9 @@ async function gateLogin(){
     _gateShowError('No se pudo iniciar sesión con Microsoft. Probá de nuevo.');
   }
 }
-// Alterna entre el login Microsoft (internos) y el formulario externo
-function toggleExtLogin(showExt){
-  document.getElementById('lg-state-login').style.display=showExt?'none':'';
-  document.getElementById('lg-state-ext').style.display=showExt?'':'none';
-  var e=document.getElementById('lg-ext-err');if(e)e.classList.remove('show');
-}
-function _gateShowExtError(msg){
-  var e=document.getElementById('lg-ext-err');
-  if(e){e.textContent=msg;e.classList.add('show');}
-  var b=document.getElementById('lg-ext-btn');if(b)b.disabled=false;
-}
-// Login de vendedor externo vía Supabase Auth (email + contraseña, sin Microsoft)
-async function gateLoginExterno(){
-  var email=(document.getElementById('lg-ext-email').value||'').trim().toLowerCase();
-  var pass=document.getElementById('lg-ext-pass').value||'';
-  if(!email||!pass){_gateShowExtError('Completá email y contraseña.');return;}
-  // Un email @4housing.com.ar NO debe entrar por acá: es un interno.
-  if(_gateDomainOk(email)){_gateShowExtError('Las cuentas @'+MSAL_CONFIG.allowedDomain+' ingresan con el botón de Microsoft.');return;}
-  var btn=document.getElementById('lg-ext-btn');if(btn)btn.disabled=true;
-  try{
-    try{await _ensureSbClient();}
-    catch(e){throw new Error('No se pudo cargar el módulo de Supabase. Recargá la página.');}
-    var res=await _sbClient.auth.signInWithPassword({email:email,password:pass});
-    if(res&&res.error)throw res.error;
-    var session=res&&res.data&&res.data.session;
-    if(!session){throw new Error('No se pudo iniciar sesión.');}
-    _sbAccessToken=session.access_token||null;
-    _userRole='externo';
-    _userEmail=email;
-    _gateAccount={username:email};
-    _gateEnterApp();
-  }catch(e){
-    console.warn('gateLoginExterno:',e);
-    _gateShowExtError('Usuario o contraseña incorrectos.');
-  }
-}
+// (El login externo por email/contraseña se eliminó en la migración al portal:
+//  los vendedores externos entran como invitados B2B del tenant con el mismo
+//  botón de Microsoft; _gateApplySession los detecta por dominio igual que antes.)
 // Procesa la sesión: dominio 4housing -> interno; otro dominio -> externo (cotizador)
 async function _gateApplySession(session){
   var email=_gateEmailFromSession(session);
@@ -3525,7 +3479,7 @@ async function _spSaveLead(lead){
     // Look for existing lead with same client name (exact, ignore '—')
     let existing=null;
     if(clienteName&&clienteName!=='—'){
-      const q=await _sbFetch('labo_leads?select=*&cliente=eq.'+encodeURIComponent(clienteName),{method:'GET'});
+      const q=await _sbFetch('labocomercial_leads?select=*&cliente=eq.'+encodeURIComponent(clienteName),{method:'GET'});
       if(q.ok){const rows=await q.json();if(rows&&rows.length)existing=rows[0];}
       else console.warn('[CRM] Error buscando cliente:',q.status,await q.text());
     }
@@ -3535,7 +3489,7 @@ async function _spSaveLead(lead){
       var cots=existing.cotizaciones||[];
       cots.unshift(cot);
       var totalPipeline=cots.reduce(function(s,c){return c.archivada?s:s+(c.total||0);},0);
-      var pr=await _sbFetch('labo_leads?id=eq.'+existing.id,{
+      var pr=await _sbFetch('labocomercial_leads?id=eq.'+existing.id,{
         method:'PATCH',
         headers:{'Prefer':'return=minimal'},
         body:JSON.stringify({
@@ -3555,7 +3509,7 @@ async function _spSaveLead(lead){
         actividad:[],cotizaciones:[cot],total_pipeline:cot.total,
         ultima_cot:cot,fecha_ultima_cot:cot.fecha
       };
-      var nr=await _sbFetch('labo_leads',{
+      var nr=await _sbFetch('labocomercial_leads',{
         method:'POST',
         headers:{'Prefer':'return=minimal'},
         body:JSON.stringify(newRow)
