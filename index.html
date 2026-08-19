@@ -1198,6 +1198,7 @@ tr:hover td{background:#F5F3ED}
             <option value="Leandro Seoane">Leandro Seoane</option>
             <option value="Hector Bermudez">Hector Bermudez</option>
             <option value="Victoria Lopez Aybar">Victoria Lopez Aybar</option>
+            <option value="Matias Formica">Matias Formica</option>
           </select>
         </div>
         <div class="fg"><label>Lugar de entrega / Proyecto</label><input type="text" id="oLugar" placeholder="Ciudad, provincia"></div>
@@ -1766,7 +1767,7 @@ function renderCharts(){
   renderBarChart('chart-modelo',byModelo,'#1A5276',v=>'USD '+fmtK(v));
 
   // Por vendedor (cantidad leads) — fixed vendor list
-  const VENDEDORES=['Pablo Spinetto','Leandro Seoane','Hector Bermudez','Victoria Lopez Aybar'];
+  const VENDEDORES=['Pablo Spinetto','Leandro Seoane','Hector Bermudez','Victoria Lopez Aybar','Matias Formica'];
   const byVend={};
   VENDEDORES.forEach(v=>byVend[v]=0);
   allLeads.forEach(l=>{
