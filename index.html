@@ -1361,8 +1361,8 @@ tr:hover td{background:#F5F3ED}
 <script>
 /* ════════════════ CRM (pipeline / análisis / seguimiento) ════════════════ */
 // ── Supabase (datos) + Microsoft Azure AD (login) ────────────────────────────
-const SUPABASE_URL='https://rhajlvmneyvgqlyeyjsd.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoYWpsdm1uZXl2Z3FseWV5anNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExODc3MDYsImV4cCI6MjA5Njc2MzcwNn0.iXkFP1T4DEhPtzGn7xtIfM7msh9Ft35DZUvVtCErXOk';
+const SUPABASE_URL='https://wcpkpwxhqdcdljfwzcmy.supabase.co'; // proyecto del PORTAL unificado (2026-07-19)
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcGtwd3hocWRjZGxqZnd6Y215Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDM4NDAsImV4cCI6MjA5NjYxOTg0MH0.MSTk46VAwdAsn5qNBdrHmGIiLYyN-rAyAZC72xZW3D4';
 // Cliente Supabase (SDK) — maneja login con Microsoft y la sesión. La global 'supabase' viene del CDN.
 // Se crea esperando a que el SDK termine de cargar (mismo patrón que _initMSAL), para evitar
 // la condición de carrera donde el script corría antes de que 'supabase' estuviera disponible.
@@ -1425,7 +1425,7 @@ async function _sbFetch(path,opts){
 // Read all leads from Supabase
 async function readLeads(){
   try{
-    const r=await _sbFetch('labo_leads?select=*&order=fecha_ultima_cot.desc.nullslast',{method:'GET'});
+    const r=await _sbFetch('labocomercial_leads?select=*&order=fecha_ultima_cot.desc.nullslast',{method:'GET'});
     if(!r.ok)throw new Error('Supabase read '+r.status);
     const rows=await r.json();
     const leads=rows.map(_rowToLead);
@@ -1440,7 +1440,7 @@ async function readLeads(){
 async function saveLeadToDB(lead){
   try{
     const row=_leadToRow(lead);
-    const r=await _sbFetch('labo_leads?on_conflict=id',{
+    const r=await _sbFetch('labocomercial_leads?on_conflict=id',{
       method:'POST',
       headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
       body:JSON.stringify(row)
@@ -2455,24 +2455,25 @@ function addNotaContacto(){
   saveContactoWeb(ct).catch(e=>console.warn(e));
   openContactoDetail(currentContactoId);
 }
-// Crea una oportunidad en el CRM (labo_leads) a partir de este contacto. Si más
-// adelante se genera una cotización real para el mismo cliente desde el Cotizador,
-// _spSaveLead la va a enganchar sola por nombre de cliente.
+// Crea una oportunidad en el CRM (labocomercial_leads) a partir de este contacto,
+// con # de proyecto propio (mismo contador que usa el Cotizador). Sin cotizaciones
+// todavía — cuando el vendedor genere la primera desde el Cotizador para este mismo
+// cliente, va a preguntar si es versión de ESTE proyecto (mismo #) o uno distinto.
 async function convertirContactoALead(id){
   const ct=allContactosWeb.find(x=>x.id===id);if(!ct)return;
   if(ct.leadId){alert('Este contacto ya fue convertido a un lead del CRM.');return;}
   if(!confirm('¿Convertir "'+(ct.nombre||'este contacto')+'" en una oportunidad del CRM?'))return;
   try{
-    const leadNum=await _sbNextCounter('lead_num',33);
+    const numero=await getNextProyectoNum();
     const newId='lead_'+Date.now();
     const newRow={
-      id:newId,lead_num:leadNum,fecha:new Date().toISOString(),
+      id:newId,lead_num:parseInt(numero,10)||numero,fecha:new Date().toISOString(),
       cliente:ct.nombre||'—',contacto:ct.nombre||'',email:ct.email||'',tel:ct.telefono||'',
       terreno:'',vendedor:_userEmail||'',lugar:'',etapa:'Cotizado',motivo_perdida:'',
       actividad:[{fecha:new Date().toLocaleDateString('es-AR'),texto:'Convertido desde Contactos Web (Modelo: '+(ct.modelo||'—')+', '+(ct.tipoProyecto||'—')+')'}],
       cotizaciones:[],total_pipeline:0,ultima_cot:null,fecha_ultima_cot:null
     };
-    const nr=await _sbFetch('labo_leads',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(newRow)});
+    const nr=await _sbFetch('labocomercial_leads',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(newRow)});
     if(!nr.ok){alert('No se pudo crear el lead. Probá de nuevo.');return;}
     ct.leadId=newId;ct.estado='Cotizado';
     await saveContactoWeb(ct);
@@ -2670,7 +2671,7 @@ function calcMontaje(m,km){if(!km||km<1)return 0;const t=COSTOS_MONTAJE[m];const
 async function _sbNextCounter(name,fallbackStart){
   try{
     // Use atomic RPC function (no race conditions between vendors)
-    var r=await _sbFetch('rpc/next_counter',{
+    var r=await _sbFetch('rpc/labocomercial_next_counter',{
       method:'POST',
       body:JSON.stringify({counter_name:name})
     });
@@ -2679,11 +2680,11 @@ async function _sbNextCounter(name,fallbackStart){
       if(typeof val==='number')return val;
     }
     // Fallback: read + write (less safe but works)
-    var rd=await _sbFetch('labo_counters?select=value&name=eq.'+name,{method:'GET'});
+    var rd=await _sbFetch('labocomercial_counters?select=value&name=eq.'+name,{method:'GET'});
     var rows=await rd.json();
     var current=(rows&&rows.length)?rows[0].value:fallbackStart;
     var next=current+1;
-    await _sbFetch('labo_counters?name=eq.'+name,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({value:next})});
+    await _sbFetch('labocomercial_counters?name=eq.'+name,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({value:next})});
     return next;
   }catch(e){
     console.warn('Supabase counter failed:',e);
@@ -2710,7 +2711,7 @@ async function getNextProyectoNum(){
 async function _findLeadByCliente(clienteName){
   if(!clienteName||clienteName==='—')return null;
   try{
-    var q=await _sbFetch('labo_leads?select=*&cliente=eq.'+encodeURIComponent(clienteName),{method:'GET'});
+    var q=await _sbFetch('labocomercial_leads?select=*&cliente=eq.'+encodeURIComponent(clienteName),{method:'GET'});
     if(q.ok){
       var rows=await q.json();
       if(rows&&rows.length){
@@ -4035,7 +4036,7 @@ async function _spSaveLead(lead){
     // filas — una por proyecto — así que "buscar por nombre" sería ambiguo).
     let existing=null;
     if(lead.targetLeadId){
-      const q=await _sbFetch('labo_leads?select=*&id=eq.'+encodeURIComponent(lead.targetLeadId),{method:'GET'});
+      const q=await _sbFetch('labocomercial_leads?select=*&id=eq.'+encodeURIComponent(lead.targetLeadId),{method:'GET'});
       if(q.ok){const rows=await q.json();if(rows&&rows.length)existing=rows[0];}
       else console.warn('[CRM] Error buscando lead:',q.status,await q.text());
     }
@@ -4045,7 +4046,7 @@ async function _spSaveLead(lead){
       var cots=existing.cotizaciones||[];
       cots.unshift(cot);
       var totalPipeline=cots.reduce(function(s,c){return c.archivada?s:s+(c.total||0);},0);
-      var pr=await _sbFetch('labo_leads?id=eq.'+existing.id,{
+      var pr=await _sbFetch('labocomercial_leads?id=eq.'+existing.id,{
         method:'PATCH',
         headers:{'Prefer':'return=minimal'},
         body:JSON.stringify({
@@ -4066,7 +4067,7 @@ async function _spSaveLead(lead){
         actividad:[],cotizaciones:[cot],total_pipeline:cot.total,
         ultima_cot:cot,fecha_ultima_cot:cot.fecha
       };
-      var nr=await _sbFetch('labo_leads',{
+      var nr=await _sbFetch('labocomercial_leads',{
         method:'POST',
         headers:{'Prefer':'return=minimal'},
         body:JSON.stringify(newRow)
