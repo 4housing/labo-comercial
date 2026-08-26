@@ -1371,7 +1371,8 @@ function _rowToLead(r){
     email:r.email, tel:r.tel, terreno:r.terreno, vendedor:r.vendedor, lugar:r.lugar,
     etapa:r.etapa, motivoPerdida:r.motivo_perdida, cotizaciones:r.cotizaciones||[],
     actividad:r.actividad||[], totalPipeline:r.total_pipeline,
-    ultimaCot:r.ultima_cot, fechaUltimaCot:r.fecha_ultima_cot
+    ultimaCot:r.ultima_cot, fechaUltimaCot:r.fecha_ultima_cot,
+    numeroOferta:r.numero_oferta||null
   };
 }
 // Convert app lead (camelCase) → Supabase row (snake_case)
@@ -1382,6 +1383,7 @@ function _leadToRow(l){
     etapa:l.etapa, motivo_perdida:l.motivoPerdida||'', cotizaciones:l.cotizaciones||[],
     actividad:l.actividad||[], total_pipeline:l.totalPipeline||0,
     ultima_cot:l.ultimaCot||null, fecha_ultima_cot:l.fechaUltimaCot||null,
+    numero_oferta:l.numeroOferta||null,
     updated_at:new Date().toISOString()
   };
 }
@@ -2664,6 +2666,53 @@ async function getNextOfferNum(){
   return String(n).padStart(4,'0');
 }
 
+// Busca un lead existente por nombre de cliente exacto (mismo criterio que usa
+// _spSaveLead para decidir si suma una cotización a un cliente ya cargado).
+async function _findLeadByCliente(clienteName){
+  if(!clienteName||clienteName==='—')return null;
+  try{
+    var q=await _sbFetch('labo_leads?select=*&cliente=eq.'+encodeURIComponent(clienteName),{method:'GET'});
+    if(q.ok){var rows=await q.json();if(rows&&rows.length)return rows[0];}
+    else console.warn('[CRM] Error buscando cliente:',q.status,await q.text());
+  }catch(e){console.warn('[CRM] _findLeadByCliente error:',e);}
+  return null;
+}
+// El número de oferta de un cliente es fijo: una vez asignado (numero_oferta en el
+// lead), todas sus cotizaciones futuras lo reusan. Para leads viejos que todavía no
+// tienen numero_oferta guardado, se toma el número de su primera cotización (por
+// fecha) como número "de origen" y queda persistido a partir de la próxima cotización.
+function _leadNumeroOferta(lead){
+  if(!lead)return null;
+  if(lead.numero_oferta)return lead.numero_oferta;
+  if(lead.numeroOferta)return lead.numeroOferta;
+  var cots=lead.cotizaciones||[];
+  if(cots.length){
+    var oldest=[].concat(cots).sort(function(a,b){return new Date(a.fecha)-new Date(b.fecha);})[0];
+    if(oldest&&oldest.num)return oldest.num;
+  }
+  return null;
+}
+// Versión (1-based) que le corresponde a una cotización dentro del historial del lead,
+// según el orden cronológico en que se generaron.
+function _versionForCot(lead,cotId){
+  var sorted=[].concat((lead&&lead.cotizaciones)||[]).sort(function(a,b){return new Date(a.fecha)-new Date(b.fecha);});
+  var idx=sorted.findIndex(function(c){return String(c.id)===String(cotId);});
+  return idx>=0?idx+1:sorted.length||1;
+}
+// Resuelve {numero, version, existingLead} para la cotización que se está por generar:
+// cliente nuevo → número nuevo del contador compartido, VER01. Cliente existente →
+// reusa su numero_oferta y la versión es la cantidad de cotizaciones que ya tiene + 1.
+async function _resolveOferta(clienteName){
+  var existing=await _findLeadByCliente(clienteName);
+  if(existing){
+    var numero=_leadNumeroOferta(existing)||await getNextOfferNum();
+    var version=(existing.cotizaciones||[]).length+1;
+    return {numero:numero,version:version,existingLead:existing};
+  }
+  var nuevo=await getNextOfferNum();
+  return {numero:nuevo,version:1,existingLead:null};
+}
+
 function initApp(){
   document.getElementById('oFecha').value=new Date().toISOString().split('T')[0];
   // N° de oferta se asigna al generar el PDF, no al cargar
@@ -3008,10 +3057,11 @@ function goStep(n){
     setTimeout(()=>mg.style.outline='',2000);
     return;
   }
-  // Reset offer number when going back to step 1 — new cotización = new number at PDF time
+  // Reset offer number when going back to step 1 — se vuelve a resolver al generar el PDF
   if(n===1){
     var numEl=document.getElementById('oNum');
     if(numEl) numEl.value='— se asigna al generar PDF —';
+    _ofertaVersion=1;_ofertaExistingLead=null;
   }
   document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i+1===n));
   document.querySelectorAll('.nbtn').forEach((b,i)=>{b.classList.remove('active','done');if(i+1===n)b.classList.add('active');else if(i+1<n&&n<4)b.classList.add('done');});
@@ -3101,11 +3151,15 @@ function generatePDF(){
   _doGeneratePDF();
 }
 async function _doGeneratePDF(){
-  // Assign offer number NOW — at PDF generation, not before
+  // Resolver número + versión AHORA — al generar el PDF, no antes. Mismo cliente
+  // ya cargado en el CRM → reusa su número y suma versión (VER01, VER02...);
+  // cliente nuevo → número nuevo del contador compartido, VER01.
   var numEl=document.getElementById('oNum');
   if(!numEl.value||numEl.value.includes('—')){
     numEl.value='…';
-    numEl.value=await getNextOfferNum();
+    var _res=await _resolveOferta(gv('cNombre'));
+    _ofertaVersion=_res.version;_ofertaExistingLead=_res.existingLead;
+    numEl.value=_res.numero;
   }
   var doc=_buildOfferPDF();
   var linea=LINEA[sel];
@@ -3170,9 +3224,9 @@ async function guardarEnSharePoint(leadId,cotId){
   try{
     await _initMSAL(); await _getSiteDrive();
     var bytes=await _regenerarBytesDesdeSnapshot(cot.snapshot);
-    var meta={num:cot.num,cliente:l.cliente,
+    var meta={num:_leadNumeroOferta(l)||cot.num,cliente:l.cliente,
       linea:(cot.linea||'').indexOf('Madera')>=0?'Madera':'Modular',modelo:cot.modelo};
-    var pdfMeta=await _spUploadOfferPDF(bytes,meta);
+    var pdfMeta=await _spUploadOfferPDF(bytes,meta,_versionForCot(l,cotId));
     // Actualizar la cotización con los datos de SharePoint y desmarcar pendiente
     cot.pdfUrl=(pdfMeta&&pdfMeta.webUrl)||'';cot.pdfPath=(pdfMeta&&pdfMeta.path)||'';
     cot.pdfName=(pdfMeta&&pdfMeta.name)||'';cot.pdfVersion=(pdfMeta&&pdfMeta.version)||null;
@@ -3232,17 +3286,17 @@ async function _finishPDF(finalBytes){
     linea:LINEA[sel]==='madera'?'Madera':'Modular',modelo:DNAME[sel]};
   var pdfMeta=null;
   if(!esExterno()){
-    // 1) Subida a SharePoint primero (calcula la versión y devuelve el nombre definitivo)
+    // 1) Subida a SharePoint primero (mismo número/versión ya resueltos al generar)
     try{
-      pdfMeta=await _spUploadOfferPDF(finalBytes,meta);
+      pdfMeta=await _spUploadOfferPDF(finalBytes,meta,_ofertaVersion);
     }catch(e){
       console.error('[PDF] ✗ No se pudo subir a SharePoint:',e);
       alert('No se pudo subir el PDF a SharePoint:\n'+e.message+'\nSe descargará localmente igual y el lead se guardará sin el archivo adjunto.');
     }
   }
   // 2) Descarga local con el MISMO nombre que SharePoint (incluida la versión).
-  //    Externos y respaldo interno: nombre base con v1.
-  var dlName=(pdfMeta&&pdfMeta.name)||(_spBaseName(meta)+' - v1.pdf');
+  //    Externos y respaldo interno: mismo nombre "OE-..." que le tocaría en SharePoint.
+  var dlName=(pdfMeta&&pdfMeta.name)||_spOfferFileName(meta,_ofertaVersion);
   try{
     var blob=new Blob([finalBytes],{type:'application/pdf'});
     var url=URL.createObjectURL(blob);
@@ -3622,6 +3676,10 @@ const MSAL_CONFIG = {
   allowedDomain: '4housing.com.ar'
 };
 let _msalInst=null,_gToken=null,_siteId=null,_driveId=null;
+// Versión (VER01, VER02, ...) y lead existente resueltos para la oferta que se está
+// generando — se calculan una vez por PDF en _doGeneratePDF y se reusan en la subida
+// a SharePoint y en el guardado del lead, para no repetir la consulta a Supabase.
+let _ofertaVersion=1,_ofertaExistingLead=null;
 async function _initMSAL(){
   var w=0;
   while(typeof msal==='undefined'&&w<5000){await new Promise(function(r){setTimeout(r,100);});w+=100;}
@@ -3756,33 +3814,60 @@ function _spSanitize(s){
   return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .replace(/[\\/:*?"<>|#%]/g,'-').replace(/\s+/g,' ').trim();
 }
-// Nombre base de la oferta, usado para carpeta, archivo y descarga local.
-// Formato: "OC{num} - {cliente} - {Madera|Modular} - {S|M|L|XL}"
-function _spBaseName(meta){
+// Construye el nombre de carpeta del proyecto: "168 - Cliente - Modular - S"
+// (número fijo por cliente — ver _resolveOferta/_leadNumeroOferta).
+function _spOfferFolderName(meta){
   var num=_spSanitize(meta.num||'SN');
   var cli=_spSanitize(meta.cliente||'Cliente');
-  var lin=_spSanitize(meta.linea||'');
-  var prod=_spSanitize(meta.modelo||'');
-  return ('OC'+num+' - '+cli+' - '+lin+' - '+prod)
-    .replace(/\s*-\s*-\s*/g,' - ').replace(/[ -]+$/,'').trim();
+  var prod=_spSanitize(meta.linea||'—');
+  var mod=_spSanitize(meta.modelo||'—');
+  return num+' - '+cli+' - '+prod+' - '+mod;
 }
-// Construye el nombre de carpeta: "OC0168 - Cliente - Modular - S"
-function _spOfferFolderName(meta){
-  return _spBaseName(meta);
+// Nombre del PDF de oferta económica: "OE-Cliente-Modular-S-VER01.pdf"
+function _spOfferFileName(meta,version){
+  var cli=_spSanitize(meta.cliente||'Cliente');
+  var prod=_spSanitize(meta.linea||'—');
+  var mod=_spSanitize(meta.modelo||'—');
+  var ver='VER'+String(version||1).padStart(2,'0');
+  return 'OE-'+cli+'-'+prod+'-'+mod+'-'+ver+'.pdf';
 }
-// Cuenta cuántos PDFs hay ya en la carpeta para asignar el nº de versión (v1, v2, ...)
-async function _spNextVersion(folderPath){
+// Estructura fija de carpetas que debe tener cada proyecto de oferta en SharePoint.
+const OFERTA_SUBFOLDERS=[
+  {name:'01 COMUNICACIONES & REQUISITOS',children:['01 CLIENTE','02 INTERNAS','03 CONTRATO - ORDEN DE COMPRA']},
+  {name:'02 PLANOS COMERCIALES'},
+  {name:'03 PEDIDO DE PRECIOS'},
+  {name:'04 COSTEO - PRESUPUESTO'},
+  {name:'05 OFERTAS',children:['01 OFERTAS TECNICA','02 OFERTA ECONÓMICA']},
+  {name:'06 OTI'},
+  {name:'07 ALTA DE CLIENTES'}
+];
+// Crea una carpeta si no existe. 409 (ya existe) se trata como éxito — nunca pisa
+// ni borra contenido existente (conflictBehavior:'fail').
+async function _spCreateFolder(parentPath,name){
   try{
-    var r=await _gFetch('/drives/'+_driveId+'/root:/'+encodeURI(folderPath)+':/children?$select=name');
-    if(!r.ok) return 1; // carpeta no existe aún -> primera versión
-    var j=await r.json();
-    var pdfs=(j.value||[]).filter(function(f){return /\.pdf$/i.test(f.name);});
-    return pdfs.length+1;
-  }catch(e){ console.warn('[PDF] No se pudo contar versiones:',e); return 1; }
+    var r=await _gFetch('/drives/'+_driveId+'/root:/'+encodeURI(parentPath)+':/children',{
+      method:'POST',
+      body:JSON.stringify({name:name,folder:{},'@microsoft.graph.conflictBehavior':'fail'})
+    });
+    if(r.ok||r.status===409)return true;
+    console.warn('[SP] No se pudo crear carpeta "'+name+'" en '+parentPath+':',r.status,await r.text());
+  }catch(e){console.warn('[SP] _spCreateFolder error:',e);}
+  return false;
 }
-// Sube los bytes del PDF a SharePoint y devuelve {webUrl, path, name, version}
+// Crea la estructura completa de subcarpetas de un proyecto de oferta (idempotente).
+async function _spEnsureFolderTree(basePath){
+  await Promise.all(OFERTA_SUBFOLDERS.map(function(top){return _spCreateFolder(basePath,top.name);}));
+  var withChildren=OFERTA_SUBFOLDERS.filter(function(top){return top.children;});
+  await Promise.all(withChildren.map(function(top){
+    var topPath=basePath+'/'+top.name;
+    return Promise.all(top.children.map(function(c){return _spCreateFolder(topPath,c);}));
+  }));
+}
+// Sube los bytes del PDF de oferta económica a SharePoint y devuelve {webUrl, path, name, version}.
+// `version` (1-based) ya viene resuelto desde _resolveOferta/_versionForCot — la
+// primera versión de un proyecto además crea toda la estructura de carpetas fija.
 // Usa fetch directo (no _gFetch) porque el contenido es binario, no JSON.
-async function _spUploadOfferPDF(pdfBytes, meta){
+async function _spUploadOfferPDF(pdfBytes, meta, version){
   await _initMSAL(); await _getSiteDrive();
   // refrescar token
   try{
@@ -3792,9 +3877,13 @@ async function _spUploadOfferPDF(pdfBytes, meta){
       _gToken=rt.accessToken;
     }
   }catch(e){console.warn('[PDF] token refresh:',e);}
-  var folder=MSAL_CONFIG.offersFolder+'/'+_spOfferFolderName(meta);
-  var version=await _spNextVersion(folder);
-  var fileName=_spBaseName(meta)+' - v'+version+'.pdf';
+  var basePath=MSAL_CONFIG.offersFolder+'/'+_spOfferFolderName(meta);
+  if((version||1)===1){
+    try{await _spEnsureFolderTree(basePath);}
+    catch(e){console.warn('[SP] No se pudo crear la estructura de carpetas:',e);}
+  }
+  var folder=basePath+'/05 OFERTAS/02 OFERTA ECONÓMICA';
+  var fileName=_spOfferFileName(meta,version);
   var fullPath=folder+'/'+fileName;
   var uploadUrl='https://graph.microsoft.com/v1.0/drives/'+_driveId+'/root:/'+encodeURI(fullPath)+':/content';
   var res=await fetch(uploadUrl,{
@@ -3805,7 +3894,7 @@ async function _spUploadOfferPDF(pdfBytes, meta){
   if(!res.ok){ throw new Error('Subida del PDF falló: '+res.status+' '+(await res.text()).substring(0,200)); }
   var j=await res.json();
   console.log('[PDF] ✓ Subido a SharePoint:',fullPath,'->',j.webUrl);
-  return {webUrl:j.webUrl||'', path:fullPath, name:fileName, version:version};
+  return {webUrl:j.webUrl||'', path:fullPath, name:fileName, version:version||1};
 }
 async function _spSaveLead(lead){
   // Build cotización object
@@ -3839,7 +3928,9 @@ async function _spSaveLead(lead){
         headers:{'Prefer':'return=minimal'},
         body:JSON.stringify({
           cotizaciones:cots,total_pipeline:totalPipeline,
-          ultima_cot:cot,fecha_ultima_cot:cot.fecha,updated_at:new Date().toISOString()
+          ultima_cot:cot,fecha_ultima_cot:cot.fecha,updated_at:new Date().toISOString(),
+          // Backfill para leads viejos que todavía no tenían numero_oferta guardado.
+          numero_oferta:existing.numero_oferta||lead.numeroOferta||cot.num||null
         })
       });
       if(pr.ok)console.log('[CRM] ✓ Cotización agregada a cliente existente:',clienteName);
@@ -3852,7 +3943,8 @@ async function _spSaveLead(lead){
         contacto:lead.contacto,email:lead.email,tel:lead.tel,terreno:lead.terreno,
         vendedor:lead.vendedor,lugar:lead.lugar,etapa:'Cotizado',motivo_perdida:'',
         actividad:[],cotizaciones:[cot],total_pipeline:cot.total,
-        ultima_cot:cot,fecha_ultima_cot:cot.fecha
+        ultima_cot:cot,fecha_ultima_cot:cot.fecha,
+        numero_oferta:lead.numeroOferta||cot.num||null
       };
       var nr=await _sbFetch('labo_leads',{
         method:'POST',
@@ -3884,7 +3976,7 @@ function saveLead(pdfMeta){
     var lead={
       id:'lead_'+Date.now(),
       fecha:new Date().toISOString(),
-      num:gv('oNum'),cliente:gv('cNombre'),contacto:gv('cContacto'),
+      num:gv('oNum'),numeroOferta:gv('oNum'),cliente:gv('cNombre'),contacto:gv('cContacto'),
       email:gv('cEmail'),tel:gv('cTel'),terreno:gv('cTerreno'),vendedor:gv('oVendedor'),lugar:gv('oLugar'),
       linea:LINEA[sel]==='madera'?'LABO Madera':'LABO Modular',
       modelo:DNAME[sel],sup:COSTOS[sel].sup,cant:cant,total:tot,
