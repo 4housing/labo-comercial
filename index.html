@@ -2765,10 +2765,24 @@ function _resolverVersionModal(choice){
 // 2) si el cliente ya tiene un proyecto activo, se le pregunta al vendedor si esto
 //    es una versión nueva de ese proyecto o uno distinto — nunca se asume.
 // 3) cliente nuevo, o proyecto distinto → # nuevo del contador compartido, VER01.
+// Carpeta/línea/modelo "de origen" del proyecto (la de su primera versión) — se usa
+// SOLO para armar el nombre de la carpeta en SharePoint, así una versión nueva que
+// cambia de modelo/opciones no crea una carpeta duplicada. El nombre del ARCHIVO sí
+// refleja el modelo real de cada versión (eso no se toca).
+function _proyectoIdentidadFolder(lead){
+  var cots=[].concat(lead.cotizaciones||[]).sort(function(a,b){return new Date(a.fecha)-new Date(b.fecha);});
+  var first=cots[0]||{};
+  return {
+    num:_fmtLeadNum(lead.leadNum||lead.lead_num),
+    cliente:lead.cliente,
+    linea:(first.linea||'').indexOf('Madera')>=0?'Madera':'Modular',
+    modelo:first.modelo||''
+  };
+}
 async function _resolveOferta(clienteName){
   if(_ofertaRevision){
     var rev=_ofertaRevision;_ofertaRevision=null; // se consume una sola vez
-    return {numero:rev.num,version:rev.nextVersion,targetLeadId:rev.lead.id};
+    return {numero:rev.num,version:rev.nextVersion,targetLeadId:rev.lead.id,folderMeta:_proyectoIdentidadFolder(rev.lead)};
   }
   var existing=await _findLeadByCliente(clienteName);
   if(existing&&ACTIVAS.includes(existing.etapa)){
@@ -2776,12 +2790,12 @@ async function _resolveOferta(clienteName){
     if(activo){
       var choice=await _preguntarVersionONuevo(existing,activo);
       if(choice==='version'){
-        return {numero:_fmtLeadNum(existing.lead_num),version:_versionesDelProyecto(existing)+1,targetLeadId:existing.id};
+        return {numero:_fmtLeadNum(existing.lead_num),version:_versionesDelProyecto(existing)+1,targetLeadId:existing.id,folderMeta:_proyectoIdentidadFolder(existing)};
       }
     }
   }
   var nuevo=await getNextProyectoNum();
-  return {numero:nuevo,version:1,targetLeadId:null};
+  return {numero:nuevo,version:1,targetLeadId:null,folderMeta:null};
 }
 
 function initApp(){
@@ -3132,7 +3146,7 @@ function goStep(n){
   if(n===1){
     var numEl=document.getElementById('oNum');
     if(numEl) numEl.value='— se asigna al generar PDF —';
-    _ofertaVersion=1;_ofertaTargetLeadId=null;_ofertaRevision=null;
+    _ofertaVersion=1;_ofertaTargetLeadId=null;_ofertaFolderMeta=null;_ofertaResueltoPara=null;_ofertaRevision=null;
   }
   document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i+1===n));
   document.querySelectorAll('.nbtn').forEach((b,i)=>{b.classList.remove('active','done');if(i+1===n)b.classList.add('active');else if(i+1<n&&n<4)b.classList.add('done');});
@@ -3225,11 +3239,16 @@ async function _doGeneratePDF(){
   // Resolver número + versión AHORA — al generar el PDF, no antes. Mismo cliente
   // ya cargado en el CRM → reusa su número y suma versión (VER01, VER02...);
   // cliente nuevo → número nuevo del contador compartido, VER01.
+  // Si el nombre de cliente cambió desde la última resolución (volvieron a "Editar"
+  // y pusieron otro cliente sin pasar por el paso 1), hay que resolver de nuevo —
+  // si no, se queda pegado al número/versión de la generación anterior.
   var numEl=document.getElementById('oNum');
-  if(!numEl.value||numEl.value.includes('—')){
+  var clienteActual=gv('cNombre');
+  if(!numEl.value||numEl.value.includes('—')||_ofertaResueltoPara!==clienteActual){
     numEl.value='…';
-    var _res=await _resolveOferta(gv('cNombre'));
-    _ofertaVersion=_res.version;_ofertaTargetLeadId=_res.targetLeadId;
+    var _res=await _resolveOferta(clienteActual);
+    _ofertaVersion=_res.version;_ofertaTargetLeadId=_res.targetLeadId;_ofertaFolderMeta=_res.folderMeta;
+    _ofertaResueltoPara=clienteActual;
     numEl.value=_res.numero;
   }
   var doc=_buildOfferPDF();
@@ -3297,7 +3316,7 @@ async function guardarEnSharePoint(leadId,cotId){
     var bytes=await _regenerarBytesDesdeSnapshot(cot.snapshot);
     var meta={num:_fmtLeadNum(l.leadNum),cliente:l.cliente,
       linea:(cot.linea||'').indexOf('Madera')>=0?'Madera':'Modular',modelo:cot.modelo};
-    var pdfMeta=await _spUploadOfferPDF(bytes,meta,_versionForCot(l,cotId));
+    var pdfMeta=await _spUploadOfferPDF(bytes,meta,_versionForCot(l,cotId),_proyectoIdentidadFolder(l));
     // Actualizar la cotización con los datos de SharePoint y desmarcar pendiente
     cot.pdfUrl=(pdfMeta&&pdfMeta.webUrl)||'';cot.pdfPath=(pdfMeta&&pdfMeta.path)||'';
     cot.pdfName=(pdfMeta&&pdfMeta.name)||'';cot.pdfVersion=(pdfMeta&&pdfMeta.version)||null;
@@ -3398,7 +3417,7 @@ async function _finishPDF(finalBytes){
   if(!esExterno()){
     // 1) Subida a SharePoint primero (mismo número/versión ya resueltos al generar)
     try{
-      pdfMeta=await _spUploadOfferPDF(finalBytes,meta,_ofertaVersion);
+      pdfMeta=await _spUploadOfferPDF(finalBytes,meta,_ofertaVersion,_ofertaFolderMeta);
     }catch(e){
       console.error('[PDF] ✗ No se pudo subir a SharePoint:',e);
       alert('No se pudo subir el PDF a SharePoint:\n'+e.message+'\nSe descargará localmente igual y el lead se guardará sin el archivo adjunto.');
@@ -3790,7 +3809,11 @@ let _msalInst=null,_gToken=null,_siteId=null,_driveId=null;
 // Versión (VER01, VER02, ...) y lead existente resueltos para la oferta que se está
 // generando — se calculan una vez por PDF en _doGeneratePDF y se reusan en la subida
 // a SharePoint y en el guardado del lead, para no repetir la consulta a Supabase.
-let _ofertaVersion=1,_ofertaTargetLeadId=null;
+let _ofertaVersion=1,_ofertaTargetLeadId=null,_ofertaFolderMeta=null;
+// Nombre de cliente para el que se resolvió el # actual — si cambia (se vuelve a
+// "Editar" y se pone otro cliente) hay que resolver de nuevo, no reusar el número
+// de la generación anterior.
+let _ofertaResueltoPara=null;
 // Si viene de "+ Nueva versión" en una cotización ya cargada: {lead, num, nextVersion}.
 // _resolveOferta lo consume (una sola vez) para saltear la pregunta de versión/proyecto.
 let _ofertaRevision=null;
@@ -3982,7 +4005,7 @@ async function _spEnsureFolderTree(basePath){
 // `version` (1-based) ya viene resuelto desde _resolveOferta/_versionForCot — la
 // primera versión de un proyecto además crea toda la estructura de carpetas fija.
 // Usa fetch directo (no _gFetch) porque el contenido es binario, no JSON.
-async function _spUploadOfferPDF(pdfBytes, meta, version){
+async function _spUploadOfferPDF(pdfBytes, meta, version, folderMeta){
   await _initMSAL(); await _getSiteDrive();
   // refrescar token
   try{
@@ -3992,7 +4015,10 @@ async function _spUploadOfferPDF(pdfBytes, meta, version){
       _gToken=rt.accessToken;
     }
   }catch(e){console.warn('[PDF] token refresh:',e);}
-  var basePath=MSAL_CONFIG.offersFolder+'/'+_spOfferFolderName(meta);
+  // La carpeta usa la identidad "de origen" del proyecto (folderMeta) cuando existe,
+  // para que una versión que cambia de modelo/opciones no duplique la carpeta —
+  // el nombre del ARCHIVO sí usa meta (el modelo real de esta versión puntual).
+  var basePath=MSAL_CONFIG.offersFolder+'/'+_spOfferFolderName(folderMeta||meta);
   if((version||1)===1){
     try{await _spEnsureFolderTree(basePath);}
     catch(e){console.warn('[SP] No se pudo crear la estructura de carpetas:',e);}
