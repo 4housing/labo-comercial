@@ -2388,17 +2388,17 @@ async function _sbNextCounter(name,fallbackStart){
     return null;
   }
 }
-// El número de proyecto y el "#" del Pipeline son EL MISMO número — un cliente que
-// vuelve por un proyecto distinto se lleva un # nuevo, no reusa el de un proyecto
-// anterior. Sigue siendo un único contador compartido (antes 'offer_num', ahora
-// también hace de lead_num para las filas nuevas).
+// El número de proyecto y el "#" del Pipeline son EL MISMO número, así que tienen
+// que salir del MISMO contador: 'lead_num', el que ya venía usando el Pipeline
+// (no 'offer_num', el viejo de SharePoint, que iba muy adelantado y por eso los
+// proyectos nuevos aparecían con un # que no seguía la secuencia real del CRM).
 async function getNextProyectoNum(){
-  var next=await _sbNextCounter('offer_num',168);
+  var next=await _sbNextCounter('lead_num',33);
   if(next!==null)return String(next).padStart(4,'0');
   // Fallback to localStorage
-  var current=parseInt(localStorage.getItem('labo_offer_num')||'168');
+  var current=parseInt(localStorage.getItem('labo_lead_num')||'33');
   var n=current+1;
-  localStorage.setItem('labo_offer_num',String(n));
+  localStorage.setItem('labo_lead_num',String(n));
   return String(n).padStart(4,'0');
 }
 
