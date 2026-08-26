@@ -3253,6 +3253,9 @@ async function _finishPDF(finalBytes){
   }catch(e){console.warn('Descarga local falló:',e);}
   // 3) Guardar lead con el link (o marcado como pendiente de SharePoint si es externo)
   await saveLead(pdfMeta);
+  // 4) Refrescar el Pipeline para que la cotización recién guardada aparezca sin
+  //    tener que apretar "Actualizar" a mano (los externos no tienen el CRM cargado).
+  if(!esExterno())loadData();
 }
 
 
