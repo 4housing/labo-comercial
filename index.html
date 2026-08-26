@@ -1796,7 +1796,7 @@ function renderTable(){
     }).join('');
     var mainRow=
       '<tr class="lead-main-row" data-lid="'+lid+'" onclick="toggleCots(this.dataset.lid)" style="cursor:pointer">'+
-        '<td style="text-align:center"><span style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--mid)">'+(l.leadNum||'—')+'</span></td>'+
+        '<td style="text-align:center"><span style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--mid)">'+_fmtLeadNum(l.leadNum)+'</span></td>'+
         '<td style="font-family:IBM Plex Mono,monospace;font-size:11px">'+dInicio+'</td>'+
         '<td><div class="td-bold">'+esc(l.cliente||'—')+'</div><div class="td-muted" style="font-size:10px">'+esc(l.contacto||'')+'</div></td>'+
         '<td><span class="lb '+lbCls+'">'+esc(lineaLabel)+'</span><div class="td-muted" style="font-size:10px">Mod. '+esc(modeloLabel)+(nCots>1?' <span class="cot-badge">'+nCots+'</span>':'')+'</div></td>'+
@@ -2053,7 +2053,7 @@ function renderRanking(){
     return '<tr onclick="openDetail(\''+l.id+'\')" style="cursor:pointer">'+
       '<td class="td-mono" style="width:30px;color:var(--mid)">'+(i+1)+'</td>'+
       '<td>'+
-        (l.leadNum?'<span class="lead-num">#'+l.leadNum+'</span>':'')+
+        (l.leadNum?'<span class="lead-num">#'+_fmtLeadNum(l.leadNum)+'</span>':'')+
         '<div class="td-bold">'+esc(l.cliente||'—')+'</div>'+
         '<div class="td-muted">'+(l.ultimaCot?esc(l.ultimaCot.linea||'')+' Mod. '+esc(l.ultimaCot.modelo||''):esc(l.linea||'')+' Mod. '+esc(l.modelo||''))+'</div>'+
       '</td>'+
@@ -2071,7 +2071,7 @@ function openDetail(id){
   var l=allLeads.find(function(x){return x.id===id;});
   if(!l)return;
   currentLeadId=id;
-  document.getElementById('dp-title').textContent=(l.leadNum?'#'+l.leadNum+' \u2014 ':'')+( l.cliente||'Lead');
+  document.getElementById('dp-title').textContent=(l.leadNum?'#'+_fmtLeadNum(l.leadNum)+' \u2014 ':'')+( l.cliente||'Lead');
   var cls=ETAPA_CLS[l.etapa]||'e-cotizado';
   var edot=ETAPAS.find(function(e){return e.key===l.etapa;})||ETAPAS[0];
   var temp=getTemp(l);
@@ -2509,6 +2509,9 @@ function diasDesde(l){
 function fmt(n){return Number(n||0).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0});}
 function fmtK(n){return n>=1000000?Math.round(n/1000)+'K':n>=1000?Math.round(n/1000)+'K':String(Math.round(n));}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+// El # del Pipeline se guarda como entero en la base pero tiene que verse igual
+// que el número de proyecto del PDF/SharePoint (con ceros a la izquierda, ej. 0169).
+function _fmtLeadNum(n){return n?String(n).padStart(4,'0'):'—';}
 
 document.addEventListener('click',function(e){if(!e.target.closest('.etapa-dropdown'))document.querySelectorAll('.etapa-dropdown.open').forEach(d=>d.classList.remove('open'));});
 
@@ -2687,7 +2690,11 @@ async function _sbNextCounter(name,fallbackStart){
     return null;
   }
 }
-async function getNextOfferNum(){
+// El número de proyecto y el "#" del Pipeline son EL MISMO número — un cliente que
+// vuelve por un proyecto distinto se lleva un # nuevo, no reusa el de un proyecto
+// anterior. Sigue siendo un único contador compartido (antes 'offer_num', ahora
+// también hace de lead_num para las filas nuevas).
+async function getNextProyectoNum(){
   var next=await _sbNextCounter('offer_num',168);
   if(next!==null)return String(next).padStart(4,'0');
   // Fallback to localStorage
@@ -2697,29 +2704,35 @@ async function getNextOfferNum(){
   return String(n).padStart(4,'0');
 }
 
-// Busca un lead existente por nombre de cliente exacto (mismo criterio que usa
-// _spSaveLead para decidir si suma una cotización a un cliente ya cargado).
+// Busca, entre todas las filas del Pipeline con este nombre de cliente exacto, la
+// del proyecto activo más reciente (si un cliente vuelve por otro proyecto, va a
+// tener MÁS de una fila — cada una con su propio #, ver _resolveOferta).
 async function _findLeadByCliente(clienteName){
   if(!clienteName||clienteName==='—')return null;
   try{
     var q=await _sbFetch('labo_leads?select=*&cliente=eq.'+encodeURIComponent(clienteName),{method:'GET'});
-    if(q.ok){var rows=await q.json();if(rows&&rows.length)return rows[0];}
+    if(q.ok){
+      var rows=await q.json();
+      if(rows&&rows.length){
+        var activos=rows.filter(function(r){return ACTIVAS.includes(r.etapa);});
+        var pool=activos.length?activos:rows;
+        return [].concat(pool).sort(function(a,b){return new Date(b.fecha_ultima_cot||b.fecha)-new Date(a.fecha_ultima_cot||a.fecha);})[0];
+      }
+    }
     else console.warn('[CRM] Error buscando cliente:',q.status,await q.text());
   }catch(e){console.warn('[CRM] _findLeadByCliente error:',e);}
   return null;
 }
-// Un mismo cliente puede tener varios proyectos/cotizaciones a lo largo del tiempo,
-// cada uno con su propio número — no es un número "de por vida" del cliente. Dentro
-// de un mismo proyecto puede haber varias versiones (VER01, VER02...) por las idas y
-// vueltas hasta cerrar el alcance. Esta función encuentra el proyecto que sigue
-// "activo" (la cotización no archivada más reciente) para ofrecer sumarle una
-// versión nueva en vez de arrancar un proyecto distinto sin querer.
+// Dentro de una misma fila del Pipeline (un proyecto) puede haber varias versiones
+// (VER01, VER02...) por las idas y vueltas hasta cerrar el alcance. Esta función
+// encuentra la cotización activa más reciente, para ofrecer sumarle una versión
+// nueva en vez de arrancar un proyecto (fila, #) distinto sin querer.
 function _proyectoActivo(lead){
   var cots=(lead.cotizaciones||[]).filter(function(c){return !c.archivada;});
   if(!cots.length)return null;
   return [].concat(cots).sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);})[0];
 }
-// Cantidad de versiones que ya existen para un número de proyecto puntual dentro del lead.
+// Cantidad de versiones que ya existen para el proyecto (num) de esta fila.
 function _versionesDelProyecto(lead,num){
   return (lead.cotizaciones||[]).filter(function(c){return String(c.num)===String(num);}).length;
 }
@@ -2734,8 +2747,8 @@ function _versionForCot(lead,cotId){
   return idx>=0?idx+1:sorted.length||1;
 }
 // Modal de desambiguación: ¿esto es una versión nueva del proyecto activo del
-// cliente, o un proyecto distinto? Se resuelve con una Promise que destraba
-// _resolveOferta cuando el vendedor elige un botón del modal.
+// cliente, o un proyecto distinto (con # nuevo)? Se resuelve con una Promise que
+// destraba _resolveOferta cuando el vendedor elige un botón del modal.
 let _versionModalResolve=null;
 function _preguntarVersionONuevo(cot){
   return new Promise(function(resolve){
@@ -2750,15 +2763,18 @@ function _resolverVersionModal(choice){
   document.getElementById('versionModal').classList.remove('open');
   if(_versionModalResolve){_versionModalResolve(choice);_versionModalResolve=null;}
 }
-// Resuelve {numero, version, existingLead} para la cotización que se está por generar.
-// Prioridad: 1) revisión explícita vía el botón "+ Nueva versión" en una cotización
-// ya cargada (_ofertaRevision). 2) si el cliente ya tiene un proyecto activo, se le
-// pregunta al vendedor si esto es una versión nueva de ese proyecto o uno distinto.
-// 3) cliente nuevo, o proyecto distinto → número nuevo del contador compartido, VER01.
+// Resuelve {numero, version, targetLeadId} para la cotización que se está por generar.
+// targetLeadId es la fila del Pipeline a la que hay que sumar esta versión — null
+// significa "crear una fila nueva con # nuevo" (proyecto nuevo, sea cliente nuevo o
+// uno que vuelve por algo distinto). Prioridad:
+// 1) revisión explícita vía el botón "+ Nueva versión" en una cotización ya cargada.
+// 2) si el cliente ya tiene un proyecto activo, se le pregunta al vendedor si esto
+//    es una versión nueva de ese proyecto o uno distinto — nunca se asume.
+// 3) cliente nuevo, o proyecto distinto → # nuevo del contador compartido, VER01.
 async function _resolveOferta(clienteName){
   if(_ofertaRevision){
     var rev=_ofertaRevision;_ofertaRevision=null; // se consume una sola vez
-    return {numero:rev.num,version:rev.nextVersion,existingLead:rev.lead};
+    return {numero:rev.num,version:rev.nextVersion,targetLeadId:rev.lead.id};
   }
   var existing=await _findLeadByCliente(clienteName);
   if(existing&&ACTIVAS.includes(existing.etapa)){
@@ -2766,12 +2782,12 @@ async function _resolveOferta(clienteName){
     if(activo){
       var choice=await _preguntarVersionONuevo(activo);
       if(choice==='version'){
-        return {numero:activo.num,version:_versionesDelProyecto(existing,activo.num)+1,existingLead:existing};
+        return {numero:activo.num,version:_versionesDelProyecto(existing,activo.num)+1,targetLeadId:existing.id};
       }
     }
   }
-  var nuevo=await getNextOfferNum();
-  return {numero:nuevo,version:1,existingLead:existing||null};
+  var nuevo=await getNextProyectoNum();
+  return {numero:nuevo,version:1,targetLeadId:null};
 }
 
 function initApp(){
@@ -3122,7 +3138,7 @@ function goStep(n){
   if(n===1){
     var numEl=document.getElementById('oNum');
     if(numEl) numEl.value='— se asigna al generar PDF —';
-    _ofertaVersion=1;_ofertaExistingLead=null;_ofertaRevision=null;
+    _ofertaVersion=1;_ofertaTargetLeadId=null;_ofertaRevision=null;
   }
   document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i+1===n));
   document.querySelectorAll('.nbtn').forEach((b,i)=>{b.classList.remove('active','done');if(i+1===n)b.classList.add('active');else if(i+1<n&&n<4)b.classList.add('done');});
@@ -3219,7 +3235,7 @@ async function _doGeneratePDF(){
   if(!numEl.value||numEl.value.includes('—')){
     numEl.value='…';
     var _res=await _resolveOferta(gv('cNombre'));
-    _ofertaVersion=_res.version;_ofertaExistingLead=_res.existingLead;
+    _ofertaVersion=_res.version;_ofertaTargetLeadId=_res.targetLeadId;
     numEl.value=_res.numero;
   }
   var doc=_buildOfferPDF();
@@ -3779,7 +3795,7 @@ let _msalInst=null,_gToken=null,_siteId=null,_driveId=null;
 // Versión (VER01, VER02, ...) y lead existente resueltos para la oferta que se está
 // generando — se calculan una vez por PDF en _doGeneratePDF y se reusan en la subida
 // a SharePoint y en el guardado del lead, para no repetir la consulta a Supabase.
-let _ofertaVersion=1,_ofertaExistingLead=null;
+let _ofertaVersion=1,_ofertaTargetLeadId=null;
 // Si viene de "+ Nueva versión" en una cotización ya cargada: {lead, num, nextVersion}.
 // _resolveOferta lo consume (una sola vez) para saltear la pregunta de versión/proyecto.
 let _ofertaRevision=null;
@@ -4010,19 +4026,22 @@ async function _spSaveLead(lead){
     pdfUrl:lead.pdfUrl||'',pdfPath:lead.pdfPath||'',pdfName:lead.pdfName||'',pdfVersion:lead.pdfVersion||null
   };
   const clienteName=(lead.cliente||'').trim();
-  console.log('[CRM] Guardando lead en Supabase:',clienteName,'OC',lead.num);
+  console.log('[CRM] Guardando lead en Supabase:',clienteName,'COT',lead.num);
 
   try{
-    // Look for existing lead with same client name (exact, ignore '—')
+    // targetLeadId ya viene resuelto desde _resolveOferta (o desde el botón
+    // "+ Nueva versión"): esta versión suma a ESA fila puntual del Pipeline, nunca
+    // se vuelve a adivinar por nombre de cliente acá (un cliente puede tener varias
+    // filas — una por proyecto — así que "buscar por nombre" sería ambiguo).
     let existing=null;
-    if(clienteName&&clienteName!=='—'){
-      const q=await _sbFetch('labo_leads?select=*&cliente=eq.'+encodeURIComponent(clienteName),{method:'GET'});
+    if(lead.targetLeadId){
+      const q=await _sbFetch('labo_leads?select=*&id=eq.'+encodeURIComponent(lead.targetLeadId),{method:'GET'});
       if(q.ok){const rows=await q.json();if(rows&&rows.length)existing=rows[0];}
-      else console.warn('[CRM] Error buscando cliente:',q.status,await q.text());
+      else console.warn('[CRM] Error buscando lead:',q.status,await q.text());
     }
 
     if(existing){
-      // Add cotización to existing lead
+      // Sumar esta versión a la fila del proyecto existente
       var cots=existing.cotizaciones||[];
       cots.unshift(cot);
       var totalPipeline=cots.reduce(function(s,c){return c.archivada?s:s+(c.total||0);},0);
@@ -4034,13 +4053,14 @@ async function _spSaveLead(lead){
           ultima_cot:cot,fecha_ultima_cot:cot.fecha,updated_at:new Date().toISOString()
         })
       });
-      if(pr.ok)console.log('[CRM] ✓ Cotización agregada a cliente existente:',clienteName);
+      if(pr.ok)console.log('[CRM] ✓ Versión agregada al proyecto existente:',clienteName,'#'+lead.num);
       else console.error('[CRM] ✗ Error al actualizar lead:',pr.status,await pr.text());
     }else{
-      // New lead — get next lead number from shared counter
-      var leadNum=await _sbNextCounter('lead_num',33);
+      // Proyecto nuevo (cliente nuevo, o cliente que vuelve por algo distinto):
+      // fila nueva en el Pipeline. El # es el mismo número de proyecto (lead.num) —
+      // ya no se saca de un contador separado.
       var newRow={
-        id:lead.id,lead_num:leadNum,fecha:lead.fecha,cliente:lead.cliente,
+        id:lead.id,lead_num:parseInt(lead.num,10)||lead.num,fecha:lead.fecha,cliente:lead.cliente,
         contacto:lead.contacto,email:lead.email,tel:lead.tel,terreno:lead.terreno,
         vendedor:lead.vendedor,lugar:lead.lugar,etapa:'Cotizado',motivo_perdida:'',
         actividad:[],cotizaciones:[cot],total_pipeline:cot.total,
@@ -4051,7 +4071,7 @@ async function _spSaveLead(lead){
         headers:{'Prefer':'return=minimal'},
         body:JSON.stringify(newRow)
       });
-      if(nr.ok)console.log('[CRM] ✓ Lead nuevo creado:',clienteName,'#'+leadNum);
+      if(nr.ok)console.log('[CRM] ✓ Proyecto nuevo creado:',clienteName,'#'+lead.num);
       else console.error('[CRM] ✗ Error al crear lead:',nr.status,await nr.text());
     }
   }catch(e){console.error('[CRM] ✗ _spSaveLead excepción:',e);}
@@ -4076,7 +4096,7 @@ function saveLead(pdfMeta){
     var lead={
       id:'lead_'+Date.now(),
       fecha:new Date().toISOString(),
-      num:gv('oNum'),version:_ofertaVersion||1,cliente:gv('cNombre'),contacto:gv('cContacto'),
+      num:gv('oNum'),version:_ofertaVersion||1,targetLeadId:_ofertaTargetLeadId||null,cliente:gv('cNombre'),contacto:gv('cContacto'),
       email:gv('cEmail'),tel:gv('cTel'),terreno:gv('cTerreno'),vendedor:gv('oVendedor'),lugar:gv('oLugar'),
       linea:LINEA[sel]==='madera'?'LABO Madera':'LABO Modular',
       modelo:DNAME[sel],sup:COSTOS[sel].sup,cant:cant,total:tot,
