@@ -89,6 +89,8 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--white);color:var(--
 .cot-del-btn:hover{background:var(--red);color:var(--white)}
 .cot-sp-btn{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;padding:3px 8px;border:1px solid var(--green);background:transparent;color:var(--green);cursor:pointer;border-radius:2px;transition:all .15s;white-space:nowrap}
 .cot-sp-btn:hover{background:var(--green);color:var(--white)}
+.cot-ver-btn{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;padding:3px 8px;border:1px solid var(--blue);background:transparent;color:var(--blue);cursor:pointer;border-radius:2px;transition:all .15s;white-space:nowrap}
+.cot-ver-btn:hover{background:var(--blue);color:var(--white)}
 .cot-ext-badge{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:1px;padding:2px 5px;margin-left:6px;background:var(--amber);color:#fff;border-radius:2px;vertical-align:middle}
 .cot-card-num{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--mid);letter-spacing:1px}
 .cot-card-date{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--mid)}
@@ -1126,6 +1128,18 @@ tr:hover td{background:#F5F3ED}
   </div>
 </div>
 
+<!-- VERSIÓN NUEVA vs PROYECTO NUEVO MODAL -->
+<div class="modal-overlay" id="versionModal">
+  <div class="modal-box">
+    <div class="modal-title">Este cliente ya tiene una cotización activa</div>
+    <div style="font-size:12px;color:var(--mid);margin-bottom:16px" id="version-modal-info"></div>
+    <div class="modal-actions">
+      <button class="btn-modal" onclick="_resolverVersionModal('nuevo')">Es un proyecto distinto</button>
+      <button class="btn-modal primary" onclick="_resolverVersionModal('version')">Es una versión nueva de esa cotización</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ TAB 4: COTIZADOR ═══════════════════════════════════════════════════════ -->
 <div id="tab-cotizador" class="tab-content">
 
@@ -1371,8 +1385,7 @@ function _rowToLead(r){
     email:r.email, tel:r.tel, terreno:r.terreno, vendedor:r.vendedor, lugar:r.lugar,
     etapa:r.etapa, motivoPerdida:r.motivo_perdida, cotizaciones:r.cotizaciones||[],
     actividad:r.actividad||[], totalPipeline:r.total_pipeline,
-    ultimaCot:r.ultima_cot, fechaUltimaCot:r.fecha_ultima_cot,
-    numeroOferta:r.numero_oferta||null
+    ultimaCot:r.ultima_cot, fechaUltimaCot:r.fecha_ultima_cot
   };
 }
 // Convert app lead (camelCase) → Supabase row (snake_case)
@@ -1383,7 +1396,6 @@ function _leadToRow(l){
     etapa:l.etapa, motivo_perdida:l.motivoPerdida||'', cotizaciones:l.cotizaciones||[],
     actividad:l.actividad||[], total_pipeline:l.totalPipeline||0,
     ultima_cot:l.ultimaCot||null, fecha_ultima_cot:l.fechaUltimaCot||null,
-    numero_oferta:l.numeroOferta||null,
     updated_at:new Date().toISOString()
   };
 }
@@ -2064,6 +2076,20 @@ function openDetail(id){
   var edot=ETAPAS.find(function(e){return e.key===l.etapa;})||ETAPAS[0];
   var temp=getTemp(l);
   var cots=cotsActivas(l);
+  // Agrupar por número de cotización (proyecto): dentro de cada uno puede haber
+  // varias versiones (VER01, VER02...) por las idas y vueltas con el cliente.
+  var maxVersionByNum={},latestFechaByNum={};
+  cots.forEach(function(c){
+    var v=c.version||1;
+    if(!maxVersionByNum[c.num]||v>maxVersionByNum[c.num])maxVersionByNum[c.num]=v;
+    var f=new Date(c.fecha).getTime()||0;
+    if(!latestFechaByNum[c.num]||f>latestFechaByNum[c.num])latestFechaByNum[c.num]=f;
+  });
+  cots=[].concat(cots).sort(function(a,b){
+    var fa=latestFechaByNum[a.num]||0,fb=latestFechaByNum[b.num]||0;
+    if(fb!==fa)return fb-fa; // proyecto con actividad más reciente primero
+    return (b.version||1)-(a.version||1); // dentro del proyecto, versión más nueva primero
+  });
 
   // Cotizaciones HTML
   var cotsHtml='';
@@ -2073,19 +2099,24 @@ function openDetail(id){
       var lbCls=(c.linea||'')==='LABO Madera'?'lb-madera':'lb-modular';
       var notasHtml=c.notas&&c.notas!=='—'?'<div class="cot-card-field" style="grid-column:1/-1"><label>Notas</label><span>'+esc(c.notas)+'</span></div>':'';
       var pdfBtn=c.pdfUrl
-        ? '<a class="cot-pdf-btn" href="'+esc(c.pdfUrl)+'" target="_blank" rel="noopener" title="Abrir PDF en SharePoint'+(c.pdfName?' ('+esc(c.pdfName)+')':'')+'">PDF'+(c.pdfVersion?' v'+esc(String(c.pdfVersion)):'')+' ↗</a>'
+        ? '<a class="cot-pdf-btn" href="'+esc(c.pdfUrl)+'" target="_blank" rel="noopener" title="Abrir PDF en SharePoint'+(c.pdfName?' ('+esc(c.pdfName)+')':'')+'">PDF ↗</a>'
         : '<span class="cot-pdf-none">sin PDF</span>';
-      var delBtn='<button class="cot-del-btn" title="Eliminar esta cotización" onclick="archivarCotizacion(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">Eliminar</button>';
+      var delBtn='<button class="cot-del-btn" title="Eliminar esta versión" onclick="archivarCotizacion(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">Eliminar</button>';
       var spBtn='';
       if(!esExterno()&&c.pendienteSharePoint){
         spBtn='<button class="cot-sp-btn" title="Crear carpeta y subir PDF a SharePoint" onclick="guardarEnSharePoint(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">↑ SharePoint</button>';
       }
+      var esUltimaVersion=(c.version||1)===maxVersionByNum[c.num];
+      var verBtn='';
+      if(!esExterno()&&esUltimaVersion&&c.snapshot&&ACTIVAS.includes(l.etapa)){
+        verBtn='<button class="cot-ver-btn" title="Generar una nueva versión de esta cotización, con el mismo número" onclick="iniciarNuevaVersion(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">+ Nueva versión</button>';
+      }
       var extBadge=c.origenExterno?'<span class="cot-ext-badge" title="Cotización generada por vendedor externo'+(c.creadoPor?' ('+esc(c.creadoPor)+')':'')+'">EXTERNO</span>':'';
       return '<div class="cot-card">'+
         '<div class="cot-card-hdr">'+
-          '<span class="cot-card-num">OC N\u00b0 '+esc(c.num||'—')+extBadge+'</span>'+
+          '<span class="cot-card-num">COT N\u00b0 '+esc(c.num||'—')+' · VER'+String(c.version||1).padStart(2,'0')+extBadge+'</span>'+
           '<span style="display:flex;align-items:center;gap:8px">'+
-            '<span class="cot-card-date">'+d+'</span>'+pdfBtn+spBtn+delBtn+
+            '<span class="cot-card-date">'+d+'</span>'+pdfBtn+spBtn+verBtn+delBtn+
           '</span>'+
         '</div>'+
         '<div class="cot-card-body">'+
@@ -2205,7 +2236,7 @@ function archivarCotizacion(leadId,cotId){
   if(cot.archivada){if(typeof toast==='function')toast('Esa cotización ya estaba archivada');return;}
   const activasAntes=cotsActivas(l).length;
   const restantes=activasAntes-1;
-  const label='OC N° '+(cot.num||'—')+(cot.total?' (USD '+fmt(cot.total)+')':'');
+  const label='COT N° '+(cot.num||'—')+(cot.total?' (USD '+fmt(cot.total)+')':'');
   const msgFinal=restantes>0
     ? '\n\nEl lead seguirá activo con '+restantes+' cotización(es).'
     : '\n\nEs la única cotización activa: el lead dejará de aparecer en la vista (queda archivado en la base, no se borra).';
@@ -2213,7 +2244,7 @@ function archivarCotizacion(leadId,cotId){
   cot.archivada=true;
   cot.fechaArchivado=new Date().toISOString();
   if(!l.actividad)l.actividad=[];
-  l.actividad.push({fecha:new Date().toLocaleDateString('es-AR'),texto:'Cotización archivada: OC N° '+(cot.num||'—')});
+  l.actividad.push({fecha:new Date().toLocaleDateString('es-AR'),texto:'Cotización archivada: COT N° '+(cot.num||'—')});
   recomputeLead(l);
   saveLeadToDB(l).catch(e=>console.warn(e));
   const quedaVacio=leadArchivado(l);
@@ -2677,40 +2708,70 @@ async function _findLeadByCliente(clienteName){
   }catch(e){console.warn('[CRM] _findLeadByCliente error:',e);}
   return null;
 }
-// El número de oferta de un cliente es fijo: una vez asignado (numero_oferta en el
-// lead), todas sus cotizaciones futuras lo reusan. Para leads viejos que todavía no
-// tienen numero_oferta guardado, se toma el número de su primera cotización (por
-// fecha) como número "de origen" y queda persistido a partir de la próxima cotización.
-function _leadNumeroOferta(lead){
-  if(!lead)return null;
-  if(lead.numero_oferta)return lead.numero_oferta;
-  if(lead.numeroOferta)return lead.numeroOferta;
-  var cots=lead.cotizaciones||[];
-  if(cots.length){
-    var oldest=[].concat(cots).sort(function(a,b){return new Date(a.fecha)-new Date(b.fecha);})[0];
-    if(oldest&&oldest.num)return oldest.num;
-  }
-  return null;
+// Un mismo cliente puede tener varios proyectos/cotizaciones a lo largo del tiempo,
+// cada uno con su propio número — no es un número "de por vida" del cliente. Dentro
+// de un mismo proyecto puede haber varias versiones (VER01, VER02...) por las idas y
+// vueltas hasta cerrar el alcance. Esta función encuentra el proyecto que sigue
+// "activo" (la cotización no archivada más reciente) para ofrecer sumarle una
+// versión nueva en vez de arrancar un proyecto distinto sin querer.
+function _proyectoActivo(lead){
+  var cots=(lead.cotizaciones||[]).filter(function(c){return !c.archivada;});
+  if(!cots.length)return null;
+  return [].concat(cots).sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);})[0];
 }
-// Versión (1-based) que le corresponde a una cotización dentro del historial del lead,
-// según el orden cronológico en que se generaron.
+// Cantidad de versiones que ya existen para un número de proyecto puntual dentro del lead.
+function _versionesDelProyecto(lead,num){
+  return (lead.cotizaciones||[]).filter(function(c){return String(c.num)===String(num);}).length;
+}
+// Versión (1-based) que le corresponde a una cotización puntual dentro de SU proyecto
+// (mismo num), según el orden cronológico en que se generaron esas versiones.
 function _versionForCot(lead,cotId){
-  var sorted=[].concat((lead&&lead.cotizaciones)||[]).sort(function(a,b){return new Date(a.fecha)-new Date(b.fecha);});
+  var cot=(lead&&lead.cotizaciones||[]).find(function(c){return String(c.id)===String(cotId);});
+  if(!cot)return 1;
+  var mismoProyecto=(lead.cotizaciones||[]).filter(function(c){return String(c.num)===String(cot.num);});
+  var sorted=[].concat(mismoProyecto).sort(function(a,b){return new Date(a.fecha)-new Date(b.fecha);});
   var idx=sorted.findIndex(function(c){return String(c.id)===String(cotId);});
   return idx>=0?idx+1:sorted.length||1;
 }
-// Resuelve {numero, version, existingLead} para la cotización que se está por generar:
-// cliente nuevo → número nuevo del contador compartido, VER01. Cliente existente →
-// reusa su numero_oferta y la versión es la cantidad de cotizaciones que ya tiene + 1.
+// Modal de desambiguación: ¿esto es una versión nueva del proyecto activo del
+// cliente, o un proyecto distinto? Se resuelve con una Promise que destraba
+// _resolveOferta cuando el vendedor elige un botón del modal.
+let _versionModalResolve=null;
+function _preguntarVersionONuevo(cot){
+  return new Promise(function(resolve){
+    _versionModalResolve=resolve;
+    var info='COT N° '+(cot.num||'—')+' — '+(cot.linea||'')+' '+(cot.modelo||'')+
+      ', generada el '+(cot.fecha?new Date(cot.fecha).toLocaleDateString('es-AR'):'—')+'.';
+    document.getElementById('version-modal-info').textContent=info;
+    document.getElementById('versionModal').classList.add('open');
+  });
+}
+function _resolverVersionModal(choice){
+  document.getElementById('versionModal').classList.remove('open');
+  if(_versionModalResolve){_versionModalResolve(choice);_versionModalResolve=null;}
+}
+// Resuelve {numero, version, existingLead} para la cotización que se está por generar.
+// Prioridad: 1) revisión explícita vía el botón "+ Nueva versión" en una cotización
+// ya cargada (_ofertaRevision). 2) si el cliente ya tiene un proyecto activo, se le
+// pregunta al vendedor si esto es una versión nueva de ese proyecto o uno distinto.
+// 3) cliente nuevo, o proyecto distinto → número nuevo del contador compartido, VER01.
 async function _resolveOferta(clienteName){
+  if(_ofertaRevision){
+    var rev=_ofertaRevision;_ofertaRevision=null; // se consume una sola vez
+    return {numero:rev.num,version:rev.nextVersion,existingLead:rev.lead};
+  }
   var existing=await _findLeadByCliente(clienteName);
-  if(existing){
-    var numero=_leadNumeroOferta(existing)||await getNextOfferNum();
-    var version=(existing.cotizaciones||[]).length+1;
-    return {numero:numero,version:version,existingLead:existing};
+  if(existing&&ACTIVAS.includes(existing.etapa)){
+    var activo=_proyectoActivo(existing);
+    if(activo){
+      var choice=await _preguntarVersionONuevo(activo);
+      if(choice==='version'){
+        return {numero:activo.num,version:_versionesDelProyecto(existing,activo.num)+1,existingLead:existing};
+      }
+    }
   }
   var nuevo=await getNextOfferNum();
-  return {numero:nuevo,version:1,existingLead:null};
+  return {numero:nuevo,version:1,existingLead:existing||null};
 }
 
 function initApp(){
@@ -3061,7 +3122,7 @@ function goStep(n){
   if(n===1){
     var numEl=document.getElementById('oNum');
     if(numEl) numEl.value='— se asigna al generar PDF —';
-    _ofertaVersion=1;_ofertaExistingLead=null;
+    _ofertaVersion=1;_ofertaExistingLead=null;_ofertaRevision=null;
   }
   document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i+1===n));
   document.querySelectorAll('.nbtn').forEach((b,i)=>{b.classList.remove('active','done');if(i+1===n)b.classList.add('active');else if(i+1<n&&n<4)b.classList.add('done');});
@@ -3220,11 +3281,11 @@ async function guardarEnSharePoint(leadId,cotId){
   var cot=(l.cotizaciones||[]).find(function(c){return String(c.id)===String(cotId);});
   if(!cot){alert('No se encontró la cotización.');return;}
   if(!cot.snapshot){alert('Esta cotización no tiene los datos para regenerar el PDF (fue creada antes de esta función).');return;}
-  if(!confirm('¿Crear la carpeta y guardar el PDF de la cotización OC N° '+(cot.num||'—')+' en SharePoint?'))return;
+  if(!confirm('¿Crear la carpeta y guardar el PDF de la cotización COT N° '+(cot.num||'—')+' en SharePoint?'))return;
   try{
     await _initMSAL(); await _getSiteDrive();
     var bytes=await _regenerarBytesDesdeSnapshot(cot.snapshot);
-    var meta={num:_leadNumeroOferta(l)||cot.num,cliente:l.cliente,
+    var meta={num:cot.num,cliente:l.cliente,
       linea:(cot.linea||'').indexOf('Madera')>=0?'Madera':'Modular',modelo:cot.modelo};
     var pdfMeta=await _spUploadOfferPDF(bytes,meta,_versionForCot(l,cotId));
     // Actualizar la cotización con los datos de SharePoint y desmarcar pendiente
@@ -3232,7 +3293,7 @@ async function guardarEnSharePoint(leadId,cotId){
     cot.pdfName=(pdfMeta&&pdfMeta.name)||'';cot.pdfVersion=(pdfMeta&&pdfMeta.version)||null;
     cot.pendienteSharePoint=false;
     if(!l.actividad)l.actividad=[];
-    l.actividad.push({fecha:new Date().toLocaleDateString('es-AR'),texto:'PDF guardado en SharePoint: OC N° '+(cot.num||'—')});
+    l.actividad.push({fecha:new Date().toLocaleDateString('es-AR'),texto:'PDF guardado en SharePoint: COT N° '+(cot.num||'—')});
     await saveLeadToDB(l);
     render();
     if(currentLeadId===leadId)openDetail(leadId);
@@ -3241,6 +3302,45 @@ async function guardarEnSharePoint(leadId,cotId){
     console.error('guardarEnSharePoint:',e);
     alert('No se pudo guardar en SharePoint:\n'+(e&&e.message||e));
   }
+}
+
+// Carga los datos de una cotización guardada en el formulario del Cotizador para
+// editarlos (a diferencia de _regenerarBytesDesdeSnapshot, que solo reproduce el
+// PDF tal cual sin tocar la pantalla). N° y fecha quedan afuera a propósito: el N°
+// se resuelve solo al generar (ver _ofertaRevision) y la fecha pasa a ser la de hoy.
+function _cargarSnapshotEnCotizador(snap){
+  selModel(snap.sel);
+  opts=JSON.parse(JSON.stringify(snap.opts||{}));
+  Object.entries(opts).forEach(function(kv){
+    var yb=document.getElementById('yes_'+kv[0]),nb=document.getElementById('no_'+kv[0]);
+    if(!yb||!nb)return;
+    if(kv[1]){yb.classList.add('active-yes');nb.classList.remove('active-no');}
+    else{nb.classList.add('active-no');yb.classList.remove('active-yes');}
+  });
+  kmVal=snap.kmVal;exportVal=!!snap.exportacion;
+  if(snap.kmVal){var ki=document.getElementById('kminput');if(ki){ki.value=snap.kmVal;onKm(snap.kmVal);}}
+  function setv(id,v){var el=document.getElementById(id);if(el!=null&&v!=null)el.value=v;}
+  setv('cNombre',snap.cNombre);setv('cContacto',snap.cContacto);setv('cEmail',snap.cEmail);setv('cTel',snap.cTel);
+  setv('oLugar',snap.oLugar);setv('oVendedor',snap.oVendedor);setv('oPlazo',snap.oPlazo);
+  setv('oPago',snap.pago);setv('oNotas',snap.notas);setv('oValidez',snap.oValidez);setv('cant',snap.cant);
+  setv('oFecha',new Date().toISOString().split('T')[0]);
+  upd();
+}
+// Arranca una nueva versión de una cotización YA CARGADA en el CRM: lleva al
+// vendedor al Cotizador con los datos precargados para editar, y marca que el
+// próximo PDF generado debe usar el mismo número de proyecto con la versión
+// siguiente (no un proyecto nuevo).
+function iniciarNuevaVersion(leadId,cotId){
+  var l=allLeads.find(function(x){return x.id===leadId;});if(!l)return;
+  var cot=(l.cotizaciones||[]).find(function(c){return String(c.id)===String(cotId);});
+  if(!cot){alert('No se encontró la cotización.');return;}
+  if(!cot.snapshot){alert('Esta cotización no tiene los datos guardados para editar una versión nueva (fue creada antes de esta función).');return;}
+  var tab=Array.from(document.querySelectorAll('.tabs .tab')).find(function(t){return /cotizador/i.test(t.getAttribute('onclick')||'');});
+  if(tab)switchTab('cotizador',tab);
+  goStep(1);
+  _cargarSnapshotEnCotizador(cot.snapshot);
+  _ofertaRevision={lead:l,num:cot.num,nextVersion:_versionesDelProyecto(l,cot.num)+1};
+  closeDetailPanel();
 }
 
 // Devuelve los bytes del PDF (oferta + catálogo). No descarga ni sube.
@@ -3680,6 +3780,9 @@ let _msalInst=null,_gToken=null,_siteId=null,_driveId=null;
 // generando — se calculan una vez por PDF en _doGeneratePDF y se reusan en la subida
 // a SharePoint y en el guardado del lead, para no repetir la consulta a Supabase.
 let _ofertaVersion=1,_ofertaExistingLead=null;
+// Si viene de "+ Nueva versión" en una cotización ya cargada: {lead, num, nextVersion}.
+// _resolveOferta lo consume (una sola vez) para saltear la pregunta de versión/proyecto.
+let _ofertaRevision=null;
 async function _initMSAL(){
   var w=0;
   while(typeof msal==='undefined'&&w<5000){await new Promise(function(r){setTimeout(r,100);});w+=100;}
@@ -3815,7 +3918,7 @@ function _spSanitize(s){
     .replace(/[\\/:*?"<>|#%]/g,'-').replace(/\s+/g,' ').trim();
 }
 // Construye el nombre de carpeta del proyecto: "168 - Cliente - Modular - S"
-// (número fijo por cliente — ver _resolveOferta/_leadNumeroOferta).
+// (número fijo por proyecto/cotización — ver _resolveOferta).
 function _spOfferFolderName(meta){
   var num=_spSanitize(meta.num||'SN');
   var cli=_spSanitize(meta.cliente||'Cliente');
@@ -3900,7 +4003,7 @@ async function _spSaveLead(lead){
   // Build cotización object
   const cot={
     id:'cot_'+Date.now(),
-    fecha:lead.fecha,num:lead.num,linea:lead.linea,modelo:lead.modelo,
+    fecha:lead.fecha,num:lead.num,version:lead.version||1,linea:lead.linea,modelo:lead.modelo,
     sup:lead.sup,cant:lead.cant,total:lead.total,pago:lead.pago,plazo:lead.plazo,notas:lead.notas,
     origenExterno:lead.origenExterno||false, creadoPor:lead.creadoPor||'',
     pendienteSharePoint:lead.pendienteSharePoint||false, snapshot:lead.snapshot||null,
@@ -3928,9 +4031,7 @@ async function _spSaveLead(lead){
         headers:{'Prefer':'return=minimal'},
         body:JSON.stringify({
           cotizaciones:cots,total_pipeline:totalPipeline,
-          ultima_cot:cot,fecha_ultima_cot:cot.fecha,updated_at:new Date().toISOString(),
-          // Backfill para leads viejos que todavía no tenían numero_oferta guardado.
-          numero_oferta:existing.numero_oferta||lead.numeroOferta||cot.num||null
+          ultima_cot:cot,fecha_ultima_cot:cot.fecha,updated_at:new Date().toISOString()
         })
       });
       if(pr.ok)console.log('[CRM] ✓ Cotización agregada a cliente existente:',clienteName);
@@ -3943,8 +4044,7 @@ async function _spSaveLead(lead){
         contacto:lead.contacto,email:lead.email,tel:lead.tel,terreno:lead.terreno,
         vendedor:lead.vendedor,lugar:lead.lugar,etapa:'Cotizado',motivo_perdida:'',
         actividad:[],cotizaciones:[cot],total_pipeline:cot.total,
-        ultima_cot:cot,fecha_ultima_cot:cot.fecha,
-        numero_oferta:lead.numeroOferta||cot.num||null
+        ultima_cot:cot,fecha_ultima_cot:cot.fecha
       };
       var nr=await _sbFetch('labo_leads',{
         method:'POST',
@@ -3976,7 +4076,7 @@ function saveLead(pdfMeta){
     var lead={
       id:'lead_'+Date.now(),
       fecha:new Date().toISOString(),
-      num:gv('oNum'),numeroOferta:gv('oNum'),cliente:gv('cNombre'),contacto:gv('cContacto'),
+      num:gv('oNum'),version:_ofertaVersion||1,cliente:gv('cNombre'),contacto:gv('cContacto'),
       email:gv('cEmail'),tel:gv('cTel'),terreno:gv('cTerreno'),vendedor:gv('oVendedor'),lugar:gv('oLugar'),
       linea:LINEA[sel]==='madera'?'LABO Madera':'LABO Modular',
       modelo:DNAME[sel],sup:COSTOS[sel].sup,cant:cant,total:tot,
