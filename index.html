@@ -1146,6 +1146,10 @@ tr:hover td{background:#F5F3ED}
         <span class="ctotal" id="ctotal"></span>
       </div>
     </div>
+    <div class="card" id="cfgCard" style="display:none">
+      <div class="ctitle">Configuración</div>
+      <div id="cfgList"></div>
+    </div>
     <div class="card">
       <div class="ctitle">Opcionales y logística</div>
       <div class="olist" id="olist"></div>
@@ -2262,6 +2266,70 @@ const DNAME={'MAD_S':'S','MAD_M':'M','MAD_L':'L','MAD_XL':'XL','S':'S','M':'M','
 const COSTOS_ORIG=JSON.parse(JSON.stringify(COSTOS));
 const LOG_TARIFA_ORIG=JSON.parse(JSON.stringify(COSTOS_LOG_TARIFA));
 const MONTAJE_ORIG=JSON.parse(JSON.stringify(COSTOS_MONTAJE));
+
+// ══════════ MOTOR DE COSTEO MODULAR (LABO) — Fase 2 ══════════
+// Modelo de datos extraído del Excel maestro (validado al centavo vs Catálogo).
+const LABO_DATA = {"version":"VER02","tc":1500,"params":{"margen_modulo":0.35,"margen_opcional":0.15,"gastos":0.957,"iva":0.21,"iibb":0.03,"idc":0.006,"ganancias":0.2,"prorrateables":{"infraestructura":0.08,"consumibles":0.04,"seg_higiene":0.01}},"models":{"SE":{"m2":50,"camiones":2},"S":{"m2":65,"camiones":2},"M":{"m2":86,"camiones":2},"L":{"m2":130,"camiones":3},"XL":{"m2":151,"camiones":4}},"module":{"mc_items":[{"rubro":"Estructura Modular","detalle":"Modulo de 7,20 x 3,00 mts. de tubo estructural 150x50 en vigas y 100x50 en columnas (3,2 mm)","mo":1020,"mat":1880,"qty":{"SE":0,"S":3,"M":4,"L":6,"XL":7}},{"rubro":"Estructura Modular","detalle":"Modulo de 7,50 x 3,30 mts. de tubo estructural 150x50 en vigas y 100x50 en columnas (3,2 mm)","mo":1070,"mat":1955,"qty":{"SE":2,"S":0,"M":0,"L":0,"XL":0}},{"rubro":"Acero / Hierro","detalle":"Bastidor muros 1,50 x 2,60 mts. con perfl galvanizado de 70","mo":0,"mat":30,"qty":{"SE":12,"S":17.4,"M":17.4,"L":29.099999999999998,"XL":29.099999999999998}},{"rubro":"Acero / Hierro","detalle":"Plegados varios (10% de estructura modular)","mo":0,"mat":605,"qty":{"SE":1,"S":1,"M":1,"L":1,"XL":1}},{"rubro":"Acero / Hierro","detalle":"Escalera fija","mo":0,"mat":1000,"qty":{"SE":0,"S":0,"M":0,"L":1,"XL":1}},{"rubro":"Acero / Hierro","detalle":"Estructura de tubo estructural para biombo de heladera","mo":50,"mat":50,"qty":{"SE":1,"S":0,"M":0,"L":0,"XL":0}},{"rubro":"Aislación / Revestimiento","detalle":"Lana de vidrio con foil 70 mm","mo":2,"mat":9,"qty":{"SE":29.639999999999997,"S":35.88,"M":35.88,"L":75.66,"XL":75.66}},{"rubro":"Aislación / Revestimiento","detalle":"Ceramica 15x15 blanca","mo":10,"mat":15,"qty":{"SE":13.780000000000001,"S":15.73,"M":15.73,"L":47.19,"XL":47.19}},{"rubro":"Aislación / Revestimiento","detalle":"Revestimiento placa multinalaminado resistente al agua 15 muro baño","mo":3,"mat":7,"qty":{"SE":13.780000000000001,"S":15.73,"M":15.73,"L":47.19,"XL":47.19}},{"rubro":"Aislación / Revestimiento","detalle":"Webertec muro baño","mo":5,"mat":6,"qty":{"SE":13.780000000000001,"S":15.73,"M":15.73,"L":47.19,"XL":47.19}},{"rubro":"Aislación / Revestimiento","detalle":"Revestimiento Exterior Muros - Panel Chapa lisa / Poliuretano / Chapa lisa - 50 mm","mo":8,"mat":40,"qty":{"SE":63.699999999999996,"S":66,"M":84,"L":132,"XL":141}},{"rubro":"Aislación / Revestimiento","detalle":"Revestimiento Exterior Techos - Panel Chapa lisa / Poliuretano / Chapa lisa - 50 mm","mo":8,"mat":40,"qty":{"SE":50,"S":64.80000000000001,"M":86.4,"L":64.80000000000001,"XL":86.4}},{"rubro":"Aislación / Revestimiento","detalle":"Revestimiento placa multilaminado resistente al agua 15 para techo planta baja","mo":3,"mat":7,"qty":{"SE":0,"S":0,"M":0,"L":57.9,"XL":57.9}},{"rubro":"Aislación / Revestimiento","detalle":"Plegado perimetral pometina","mo":0,"mat":25,"qty":{"SE":28.2,"S":32.4,"M":38.4,"L":32.4,"XL":45.6}},{"rubro":"Aislación / Revestimiento","detalle":"Pometina para cubierta","mo":0,"mat":18,"qty":{"SE":50,"S":65,"M":86.4,"L":65,"XL":86.4}},{"rubro":"Piso","detalle":"Membrana hidrofuga Webertec","mo":3,"mat":6,"qty":{"SE":50,"S":65,"M":86.4,"L":124.50000000000003,"XL":146.10000000000002}},{"rubro":"Aberturas","detalle":"Ventana DVH Oscilobatiente 960x2431 - Anodizado natural","mo":68.85,"mat":459,"qty":{"SE":4,"S":5,"M":5,"L":12,"XL":12}},{"rubro":"Aberturas","detalle":"Ventana DVH Oscilobatiente 960x1431 - Anodizado natural","mo":37.5,"mat":250,"qty":{"SE":1,"S":0,"M":0,"L":0,"XL":0}},{"rubro":"Aberturas","detalle":"Paño fijo DVH 1,00 x 2,60 mts - Anodizado natural","mo":37.5,"mat":250,"qty":{"SE":1,"S":2,"M":2,"L":10,"XL":10}},{"rubro":"Aberturas","detalle":"Puerta interior enchapada (En el material está el costo de la mano de obra de armado, mientras que en MO está el costo de colocación)","mo":55.5,"mat":370,"qty":{"SE":3,"S":3,"M":3,"L":6,"XL":6}},{"rubro":"Aberturas","detalle":"Puerta de exterior de madera de pino tratado","mo":55.5,"mat":370,"qty":{"SE":1,"S":1,"M":1,"L":1,"XL":1}},{"rubro":"Aberturas","detalle":"Estructura Puertas Sala de Maquina ( 0,70 m x Unid)","mo":30,"mat":30,"qty":{"SE":0,"S":2,"M":2,"L":2,"XL":2}},{"rubro":"Instalacion Electrica","detalle":"Instalación eléctrica caño rígido de PVC para casas (Incluye MO & MAT)","mo":40,"mat":40,"qty":{"SE":50,"S":65,"M":86,"L":129.60000000000002,"XL":151}},{"rubro":"Instalacion Electrica","detalle":"Copita escolar","mo":0,"mat":20,"qty":{"SE":9,"S":11,"M":13,"L":18,"XL":21}},{"rubro":"Pintura","detalle":"Arenado (Incluye arena)","mo":14,"mat":0,"qty":{"SE":120,"S":180,"M":240,"L":360,"XL":420}},{"rubro":"Pintura","detalle":"Base epoxy (Hierros estructura)","mo":3,"mat":3,"qty":{"SE":120,"S":180,"M":240,"L":360,"XL":420}},{"rubro":"Pintura","detalle":"Poliuretano (Hierros Estructura a la vista + Muros exteriores que requieran)","mo":3,"mat":3,"qty":{"SE":120,"S":180,"M":240,"L":360,"XL":420}},{"rubro":"Pintura","detalle":"Pintura interior al panel y al durlock","mo":3,"mat":3,"qty":{"SE":158.42000000000002,"S":127.27000000000001,"M":142.87,"L":257.91999999999996,"XL":273.52}},{"rubro":"Sanitario","detalle":"Inodoro SMART TOILETTE BIO CLEAN","mo":250,"mat":450,"qty":{"SE":1,"S":1,"M":1,"L":3,"XL":3}},{"rubro":"Sanitario","detalle":"Bacha 19-600-WHITE","mo":250,"mat":150,"qty":{"SE":1,"S":1,"M":1,"L":3,"XL":3}},{"rubro":"Sanitario","detalle":"Grifería de ducha FV Puelo c/transferencia y rejilla para ducha 10 x 10","mo":250,"mat":120,"qty":{"SE":1,"S":1,"M":1,"L":3,"XL":3}},{"rubro":"Sanitario","detalle":"Instalación sanitaria para lavarropas","mo":250,"mat":0,"qty":{"SE":1,"S":1,"M":1,"L":3,"XL":3}},{"rubro":"Sanitario","detalle":"Termotanque de 155 lts","mo":250,"mat":400,"qty":{"SE":1,"S":1,"M":1,"L":2,"XL":2}},{"rubro":"Sanitario","detalle":"Cortina ducha","mo":6,"mat":18,"qty":{"SE":1,"S":1,"M":1,"L":3,"XL":3}},{"rubro":"Sanitario","detalle":"Accesorios FV Arizona (1 Portarrollo + 1 perchero)","mo":6,"mat":25,"qty":{"SE":1,"S":1,"M":1,"L":3,"XL":3}},{"rubro":"Sanitario","detalle":"Espejo redondo","mo":10,"mat":25,"qty":{"SE":1,"S":1,"M":1,"L":3,"XL":3}},{"rubro":"Cocina","detalle":"Mesada Jhonson con bacha Z52 de 1,80 mts de largo","mo":38.5,"mat":256.6666666666667,"qty":{"SE":1,"S":1,"M":1,"L":1,"XL":1}},{"rubro":"Cocina","detalle":"Mueble bajo mesada de melamina blanca + mueble de guardado lavarropa y termotanque electrico (Cotizado por difranco por WA. Incluye colocación)","mo":0,"mat":700,"qty":{"SE":1,"S":1,"M":1,"L":1,"XL":1}},{"rubro":"Cocina","detalle":"Grifería Monocomando Arizona Cromo FV","mo":250,"mat":65,"qty":{"SE":1,"S":1,"M":1,"L":1,"XL":1}}],"mod_items":[{"detalle":"Bastidor muros 1,50 x 2,60 mts. con perfl galvanizado","valorhora":5,"horas":3.5,"qty":{"SE":8,"S":11.6,"M":11.6,"L":19.4,"XL":19.4}}],"equip_items":[{"detalle":"Mueble lavadero","mo":0,"mat":500,"qty":{"SE":0,"S":0,"M":0,"L":0,"XL":1}}]},"config":[{"key":"cielorraso","label":"Cielorraso","options":[{"value":"Guatambú","cost":{"SE":1900.0,"S":2462.4,"M":3283.2,"L":4924.8,"XL":5745.6}},{"value":"Durlock pintado","cost":{"SE":900.0,"S":1166.4,"M":1555.2,"L":2332.8,"XL":2721.6},"default":true},{"value":"Melamina","cost":{"SE":1400.0,"S":1814.4,"M":2419.2,"L":3628.8,"XL":4233.6}}]},{"key":"muros_int","label":"Muros interiores","options":[{"value":"Guatambú","cost":{"SE":4034.08,"S":5071.404,"M":5664.204,"L":5725.46,"XL":6318.26}},{"value":"Durlock total","cost":{"SE":2123.2,"S":2669.16,"M":2981.16,"L":3013.4,"XL":3325.4}},{"value":"Durlock tabiq. + panel","cost":{"SE":1185.6,"S":1629.16,"M":1629.16,"L":3026.4,"XL":3026.4},"default":true}]},{"key":"muros_ext","label":"Muros exteriores","options":[{"value":"Ninguno","cost":{"SE":0.0,"S":0.0,"M":0.0,"L":0.0,"XL":0.0},"default":true},{"value":"Pino","cost":{"SE":2025.66,"S":2098.8,"M":2671.2,"L":4197.6,"XL":4483.8}},{"value":"Fachada ventilada","cost":{"SE":3057.6,"S":3168.0,"M":4032.0,"L":6336.0,"XL":6768.0}}]},{"key":"piso","label":"Piso","options":[{"value":"Mosaico","cost":{"SE":1750.0,"S":2275.0,"M":3024.0,"L":4357.5,"XL":5113.5},"default":true},{"value":"Goma","cost":{"SE":1500.0,"S":1950.0,"M":2592.0,"L":3735.0,"XL":4383.0}},{"value":"Entablonado","cost":{"SE":1750.0,"S":2275.0,"M":3024.0,"L":4357.5,"XL":5113.5}}]},{"key":"esquema_piso","label":"Esquema de piso","options":[{"value":"Estándar","cost":{"SE":1550.0,"S":2015.0,"M":2678.4,"L":3859.5,"XL":4529.1}},{"value":"Fenólico 25 + emulsión","cost":{"SE":750.0,"S":975.0,"M":1296.0,"L":1867.5,"XL":2191.5},"default":true}]}],"opcionales":[{"key":"Fundación","label":"Fundación","items":[{"rubro":"Obra Civil","detalle":"Fundaciones (Vigas Cintas)","mo":0,"mat":50,"qty":{"SE":86,"S":0,"M":0,"L":0,"XL":86.4}}],"total":{"SE":4300.0,"S":0.0,"M":0.0,"L":0.0,"XL":4320.0}},{"key":"AA","label":"AA","items":[{"rubro":"Climatización","detalle":"Equipo de AA bajo silueta","mo":300,"mat":1275,"qty":{"SE":1,"S":1,"M":1,"L":2,"XL":2}}],"total":{"SE":1575.0,"S":1575.0,"M":1575.0,"L":3150.0,"XL":3150.0}},{"key":"Piso Radiante","label":"Piso Radiante","items":[{"rubro":"Climatización","detalle":"Piso radiante","mo":0,"mat":47,"qty":{"SE":65,"S":65,"M":86,"L":130,"XL":151}}],"total":{"SE":3055.0,"S":3055.0,"M":4042.0,"L":6110.0,"XL":7097.0}},{"key":"Línea Blanca","label":"Línea Blanca","items":[{"rubro":"Equipamiento","detalle":"Anafe eléctrico 4 hornallas (marca a definir). Incluye MO colocación.","mo":0,"mat":102,"qty":{"SE":1,"S":1,"M":1,"L":1,"XL":1}},{"rubro":"Equipamiento","detalle":"Campana de extracción (marca a definir). Incluye MO colocación.","mo":0,"mat":153,"qty":{"SE":1,"S":1,"M":1,"L":1,"XL":1}},{"rubro":"Equipamiento","detalle":"Heladera 265 lts (GAFA). Incluye MO colocación.","mo":0,"mat":425,"qty":{"SE":1,"S":1,"M":1,"L":1,"XL":1}},{"rubro":"Equipamiento","detalle":"Lavarropas BGH Chico","mo":0,"mat":340,"qty":{"SE":1,"S":1,"M":1,"L":1,"XL":1}}],"total":{"SE":1020.0,"S":1020.0,"M":1020.0,"L":1020.0,"XL":1020.0}},{"key":"Paquete Solar","label":"Paquete Solar","items":[{"rubro":"Varios","detalle":"Paquete Solar","mo":0,"mat":8000,"qty":{"SE":1,"S":0,"M":0,"L":0,"XL":0}}],"total":{"SE":8000.0,"S":0.0,"M":0.0,"L":0.0,"XL":0.0}},{"key":"Estufa a Leña","label":"Estufa a Leña","items":[{"rubro":"Climatización","detalle":"Estufa a Leña","mo":0,"mat":1500,"qty":{"SE":1,"S":1,"M":1,"L":1,"XL":1}}],"total":{"SE":1500.0,"S":1500.0,"M":1500.0,"L":1500.0,"XL":1500.0}},{"key":"Pérgola","label":"Pérgola","items":[{"rubro":"Varios","detalle":"Pergola","mo":0,"mat":2000,"qty":{"SE":1,"S":1,"M":1,"L":1,"XL":1}}],"total":{"SE":2000.0,"S":2000.0,"M":2000.0,"L":2000.0,"XL":2000.0}},{"key":"Deck","label":"Deck","items":[{"rubro":"Varios","detalle":"Deck","mo":0,"mat":2000,"qty":{"SE":1,"S":1,"M":1,"L":1,"XL":1}}],"total":{"SE":2000.0,"S":2000.0,"M":2000.0,"L":2000.0,"XL":2000.0}},{"key":"Grúa","label":"Grúa","items":[{"rubro":"Logística & Montaje","detalle":"Grúa para montaje","mo":0,"mat":700,"qty":{"SE":1,"S":1,"M":1,"L":2,"XL":2}}],"total":{"SE":700.0,"S":700.0,"M":700.0,"L":1400.0,"XL":1400.0}}],"logistica":{"usd_km_camion":5},"montaje_rango":[{"label":"Hasta 100 km","km_desde":0,"cost":{"SE":3760,"S":3760,"M":4600,"L":7120,"XL":8800}},{"label":"101 a 500 km","km_desde":101,"cost":{"SE":6050,"S":6050,"M":7160,"L":10490,"XL":12710}},{"label":"501 a 1200 km","km_desde":501,"cost":{"SE":8000,"S":8000,"M":9260,"L":13040,"XL":15560}},{"label":"1201 km o más","km_desde":1201,"cost":{"SE":8600,"S":8600,"M":9860,"L":13640,"XL":16160}}]};
+const LABO_MODULAR_ORDER = ['SE','S','M','L','XL'];
+const LABO_OPC_MAP = {
+  "Platea de fundación + Granítico":"Fundación","Termomecánica por AA Split":"AA",
+  "Piso Radiante":"Piso Radiante","Línea Blanca":"Línea Blanca","Paquete Solar":"Paquete Solar",
+  "Estufa a Leña":"Estufa a Leña","Pérgola":"Pérgola","Deck":"Deck","Grúa":"Grúa"
+};
+function laboCfgDefault(){const c={};LABO_DATA.config.forEach(function(dim){var def=dim.options.find(function(o){return o.default;})||dim.options[0];c[dim.key]=def.value;});return c;}
+let laboCfg = laboCfgDefault();
+function laboProrr(){var p=LABO_DATA.params.prorrateables;return 1+p.infraestructura+p.consumibles+p.seg_higiene;}
+function laboModuleCost(model,cfg){
+  var mc=0; LABO_DATA.module.mc_items.forEach(function(it){mc+=(it.qty[model]||0)*(it.mo+it.mat);});
+  var mod=0; LABO_DATA.module.mod_items.forEach(function(it){mod+=(it.qty[model]||0)*it.valorhora*it.horas;});
+  LABO_DATA.config.forEach(function(dim){var v=cfg[dim.key];var opt=dim.options.find(function(o){return o.value===v;})||dim.options.find(function(o){return o.default;})||dim.options[0];mc+=(opt.cost[model]||0);});
+  return (mc+mod)*laboProrr();
+}
+function laboPrecioVenta(costo,tipo){var mg=tipo==='modulo'?LABO_DATA.params.margen_modulo:LABO_DATA.params.margen_opcional;return costo*(1+mg)/LABO_DATA.params.gastos;}
+function laboOpcCost(key,model){var o=LABO_DATA.opcionales.find(function(x){return x.key===key;});return o?(o.total[model]||0):0;}
+function laboOpcSale(key,model){return Math.round(laboPrecioVenta(laboOpcCost(key,model),'opcional')*100)/100;}
+function laboEquipCost(model){var e=0;(LABO_DATA.module.equip_items||[]).forEach(function(it){e+=(it.qty[model]||0)*(it.mo+it.mat);});return e;}
+function laboLogisticaCost(model,km){if(!km||km<1)return 0;var cam=(LABO_DATA.models[model]||{}).camiones||1;return LABO_DATA.logistica.usd_km_camion*km*cam;}
+function laboMontajeCost(model,km){if(km==null)return 0;var row=LABO_DATA.montaje_rango[0];LABO_DATA.montaje_rango.forEach(function(r){if(km>=r.km_desde)row=r;});return (row.cost[model]||0);}
+function laboBuildModularCostos(){
+  LABO_MODULAR_ORDER.forEach(function(m){
+    if(!LABO_DATA.models[m])return;
+    var pb=Math.round((laboPrecioVenta(laboModuleCost(m,laboCfg),'modulo')+laboPrecioVenta(laboEquipCost(m),'opcional'))*100)/100;
+    var op={}; Object.keys(LABO_OPC_MAP).forEach(function(k){op[k]=laboOpcSale(LABO_OPC_MAP[k],m);});
+    COSTOS[m]={sup:LABO_DATA.models[m].m2,pb:pb,op:op};
+    LINEA[m]='modular'; DNAME[m]=m;
+    if(!(m in COSTOS_LOG_TARIFA))COSTOS_LOG_TARIFA[m]=LABO_DATA.logistica.usd_km_camion;
+    if(!(m in COSTOS_LOG_TARIFA_EXPORT))COSTOS_LOG_TARIFA_EXPORT[m]=LABO_DATA.logistica.usd_km_camion;
+    if(!(m in PLATEA_EXPORT))PLATEA_EXPORT[m]=op["Platea de fundación + Granítico"]||0;
+    if(!(m in COSTOS_MONTAJE))COSTOS_MONTAJE[m]=LABO_DATA.montaje_rango.map(function(r){return r.cost[m]||0;});
+  });
+}
+function getCfgDesc(){ if(LINEA[sel]!=='modular')return []; return LABO_DATA.config.map(function(dim){return dim.label+': '+laboCfg[dim.key];}); }
+function buildCfg(k){
+  var card=document.getElementById('cfgCard'),list=document.getElementById('cfgList');
+  if(!card||!list)return;
+  if(LINEA[k]!=='modular'){card.style.display='none';return;}
+  card.style.display='';
+  var html='';
+  LABO_DATA.config.forEach(function(dim){
+    var cur=laboCfg[dim.key]; var def=dim.options.find(function(o){return o.default;});
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--mid);text-transform:uppercase;letter-spacing:1px;font-family:\'IBM Plex Mono\',monospace">'+dim.label+'</span><select onchange="setCfg(\''+dim.key+'\',this.value)" style="flex:0 0 auto;min-width:240px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--white)">';
+    dim.options.forEach(function(o){
+      var extra=(o.cost[k]||0)-((def&&def.cost[k])||0);
+      var tag='';
+      if(Math.abs(extra)>0.5){var pd=Math.round(laboPrecioVenta(Math.abs(extra)*laboProrr(),'modulo'));tag=(extra>0?' (+USD ':' (−USD ')+fmtCot(pd)+')';}
+      html+='<option value="'+o.value+'"'+(o.value===cur?' selected':'')+'>'+o.value+tag+'</option>';
+    });
+    html+='</select></div>';
+  });
+  list.innerHTML=html;
+}
+function setCfg(key,value){
+  laboCfg[key]=value; laboBuildModularCostos(); buildGrid();
+  if(sel){var c=document.getElementById('mc_'+sel);if(c)c.classList.add('selected');}
+  buildCfg(sel); upd();
+}
+
 // ── Descripciones de precio base ─────────────────────────────────────────────
 const BINC_MADERA=[
   "Estructura portante y muros exteriores en madera de pino impregnado, terminación natural sin pintura.",
@@ -2318,7 +2386,7 @@ const ODESC_MODULAR={
   "Grúa": "Servicio de grúa para operaciones de izaje y posicionamiento.",
   "Montaje": "Montaje en obra de la unidad y componentes.",
 };
-function getBINC(){return LINEA[sel]==='madera'?BINC_MADERA:BINC_MODULAR;}
+function getBINC(){var base=LINEA[sel]==='madera'?BINC_MADERA:BINC_MODULAR;return LINEA[sel]==='modular'?getCfgDesc().concat(base):base;}
 function getODESC(){return LINEA[sel]==='madera'?ODESC_MADERA:ODESC_MODULAR;}
 // Construye lista de descripciones de opcionales activos
 function getOpcionalesDesc(){
@@ -2360,9 +2428,9 @@ function getExclusiones(){
 }
 let sel=null,opts={},kmVal=null,exportVal=false;
 
-function calcLog(m,km){if(!km||km<100)return 0;const t=(exportVal?COSTOS_LOG_TARIFA_EXPORT[m]:COSTOS_LOG_TARIFA[m])||0;if(!t)return 0;const factor=exportVal?1:(km>=101?0.7:1);return t*km*factor*MARKUP;}
-function platePrice(m){return exportVal?(PLATEA_EXPORT[m]||0):(COSTOS[m].op['Platea de fundación + Granítico']||0);}
-function calcMontaje(m,km){if(!km||km<1)return 0;const t=COSTOS_MONTAJE[m];const c=km<=100?t[0]:km<=500?t[1]:km<=1200?t[2]:t[3];return c*MARKUP;}
+function calcLog(m,km){if(!km||km<100)return 0;if(LINEA[m]==='modular')return laboPrecioVenta(laboLogisticaCost(m,km),'opcional');const t=(exportVal?COSTOS_LOG_TARIFA_EXPORT[m]:COSTOS_LOG_TARIFA[m])||0;if(!t)return 0;const factor=exportVal?1:(km>=101?0.7:1);return t*km*factor*MARKUP;}
+function platePrice(m){if(LINEA[m]==='modular')return COSTOS[m].op['Platea de fundación + Granítico']||0;return exportVal?(PLATEA_EXPORT[m]||0):(COSTOS[m].op['Platea de fundación + Granítico']||0);}
+function calcMontaje(m,km){if(!km||km<1)return 0;if(LINEA[m]==='modular')return laboPrecioVenta(laboMontajeCost(m,km),'opcional');const t=COSTOS_MONTAJE[m];const c=km<=100?t[0]:km<=500?t[1]:km<=1200?t[2]:t[3];return c*MARKUP;}
 
 // Increment a shared counter atomically via Postgres RPC function
 async function _sbNextCounter(name,fallbackStart){
@@ -2508,6 +2576,7 @@ function initApp(){
   // N° de oferta se asigna al generar el PDF, no al cargar
   var numEl=document.getElementById('oNum');
   if(numEl) numEl.value='— se asigna al generar PDF —';
+  laboCfg=laboCfgDefault();laboBuildModularCostos();
   buildGrid();
   selModel('MAD_S');
   try{const saved=localStorage.getItem('labo_sheets_url');if(saved){const el=document.getElementById('sheetsUrl');if(el)el.value=saved;}}catch(e){}
@@ -2758,29 +2827,25 @@ function buildGrid(){
   const gm=document.getElementById('mgrid-mad');
   const gmod=document.getElementById('mgrid-mod');
   gm.innerHTML=''; gmod.innerHTML='';
-  Object.entries(COSTOS).forEach(([k,d])=>{
-    const el=document.createElement('div');
-    el.className='mcard '+(LINEA[k]==='madera'?'mcard-madera':'mcard-modular');
-    el.id='mc_'+k;
-    el.onclick=()=>selModel(k);
-    el.innerHTML=`<div class="cbadge">✓</div><div class="mname">${DNAME[k]}</div><div class="msup">${d.sup} m²</div><div class="mprice">USD ${fmtCot(d.pb)}</div>`;
-    (LINEA[k]==='madera'?gm:gmod).appendChild(el);
-  });
+  const mk=(k,d)=>{const el=document.createElement('div');el.className='mcard '+(LINEA[k]==='madera'?'mcard-madera':'mcard-modular');el.id='mc_'+k;el.onclick=()=>selModel(k);el.innerHTML=`<div class="cbadge">✓</div><div class="mname">${DNAME[k]}</div><div class="msup">${d.sup} m²</div><div class="mprice">USD ${fmtCot(d.pb)}</div>`;return el;};
+  Object.entries(COSTOS).forEach(([k,d])=>{if(LINEA[k]==='madera')gm.appendChild(mk(k,d));});
+  LABO_MODULAR_ORDER.forEach(k=>{if(COSTOS[k])gmod.appendChild(mk(k,COSTOS[k]));});
 }
 
-function selModel(k){sel=k;document.querySelectorAll('.mcard').forEach(c=>c.classList.remove('selected'));document.getElementById('mc_'+k).classList.add('selected');opts={};Object.keys(COSTOS[k].op).forEach(n=>{opts[n]=false;});opts['Montaje']=false;kmVal=null;buildOpts(k);upd();}
+function selModel(k){sel=k;document.querySelectorAll('.mcard').forEach(c=>c.classList.remove('selected'));document.getElementById('mc_'+k).classList.add('selected');opts={};Object.keys(COSTOS[k].op).forEach(n=>{opts[n]=false;});opts['Montaje']=false;kmVal=null;buildOpts(k);buildCfg(k);upd();}
 
 function getCant(){return parseInt(document.getElementById('cant').value)||1;}
 function buildOpts(k){const d=COSTOS[k];const list=document.getElementById('olist');list.innerHTML='';
-const cant=getCant();
-Object.entries(d.op).forEach(([name,price])=>{const na=false;const row=document.createElement('div');row.className='orow';row.id='or_'+name;const displayName=getOptLabel(name);const dispPrice=(name==='Platea de fundación + Granítico')?platePrice(k):price;row.innerHTML=`<div class="oleft"><div class="toggle-btn"><button id="yes_${name}" onclick="togOpt('${name}',true)">✓</button><button id="no_${name}" onclick="togOpt('${name}',false)" class="active-no">—</button></div><span class="oname">${displayName}</span></div><span class="oprice" id="pr_${name}">${dispPrice===0?'N/D':'USD '+fmtCot(dispPrice*cant)}</span>`;list.appendChild(row);});
-const tarifa=COSTOS_LOG_TARIFA[k];
-// Toggle de exportación
-const exrow=document.createElement('div');exrow.className='orow'+(exportVal?' on':'');exrow.id='or_Export';
-exrow.innerHTML=`<div class="oleft"><div class="toggle-btn"><button id="yes_Export" onclick="togExport(true)" ${exportVal?'class="active-yes"':''}>✓</button><button id="no_Export" onclick="togExport(false)" ${!exportVal?'class="active-no"':''}>—</button></div><span class="oname">¿Con exportación? (Uruguay)</span><span class="kmhint" style="margin-left:6px">cambia tarifa logística y platea</span></div><span class="oprice" id="pr_Export">${exportVal?'Sí':'No'}</span>`;list.appendChild(exrow);
+const cant=getCant();const isMod=LINEA[k]==='modular';
+Object.entries(d.op).forEach(([name,price])=>{const row=document.createElement('div');row.className='orow';row.id='or_'+name;const displayName=getOptLabel(name);const dispPrice=(name==='Platea de fundación + Granítico')?platePrice(k):price;row.innerHTML=`<div class="oleft"><div class="toggle-btn"><button id="yes_${name}" onclick="togOpt('${name}',true)">✓</button><button id="no_${name}" onclick="togOpt('${name}',false)" class="active-no">—</button></div><span class="oname">${displayName}</span></div><span class="oprice" id="pr_${name}">${dispPrice===0?'N/D':'USD '+fmtCot(dispPrice*cant)}</span>`;list.appendChild(row);});
+if(!isMod){const exrow=document.createElement('div');exrow.className='orow'+(exportVal?' on':'');exrow.id='or_Export';
+exrow.innerHTML=`<div class="oleft"><div class="toggle-btn"><button id="yes_Export" onclick="togExport(true)" ${exportVal?'class="active-yes"':''}>✓</button><button id="no_Export" onclick="togExport(false)" ${!exportVal?'class="active-no"':''}>—</button></div><span class="oname">¿Con exportación? (Uruguay)</span><span class="kmhint" style="margin-left:6px">cambia tarifa logística y platea</span></div><span class="oprice" id="pr_Export">${exportVal?'Sí':'No'}</span>`;list.appendChild(exrow);}
 const lrow=document.createElement('div');lrow.className='lrow';lrow.id='lrow';
-const tarifaShow=exportVal?COSTOS_LOG_TARIFA_EXPORT[k]:COSTOS_LOG_TARIFA[k];lrow.innerHTML=`<div class="lleft"><span class="lname">LOGÍSTICA</span><div class="kmwrap"><label>Distancia</label><input type="number" id="kminput" placeholder="mín. 100" min="100" step="1" oninput="onKm(this.value)" onblur="if(this.value&&parseInt(this.value)<100){this.value=100;onKm(100);}"><span class="kmhint">km</span></div><span class="kmhint" id="tarifaHint">${tarifaShow>0?`USD ${fmtCot(tarifaShow)}/km${exportVal?' · exportación':' · desc. 30% si >100 km'}`:'⚠ tarifa no configurada → ⚙ Actualizar Costos'}</span></div><span class="oprice" id="lprice">—</span>`;list.appendChild(lrow);
-const hasMontaje=COSTOS_MONTAJE[k].some(v=>v>0);const mrow=document.createElement('div');mrow.className='orow'+(hasMontaje?'':' na');mrow.id='or_Montaje';
+let tarifaTxt;
+if(isMod){const cam=(LABO_DATA.models[k]||{}).camiones||1;tarifaTxt=`USD ${fmtCot(LABO_DATA.logistica.usd_km_camion)}/km/camión · ${cam} camión${cam>1?'es':''}`;}
+else{const tarifaShow=exportVal?COSTOS_LOG_TARIFA_EXPORT[k]:COSTOS_LOG_TARIFA[k];tarifaTxt=tarifaShow>0?`USD ${fmtCot(tarifaShow)}/km${exportVal?' · exportación':' · desc. 30% si >100 km'}`:'⚠ tarifa no configurada → ⚙ Actualizar Costos';}
+lrow.innerHTML=`<div class="lleft"><span class="lname">LOGÍSTICA</span><div class="kmwrap"><label>Distancia</label><input type="number" id="kminput" placeholder="mín. 100" min="100" step="1" oninput="onKm(this.value)" onblur="if(this.value&&parseInt(this.value)<100){this.value=100;onKm(100);}"><span class="kmhint">km</span></div><span class="kmhint" id="tarifaHint">${tarifaTxt}</span></div><span class="oprice" id="lprice">—</span>`;list.appendChild(lrow);
+const hasMontaje=isMod?true:COSTOS_MONTAJE[k].some(v=>v>0);const mrow=document.createElement('div');mrow.className='orow'+(hasMontaje?'':' na');mrow.id='or_Montaje';
 mrow.innerHTML=`<div class="oleft"><div class="toggle-btn"><button id="yes_Montaje" onclick="togOpt('Montaje',true)" ${!hasMontaje?'disabled':''}>✓</button><button id="no_Montaje" onclick="togOpt('Montaje',false)" ${!hasMontaje?'disabled':''} class="active-no">—</button></div><span class="oname">Montaje</span><span class="kmhint" style="margin-left:6px">${hasMontaje?'(según km ingresados)':'⚠ tramos no configurados → ⚙ Actualizar Costos'}</span></div><span class="oprice" id="pr_Montaje">—</span>`;list.appendChild(mrow);}
 
 function togOpt(name,v){opts[name]=v;const row=document.getElementById('or_'+name);if(row){v?row.classList.add('on'):row.classList.remove('on');}const yb=document.getElementById('yes_'+name);const nb=document.getElementById('no_'+name);if(yb)yb.classList.toggle('active-yes',v);if(nb)nb.classList.toggle('active-no',!v);if(name==='Montaje'&&kmVal){const mp=v?calcMontaje(sel,kmVal):0;document.getElementById('pr_Montaje').textContent=(v&&mp>0)?'USD '+fmtCot(mp):'—';}upd();}

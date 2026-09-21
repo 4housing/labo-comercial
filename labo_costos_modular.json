@@ -560,6 +560,20 @@
      "XL": 19.4
     }
    }
+  ],
+  "equip_items": [
+   {
+    "detalle": "Mueble lavadero",
+    "mo": 0,
+    "mat": 500,
+    "qty": {
+     "SE": 0,
+     "S": 0,
+     "M": 0,
+     "L": 0,
+     "XL": 1
+    }
+   }
   ]
  },
  "config": [
