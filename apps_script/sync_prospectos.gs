@@ -396,9 +396,13 @@ function _asegurarColumnaMarca(sh, encabezados, anchoOriginal) {
 
 // ── Normalizadores ────────────────────────────────────────────────────────────
 
+// Marcas de acento (rango Unicode 0300-036F). Se arma con fromCharCode para que el
+// archivo no lleve caracteres invisibles que se pierdan al copiarlo y pegarlo.
+var _RE_TILDES = new RegExp('[' + String.fromCharCode(768) + '-' + String.fromCharCode(879) + ']', 'g');
+
 function _norm(s) {
   return String(s === null || s === undefined ? '' : s)
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')   // saca acentos
+    .normalize('NFD').replace(_RE_TILDES, '')            // saca acentos
     .toLowerCase().replace(/[^a-z0-9]/g, '');           // saca espacios, ¿?, °, etc.
 }
 function _txt(v) {
