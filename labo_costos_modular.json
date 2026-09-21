@@ -1,0 +1,1066 @@
+{
+ "version": "VER02",
+ "tc": 1500,
+ "params": {
+  "margen_modulo": 0.35,
+  "margen_opcional": 0.15,
+  "gastos": 0.957,
+  "iva": 0.21,
+  "iibb": 0.03,
+  "idc": 0.006,
+  "ganancias": 0.2,
+  "prorrateables": {
+   "infraestructura": 0.08,
+   "consumibles": 0.04,
+   "seg_higiene": 0.01
+  }
+ },
+ "models": {
+  "SE": {
+   "m2": 50,
+   "camiones": 2
+  },
+  "S": {
+   "m2": 65,
+   "camiones": 2
+  },
+  "M": {
+   "m2": 86,
+   "camiones": 2
+  },
+  "L": {
+   "m2": 130,
+   "camiones": 3
+  },
+  "XL": {
+   "m2": 151,
+   "camiones": 4
+  }
+ },
+ "module": {
+  "mc_items": [
+   {
+    "rubro": "Estructura Modular",
+    "detalle": "Modulo de 7,20 x 3,00 mts. de tubo estructural 150x50 en vigas y 100x50 en columnas (3,2 mm)",
+    "mo": 1020,
+    "mat": 1880,
+    "qty": {
+     "SE": 0,
+     "S": 3,
+     "M": 4,
+     "L": 6,
+     "XL": 7
+    }
+   },
+   {
+    "rubro": "Estructura Modular",
+    "detalle": "Modulo de 7,50 x 3,30 mts. de tubo estructural 150x50 en vigas y 100x50 en columnas (3,2 mm)",
+    "mo": 1070,
+    "mat": 1955,
+    "qty": {
+     "SE": 2,
+     "S": 0,
+     "M": 0,
+     "L": 0,
+     "XL": 0
+    }
+   },
+   {
+    "rubro": "Acero / Hierro",
+    "detalle": "Bastidor muros 1,50 x 2,60 mts. con perfl galvanizado de 70",
+    "mo": 0,
+    "mat": 30,
+    "qty": {
+     "SE": 12,
+     "S": 17.4,
+     "M": 17.4,
+     "L": 29.099999999999998,
+     "XL": 29.099999999999998
+    }
+   },
+   {
+    "rubro": "Acero / Hierro",
+    "detalle": "Plegados varios (10% de estructura modular)",
+    "mo": 0,
+    "mat": 605,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 1,
+     "XL": 1
+    }
+   },
+   {
+    "rubro": "Acero / Hierro",
+    "detalle": "Escalera fija",
+    "mo": 0,
+    "mat": 1000,
+    "qty": {
+     "SE": 0,
+     "S": 0,
+     "M": 0,
+     "L": 1,
+     "XL": 1
+    }
+   },
+   {
+    "rubro": "Acero / Hierro",
+    "detalle": "Estructura de tubo estructural para biombo de heladera",
+    "mo": 50,
+    "mat": 50,
+    "qty": {
+     "SE": 1,
+     "S": 0,
+     "M": 0,
+     "L": 0,
+     "XL": 0
+    }
+   },
+   {
+    "rubro": "Aislación / Revestimiento",
+    "detalle": "Lana de vidrio con foil 70 mm",
+    "mo": 2,
+    "mat": 9,
+    "qty": {
+     "SE": 29.639999999999997,
+     "S": 35.88,
+     "M": 35.88,
+     "L": 75.66,
+     "XL": 75.66
+    }
+   },
+   {
+    "rubro": "Aislación / Revestimiento",
+    "detalle": "Ceramica 15x15 blanca",
+    "mo": 10,
+    "mat": 15,
+    "qty": {
+     "SE": 13.780000000000001,
+     "S": 15.73,
+     "M": 15.73,
+     "L": 47.19,
+     "XL": 47.19
+    }
+   },
+   {
+    "rubro": "Aislación / Revestimiento",
+    "detalle": "Revestimiento placa multinalaminado resistente al agua 15 muro baño",
+    "mo": 3,
+    "mat": 7,
+    "qty": {
+     "SE": 13.780000000000001,
+     "S": 15.73,
+     "M": 15.73,
+     "L": 47.19,
+     "XL": 47.19
+    }
+   },
+   {
+    "rubro": "Aislación / Revestimiento",
+    "detalle": "Webertec muro baño",
+    "mo": 5,
+    "mat": 6,
+    "qty": {
+     "SE": 13.780000000000001,
+     "S": 15.73,
+     "M": 15.73,
+     "L": 47.19,
+     "XL": 47.19
+    }
+   },
+   {
+    "rubro": "Aislación / Revestimiento",
+    "detalle": "Revestimiento Exterior Muros - Panel Chapa lisa / Poliuretano / Chapa lisa - 50 mm",
+    "mo": 8,
+    "mat": 40,
+    "qty": {
+     "SE": 63.699999999999996,
+     "S": 66,
+     "M": 84,
+     "L": 132,
+     "XL": 141
+    }
+   },
+   {
+    "rubro": "Aislación / Revestimiento",
+    "detalle": "Revestimiento Exterior Techos - Panel Chapa lisa / Poliuretano / Chapa lisa - 50 mm",
+    "mo": 8,
+    "mat": 40,
+    "qty": {
+     "SE": 50,
+     "S": 64.80000000000001,
+     "M": 86.4,
+     "L": 64.80000000000001,
+     "XL": 86.4
+    }
+   },
+   {
+    "rubro": "Aislación / Revestimiento",
+    "detalle": "Revestimiento placa multilaminado resistente al agua 15 para techo planta baja",
+    "mo": 3,
+    "mat": 7,
+    "qty": {
+     "SE": 0,
+     "S": 0,
+     "M": 0,
+     "L": 57.9,
+     "XL": 57.9
+    }
+   },
+   {
+    "rubro": "Aislación / Revestimiento",
+    "detalle": "Plegado perimetral pometina",
+    "mo": 0,
+    "mat": 25,
+    "qty": {
+     "SE": 28.2,
+     "S": 32.4,
+     "M": 38.4,
+     "L": 32.4,
+     "XL": 45.6
+    }
+   },
+   {
+    "rubro": "Aislación / Revestimiento",
+    "detalle": "Pometina para cubierta",
+    "mo": 0,
+    "mat": 18,
+    "qty": {
+     "SE": 50,
+     "S": 65,
+     "M": 86.4,
+     "L": 65,
+     "XL": 86.4
+    }
+   },
+   {
+    "rubro": "Piso",
+    "detalle": "Membrana hidrofuga Webertec",
+    "mo": 3,
+    "mat": 6,
+    "qty": {
+     "SE": 50,
+     "S": 65,
+     "M": 86.4,
+     "L": 124.50000000000003,
+     "XL": 146.10000000000002
+    }
+   },
+   {
+    "rubro": "Aberturas",
+    "detalle": "Ventana DVH Oscilobatiente 960x2431 - Anodizado natural",
+    "mo": 68.85,
+    "mat": 459,
+    "qty": {
+     "SE": 4,
+     "S": 5,
+     "M": 5,
+     "L": 12,
+     "XL": 12
+    }
+   },
+   {
+    "rubro": "Aberturas",
+    "detalle": "Ventana DVH Oscilobatiente 960x1431 - Anodizado natural",
+    "mo": 37.5,
+    "mat": 250,
+    "qty": {
+     "SE": 1,
+     "S": 0,
+     "M": 0,
+     "L": 0,
+     "XL": 0
+    }
+   },
+   {
+    "rubro": "Aberturas",
+    "detalle": "Paño fijo DVH 1,00 x 2,60 mts - Anodizado natural",
+    "mo": 37.5,
+    "mat": 250,
+    "qty": {
+     "SE": 1,
+     "S": 2,
+     "M": 2,
+     "L": 10,
+     "XL": 10
+    }
+   },
+   {
+    "rubro": "Aberturas",
+    "detalle": "Puerta interior enchapada (En el material está el costo de la mano de obra de armado, mientras que en MO está el costo de colocación)",
+    "mo": 55.5,
+    "mat": 370,
+    "qty": {
+     "SE": 3,
+     "S": 3,
+     "M": 3,
+     "L": 6,
+     "XL": 6
+    }
+   },
+   {
+    "rubro": "Aberturas",
+    "detalle": "Puerta de exterior de madera de pino tratado",
+    "mo": 55.5,
+    "mat": 370,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 1,
+     "XL": 1
+    }
+   },
+   {
+    "rubro": "Aberturas",
+    "detalle": "Estructura Puertas Sala de Maquina ( 0,70 m x Unid)",
+    "mo": 30,
+    "mat": 30,
+    "qty": {
+     "SE": 0,
+     "S": 2,
+     "M": 2,
+     "L": 2,
+     "XL": 2
+    }
+   },
+   {
+    "rubro": "Instalacion Electrica",
+    "detalle": "Instalación eléctrica caño rígido de PVC para casas (Incluye MO & MAT)",
+    "mo": 40,
+    "mat": 40,
+    "qty": {
+     "SE": 50,
+     "S": 65,
+     "M": 86,
+     "L": 129.60000000000002,
+     "XL": 151
+    }
+   },
+   {
+    "rubro": "Instalacion Electrica",
+    "detalle": "Copita escolar",
+    "mo": 0,
+    "mat": 20,
+    "qty": {
+     "SE": 9,
+     "S": 11,
+     "M": 13,
+     "L": 18,
+     "XL": 21
+    }
+   },
+   {
+    "rubro": "Pintura",
+    "detalle": "Arenado (Incluye arena)",
+    "mo": 14,
+    "mat": 0,
+    "qty": {
+     "SE": 120,
+     "S": 180,
+     "M": 240,
+     "L": 360,
+     "XL": 420
+    }
+   },
+   {
+    "rubro": "Pintura",
+    "detalle": "Base epoxy (Hierros estructura)",
+    "mo": 3,
+    "mat": 3,
+    "qty": {
+     "SE": 120,
+     "S": 180,
+     "M": 240,
+     "L": 360,
+     "XL": 420
+    }
+   },
+   {
+    "rubro": "Pintura",
+    "detalle": "Poliuretano (Hierros Estructura a la vista + Muros exteriores que requieran)",
+    "mo": 3,
+    "mat": 3,
+    "qty": {
+     "SE": 120,
+     "S": 180,
+     "M": 240,
+     "L": 360,
+     "XL": 420
+    }
+   },
+   {
+    "rubro": "Pintura",
+    "detalle": "Pintura interior al panel y al durlock",
+    "mo": 3,
+    "mat": 3,
+    "qty": {
+     "SE": 158.42000000000002,
+     "S": 127.27000000000001,
+     "M": 142.87,
+     "L": 257.91999999999996,
+     "XL": 273.52
+    }
+   },
+   {
+    "rubro": "Sanitario",
+    "detalle": "Inodoro SMART TOILETTE BIO CLEAN",
+    "mo": 250,
+    "mat": 450,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 3,
+     "XL": 3
+    }
+   },
+   {
+    "rubro": "Sanitario",
+    "detalle": "Bacha 19-600-WHITE",
+    "mo": 250,
+    "mat": 150,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 3,
+     "XL": 3
+    }
+   },
+   {
+    "rubro": "Sanitario",
+    "detalle": "Grifería de ducha FV Puelo c/transferencia y rejilla para ducha 10 x 10",
+    "mo": 250,
+    "mat": 120,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 3,
+     "XL": 3
+    }
+   },
+   {
+    "rubro": "Sanitario",
+    "detalle": "Instalación sanitaria para lavarropas",
+    "mo": 250,
+    "mat": 0,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 3,
+     "XL": 3
+    }
+   },
+   {
+    "rubro": "Sanitario",
+    "detalle": "Termotanque de 155 lts",
+    "mo": 250,
+    "mat": 400,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 2,
+     "XL": 2
+    }
+   },
+   {
+    "rubro": "Sanitario",
+    "detalle": "Cortina ducha",
+    "mo": 6,
+    "mat": 18,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 3,
+     "XL": 3
+    }
+   },
+   {
+    "rubro": "Sanitario",
+    "detalle": "Accesorios FV Arizona (1 Portarrollo + 1 perchero)",
+    "mo": 6,
+    "mat": 25,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 3,
+     "XL": 3
+    }
+   },
+   {
+    "rubro": "Sanitario",
+    "detalle": "Espejo redondo",
+    "mo": 10,
+    "mat": 25,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 3,
+     "XL": 3
+    }
+   },
+   {
+    "rubro": "Cocina",
+    "detalle": "Mesada Jhonson con bacha Z52 de 1,80 mts de largo",
+    "mo": 38.5,
+    "mat": 256.6666666666667,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 1,
+     "XL": 1
+    }
+   },
+   {
+    "rubro": "Cocina",
+    "detalle": "Mueble bajo mesada de melamina blanca + mueble de guardado lavarropa y termotanque electrico (Cotizado por difranco por WA. Incluye colocación)",
+    "mo": 0,
+    "mat": 700,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 1,
+     "XL": 1
+    }
+   },
+   {
+    "rubro": "Cocina",
+    "detalle": "Grifería Monocomando Arizona Cromo FV",
+    "mo": 250,
+    "mat": 65,
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 1,
+     "XL": 1
+    }
+   }
+  ],
+  "mod_items": [
+   {
+    "detalle": "Bastidor muros 1,50 x 2,60 mts. con perfl galvanizado",
+    "valorhora": 5,
+    "horas": 3.5,
+    "qty": {
+     "SE": 8,
+     "S": 11.6,
+     "M": 11.6,
+     "L": 19.4,
+     "XL": 19.4
+    }
+   }
+  ]
+ },
+ "config": [
+  {
+   "key": "cielorraso",
+   "label": "Cielorraso",
+   "options": [
+    {
+     "value": "Guatambú",
+     "cost": {
+      "SE": 1900.0,
+      "S": 2462.4,
+      "M": 3283.2,
+      "L": 4924.8,
+      "XL": 5745.6
+     }
+    },
+    {
+     "value": "Durlock pintado",
+     "cost": {
+      "SE": 900.0,
+      "S": 1166.4,
+      "M": 1555.2,
+      "L": 2332.8,
+      "XL": 2721.6
+     },
+     "default": true
+    },
+    {
+     "value": "Melamina",
+     "cost": {
+      "SE": 1400.0,
+      "S": 1814.4,
+      "M": 2419.2,
+      "L": 3628.8,
+      "XL": 4233.6
+     }
+    }
+   ]
+  },
+  {
+   "key": "muros_int",
+   "label": "Muros interiores",
+   "options": [
+    {
+     "value": "Guatambú",
+     "cost": {
+      "SE": 4034.08,
+      "S": 5071.404,
+      "M": 5664.204,
+      "L": 5725.46,
+      "XL": 6318.26
+     }
+    },
+    {
+     "value": "Durlock total",
+     "cost": {
+      "SE": 2123.2,
+      "S": 2669.16,
+      "M": 2981.16,
+      "L": 3013.4,
+      "XL": 3325.4
+     }
+    },
+    {
+     "value": "Durlock tabiq. + panel",
+     "cost": {
+      "SE": 1185.6,
+      "S": 1629.16,
+      "M": 1629.16,
+      "L": 3026.4,
+      "XL": 3026.4
+     },
+     "default": true
+    }
+   ]
+  },
+  {
+   "key": "muros_ext",
+   "label": "Muros exteriores",
+   "options": [
+    {
+     "value": "Ninguno",
+     "cost": {
+      "SE": 0.0,
+      "S": 0.0,
+      "M": 0.0,
+      "L": 0.0,
+      "XL": 0.0
+     },
+     "default": true
+    },
+    {
+     "value": "Pino",
+     "cost": {
+      "SE": 2025.66,
+      "S": 2098.8,
+      "M": 2671.2,
+      "L": 4197.6,
+      "XL": 4483.8
+     }
+    },
+    {
+     "value": "Fachada ventilada",
+     "cost": {
+      "SE": 3057.6,
+      "S": 3168.0,
+      "M": 4032.0,
+      "L": 6336.0,
+      "XL": 6768.0
+     }
+    }
+   ]
+  },
+  {
+   "key": "piso",
+   "label": "Piso",
+   "options": [
+    {
+     "value": "Mosaico",
+     "cost": {
+      "SE": 1750.0,
+      "S": 2275.0,
+      "M": 3024.0,
+      "L": 4357.5,
+      "XL": 5113.5
+     },
+     "default": true
+    },
+    {
+     "value": "Goma",
+     "cost": {
+      "SE": 1500.0,
+      "S": 1950.0,
+      "M": 2592.0,
+      "L": 3735.0,
+      "XL": 4383.0
+     }
+    },
+    {
+     "value": "Entablonado",
+     "cost": {
+      "SE": 1750.0,
+      "S": 2275.0,
+      "M": 3024.0,
+      "L": 4357.5,
+      "XL": 5113.5
+     }
+    }
+   ]
+  },
+  {
+   "key": "esquema_piso",
+   "label": "Esquema de piso",
+   "options": [
+    {
+     "value": "Estándar",
+     "cost": {
+      "SE": 1550.0,
+      "S": 2015.0,
+      "M": 2678.4,
+      "L": 3859.5,
+      "XL": 4529.1
+     }
+    },
+    {
+     "value": "Fenólico 25 + emulsión",
+     "cost": {
+      "SE": 750.0,
+      "S": 975.0,
+      "M": 1296.0,
+      "L": 1867.5,
+      "XL": 2191.5
+     },
+     "default": true
+    }
+   ]
+  }
+ ],
+ "opcionales": [
+  {
+   "key": "Fundación",
+   "label": "Fundación",
+   "items": [
+    {
+     "rubro": "Obra Civil",
+     "detalle": "Fundaciones (Vigas Cintas)",
+     "mo": 0,
+     "mat": 50,
+     "qty": {
+      "SE": 86,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 86.4
+     }
+    }
+   ],
+   "total": {
+    "SE": 4300.0,
+    "S": 0.0,
+    "M": 0.0,
+    "L": 0.0,
+    "XL": 4320.0
+   }
+  },
+  {
+   "key": "AA",
+   "label": "AA",
+   "items": [
+    {
+     "rubro": "Climatización",
+     "detalle": "Equipo de AA bajo silueta",
+     "mo": 300,
+     "mat": 1275,
+     "qty": {
+      "SE": 1,
+      "S": 1,
+      "M": 1,
+      "L": 2,
+      "XL": 2
+     }
+    }
+   ],
+   "total": {
+    "SE": 1575.0,
+    "S": 1575.0,
+    "M": 1575.0,
+    "L": 3150.0,
+    "XL": 3150.0
+   }
+  },
+  {
+   "key": "Piso Radiante",
+   "label": "Piso Radiante",
+   "items": [
+    {
+     "rubro": "Climatización",
+     "detalle": "Piso radiante",
+     "mo": 0,
+     "mat": 47,
+     "qty": {
+      "SE": 65,
+      "S": 65,
+      "M": 86,
+      "L": 130,
+      "XL": 151
+     }
+    }
+   ],
+   "total": {
+    "SE": 3055.0,
+    "S": 3055.0,
+    "M": 4042.0,
+    "L": 6110.0,
+    "XL": 7097.0
+   }
+  },
+  {
+   "key": "Línea Blanca",
+   "label": "Línea Blanca",
+   "items": [
+    {
+     "rubro": "Equipamiento",
+     "detalle": "Anafe eléctrico 4 hornallas (marca a definir). Incluye MO colocación.",
+     "mo": 0,
+     "mat": 102,
+     "qty": {
+      "SE": 1,
+      "S": 1,
+      "M": 1,
+      "L": 1,
+      "XL": 1
+     }
+    },
+    {
+     "rubro": "Equipamiento",
+     "detalle": "Campana de extracción (marca a definir). Incluye MO colocación.",
+     "mo": 0,
+     "mat": 153,
+     "qty": {
+      "SE": 1,
+      "S": 1,
+      "M": 1,
+      "L": 1,
+      "XL": 1
+     }
+    },
+    {
+     "rubro": "Equipamiento",
+     "detalle": "Heladera 265 lts (GAFA). Incluye MO colocación.",
+     "mo": 0,
+     "mat": 425,
+     "qty": {
+      "SE": 1,
+      "S": 1,
+      "M": 1,
+      "L": 1,
+      "XL": 1
+     }
+    },
+    {
+     "rubro": "Equipamiento",
+     "detalle": "Lavarropas BGH Chico",
+     "mo": 0,
+     "mat": 340,
+     "qty": {
+      "SE": 1,
+      "S": 1,
+      "M": 1,
+      "L": 1,
+      "XL": 1
+     }
+    }
+   ],
+   "total": {
+    "SE": 1020.0,
+    "S": 1020.0,
+    "M": 1020.0,
+    "L": 1020.0,
+    "XL": 1020.0
+   }
+  },
+  {
+   "key": "Paquete Solar",
+   "label": "Paquete Solar",
+   "items": [
+    {
+     "rubro": "Varios",
+     "detalle": "Paquete Solar",
+     "mo": 0,
+     "mat": 8000,
+     "qty": {
+      "SE": 1,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0
+     }
+    }
+   ],
+   "total": {
+    "SE": 8000.0,
+    "S": 0.0,
+    "M": 0.0,
+    "L": 0.0,
+    "XL": 0.0
+   }
+  },
+  {
+   "key": "Estufa a Leña",
+   "label": "Estufa a Leña",
+   "items": [
+    {
+     "rubro": "Climatización",
+     "detalle": "Estufa a Leña",
+     "mo": 0,
+     "mat": 1500,
+     "qty": {
+      "SE": 1,
+      "S": 1,
+      "M": 1,
+      "L": 1,
+      "XL": 1
+     }
+    }
+   ],
+   "total": {
+    "SE": 1500.0,
+    "S": 1500.0,
+    "M": 1500.0,
+    "L": 1500.0,
+    "XL": 1500.0
+   }
+  },
+  {
+   "key": "Pérgola",
+   "label": "Pérgola",
+   "items": [
+    {
+     "rubro": "Varios",
+     "detalle": "Pergola",
+     "mo": 0,
+     "mat": 2000,
+     "qty": {
+      "SE": 1,
+      "S": 1,
+      "M": 1,
+      "L": 1,
+      "XL": 1
+     }
+    }
+   ],
+   "total": {
+    "SE": 2000.0,
+    "S": 2000.0,
+    "M": 2000.0,
+    "L": 2000.0,
+    "XL": 2000.0
+   }
+  },
+  {
+   "key": "Deck",
+   "label": "Deck",
+   "items": [
+    {
+     "rubro": "Varios",
+     "detalle": "Deck",
+     "mo": 0,
+     "mat": 2000,
+     "qty": {
+      "SE": 1,
+      "S": 1,
+      "M": 1,
+      "L": 1,
+      "XL": 1
+     }
+    }
+   ],
+   "total": {
+    "SE": 2000.0,
+    "S": 2000.0,
+    "M": 2000.0,
+    "L": 2000.0,
+    "XL": 2000.0
+   }
+  },
+  {
+   "key": "Grúa",
+   "label": "Grúa",
+   "items": [
+    {
+     "rubro": "Logística & Montaje",
+     "detalle": "Grúa para montaje",
+     "mo": 0,
+     "mat": 700,
+     "qty": {
+      "SE": 1,
+      "S": 1,
+      "M": 1,
+      "L": 2,
+      "XL": 2
+     }
+    }
+   ],
+   "total": {
+    "SE": 700.0,
+    "S": 700.0,
+    "M": 700.0,
+    "L": 1400.0,
+    "XL": 1400.0
+   }
+  }
+ ],
+ "logistica": {
+  "usd_km_camion": 5
+ },
+ "montaje_rango": [
+  {
+   "label": "Hasta 100 km",
+   "km_desde": 0,
+   "cost": {
+    "SE": 3760,
+    "S": 3760,
+    "M": 4600,
+    "L": 7120,
+    "XL": 8800
+   }
+  },
+  {
+   "label": "101 a 500 km",
+   "km_desde": 101,
+   "cost": {
+    "SE": 6050,
+    "S": 6050,
+    "M": 7160,
+    "L": 10490,
+    "XL": 12710
+   }
+  },
+  {
+   "label": "501 a 1200 km",
+   "km_desde": 501,
+   "cost": {
+    "SE": 8000,
+    "S": 8000,
+    "M": 9260,
+    "L": 13040,
+    "XL": 15560
+   }
+  },
+  {
+   "label": "1201 km o más",
+   "km_desde": 1201,
+   "cost": {
+    "SE": 8600,
+    "S": 8600,
+    "M": 9860,
+    "L": 13640,
+    "XL": 16160
+   }
+  }
+ ]
+}
