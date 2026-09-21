@@ -16,11 +16,17 @@ saltea todas las reglas de seguridad y da control total del proyecto (el pipelin
 completo con datos de clientes y montos, el historial de costos con márgenes, y la
 administración de usuarios).
 
-En su lugar, el script entra con una **cuenta de servicio que sólo puede insertar
-prospectos**. No puede leer el pipeline, ni los costos, ni modificar o borrar nada —
-ni siquiera los prospectos que ella misma cargó. Si esa credencial se filtra, lo peor
-que puede pasar es que alguien cargue prospectos basura, y se corta borrando la cuenta
-en Supabase.
+En su lugar, **el script no guarda ningún secreto**: usa la clave pública del proyecto
+(la misma que ya viaja en el HTML del CRM) y la base le permite una sola cosa, insertar
+prospectos. No puede leer el pipeline, ni los costos, ni modificar o borrar nada — ni
+siquiera los prospectos que él mismo carga.
+
+Lo que sí queda expuesto: alguien que encuentre la clave pública podría cargar
+prospectos basura en la bandeja. Es visible, se borra, y se corta en el acto quitando
+la política en Supabase (está al pie de `supabase_prospectos_sync.sql`).
+
+Al pegar este script, además, **se borra sola cualquier credencial que hubieran dejado
+las versiones anteriores**, incluida la `service_role key`.
 
 La instalación son **dos pegadas y tres clicks**, y no hace falta saber nada de código.
 
@@ -33,17 +39,12 @@ La instalación son **dos pegadas y tres clicks**, y no hace falta saber nada de
    darle **Run**.
 3. Tiene que decir *Success*. Listo, no se toca más.
 
-## Paso A2 — Crear la cuenta de sincronización (una sola vez)
+## Paso A2 — Permisos y arreglo del índice (una sola vez)
 
-1. En Supabase → **Authentication** → **Users** → **Add user** → *Create new user*.
-   - **Email:** `sheets-sync@labomodular.com` (cualquier dirección sirve, pero **no**
-     una `@4housing.com.ar`: los permisos del equipo se dan por ese dominio y la
-     cuenta heredaría permisos que no queremos que tenga).
-   - **Password:** una contraseña larga y aleatoria.
-   - **Auto Confirm User:** sí.
-2. Volver al **SQL Editor** y ejecutar `supabase_prospectos_sync.sql` (está en la raíz
-   del repo). Es la política que le da a esa cuenta permiso de insertar prospectos, y
-   nada más. Si usaste otro mail, cambialo en las dos líneas que indica el archivo.
+En el **SQL Editor**, ejecutar `supabase_prospectos_sync.sql` (está en la raíz del
+repo). Hace dos cosas: corrige el índice de deduplicación —la primera versión lo creaba
+parcial y eso hacía fallar cualquier reenvío con un 409— y le da al Sheet permiso de
+insertar prospectos, nada más. Es idempotente: se puede correr de nuevo sin problema.
 
 ## Paso B — Pegar el script en el Sheet (una sola vez)
 
@@ -53,30 +54,23 @@ La instalación son **dos pegadas y tres clicks**, y no hace falta saber nada de
 4. Volver al Sheet y **recargar la página**. Arriba, al lado de *Ayuda*, aparece un
    menú nuevo: **LABO CRM**.
 
-## Paso C — Los tres clicks
+## Paso C — Los dos clicks
 
-Todo desde el menú **LABO CRM** del Sheet, en orden:
+Todo desde el menú **LABO CRM** del Sheet, en orden. No hay nada que configurar: el
+script no necesita credenciales.
 
-**1 · Conectar con el CRM**
-Pide tres cosas: la URL del proyecto (ya viene puesta, dale Aceptar), y el **mail y la
-contraseña de la cuenta de sincronización** creada en el paso A2. La primera vez Google
-va a pedir autorizar el script: es de ustedes, aceptar. Si todo está bien, contesta
-*✓ Conectado*.
-
-> Esa contraseña queda guardada en el Sheet y el proveedor que lo administra podría
-> leerla. Está bien que así sea: esa cuenta no puede hacer nada más que cargar
-> prospectos. Lo que **nunca** va ahí es la `service_role key` del proyecto.
-
-**2 · Subir el histórico**
+**1 · Subir el histórico**
 Manda al CRM todo lo que ya está cargado (las ~450 filas), con su etapa, estado,
 calidad, responsable y comentarios. Avisa cuántas subió. Es seguro repetirlo: lo que
 ya está no se duplica ni se pisa.
 
-**3 · Activar sincronización automática**
-Desde ese momento los leads nuevos entran solos cada 10 minutos.
+**2 · Activar sincronización automática**
+Desde ese momento los leads nuevos entran solos cada 10 minutos. La primera vez Google
+va a pedir autorizar el script: es de ustedes, aceptar.
 
 El menú tiene además **Sincronizar ahora** (si no querés esperar), **Ver estado**
-(cuántas filas de cada hoja ya están en el CRM) y **Desactivar sincronización**.
+(cuántas filas de cada hoja ya están en el CRM), **Probar conexión** y **Desactivar
+sincronización**.
 
 ---
 
@@ -123,11 +117,13 @@ No. Cada corrida toma lo que hay en ese momento y lo que quede afuera entra en l
 siguiente, diez minutos después.
 
 **¿Se puede apagar?**
-Sí, desde el menú: **LABO CRM → Desactivar sincronización**. Y para cortar el acceso de
-raíz, sin depender del Sheet: Supabase → *Authentication* → *Users* → borrar la cuenta
-de sincronización (o cambiarle la contraseña). El CRM y el equipo no se ven afectados.
+Sí, desde el menú: **LABO CRM → Desactivar sincronización**. Y para cortar la carga de
+raíz, sin depender del Sheet ni de quien lo administre, desde el SQL Editor:
+`drop policy prospectos_insert_sheet on public.labocomercial_prospectos;`
+El CRM y el equipo no se ven afectados.
 
-**¿Qué pasa si el proveedor lee la contraseña guardada en el script?**
-Puede cargar prospectos en el CRM y nada más. No puede leer el pipeline, ni los
-precios, ni los costos, ni tocar un registro existente. Si pasara, se borra la cuenta y
-listo.
+**¿Qué pasa si alguien de afuera descubre la clave pública?**
+Puede cargar prospectos basura en la bandeja y nada más: no puede leer el pipeline, ni
+los precios, ni los costos, ni tocar un registro existente. Se ve enseguida, se borran
+las filas y se quita la política de arriba. El CRM además trata todo lo que llega por
+esta vía como contenido no confiable al mostrarlo.
