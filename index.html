@@ -669,6 +669,33 @@ tr:hover td{background:#F5F3ED}
   #tab-cotizador .cost-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
   #tab-cotizador .cost-table td:first-child { font-weight: 500; }
   #tab-cotizador .cost-table td:not(:first-child) { text-align: right; }
+  #tab-cotizador .an-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:4px 0 22px}
+  #tab-cotizador .an-kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+  #tab-cotizador .an-kpi.dark{background:var(--black);border-color:var(--black)}
+  #tab-cotizador .an-kpi.green{background:#D5F5E3;border-color:#A9DFBF}
+  #tab-cotizador .an-kpi .l{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);margin-bottom:8px}
+  #tab-cotizador .an-kpi.dark .l{color:rgba(255,255,255,.5)}
+  #tab-cotizador .an-kpi .v{font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;line-height:1.05;color:var(--black)}
+  #tab-cotizador .an-kpi.dark .v{color:var(--white)}
+  #tab-cotizador .an-kpi.green .v{color:#186a39}
+  #tab-cotizador .an-kpi .s{font-size:10px;color:var(--mid);margin-top:7px}
+  #tab-cotizador .an-kpi.dark .s{color:rgba(255,255,255,.45)}
+  #tab-cotizador .an-bar{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+  #tab-cotizador .an-bar .k{font-size:11px;width:150px;flex-shrink:0;color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tab-cotizador .an-bar .t{flex:1;background:#EAE8E2;height:22px;border-radius:5px;overflow:hidden}
+  #tab-cotizador .an-bar .f{height:100%;transition:width .5s}
+  #tab-cotizador .an-bar .val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--black);width:180px;text-align:right;flex-shrink:0}
+  #tab-cotizador .an-bar .val small{color:var(--mid)}
+  #tab-cotizador .an-slider{display:flex;align-items:center;gap:14px;margin:8px 0}
+  #tab-cotizador .an-slider label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--mid);width:150px;flex-shrink:0}
+  #tab-cotizador .an-slider input[type=range]{flex:1;accent-color:var(--black);height:4px}
+  #tab-cotizador .an-slider .rv{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;width:60px;text-align:right;flex-shrink:0}
+  #tab-cotizador .an-stack{display:flex;height:36px;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+  #tab-cotizador .an-stack div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;min-width:0;overflow:hidden;white-space:nowrap}
+  #tab-cotizador .an-legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:11px;color:var(--mid)}
+  #tab-cotizador .an-legend span{display:inline-flex;align-items:center;gap:6px}
+  #tab-cotizador .an-legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+  @media(max-width:760px){#tab-cotizador .an-kpis{grid-template-columns:repeat(2,1fr)}#tab-cotizador .an-bar .k{width:96px}#tab-cotizador .an-bar .val{width:120px}}
   #tab-cotizador .cost-table tr:nth-child(even) { background: var(--off-white); }
   #tab-cotizador .cost-table input[type=number] { width: 88px; padding: 4px 7px; border: 1px solid var(--border); font-size: 11px; text-align: right; font-family: 'IBM Plex Mono', monospace; outline: none; border-radius: 0; }
   #tab-cotizador .cost-table input:focus { border-color: var(--black); }
@@ -1312,29 +1339,37 @@ tr:hover td{background:#F5F3ED}
   <div class="panel" id="panel5">
     <div class="card">
       <div class="ctitle">Análisis de rentabilidad</div>
-      <div class="cost-note">Herramienta interna (línea Modular). Los precios se derivan del costo: <code>precio = costo × (1 + margen) / 0,957</code>. Cambiá los márgenes para ver el impacto en toda la línea.</div>
+      <div class="cost-note">Herramienta interna (línea Modular). Los precios se derivan del costo: <code>precio = costo × (1 + margen) / 0,957</code>. Movés los márgenes y ves el impacto al instante en toda la línea.</div>
       <div class="cost-section">
-        <div class="cost-section-title">Rentabilidad — márgenes</div>
-        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-end">
-          <div class="fg"><label>Margen módulo (%)</label><input type="number" id="anMargenMod" step="0.5" min="0" oninput="setMargen('modulo',this.value)" style="width:120px;padding:9px 12px;border:1px solid var(--border);background:var(--white);font-family:'IBM Plex Mono',monospace;border-radius:6px"></div>
-          <div class="fg"><label>Margen opcionales / equip. (%)</label><input type="number" id="anMargenOpc" step="0.5" min="0" oninput="setMargen('opcional',this.value)" style="width:120px;padding:9px 12px;border:1px solid var(--border);background:var(--white);font-family:'IBM Plex Mono',monospace;border-radius:6px"></div>
-          <button class="btn bo" onclick="resetMargenes()">↺ Restaurar (35 / 15)</button>
+        <div class="cost-section-title">Modelo y rentabilidad</div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+          <label style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--mid)">Modelo</label>
+          <select id="anModel" onchange="renderAnalisis()" style="padding:8px 12px;border:1px solid var(--border);background:var(--white);border-radius:6px;font-size:13px"></select>
+          <button class="btn bo" style="margin-left:auto" onclick="resetMargenes()">↺ Restaurar 35 / 15</button>
         </div>
-        <div class="cost-note" style="margin-top:14px">Impuestos y gastos (fijos del modelo): IVA 21% · IIBB 3% · IDC 0,6% · Ganancias 20% · factor gastos 0,957 · Prorrateables 13% (Infra 8 + Consumibles 4 + Seg.&amp;Higiene 1).</div>
+        <div class="an-slider"><label>Margen módulo</label><input type="range" id="anRangeMod" min="0" max="70" step="1" oninput="document.getElementById('anRvMod').textContent=this.value+'%';setMargen('modulo',this.value)"><span class="rv" id="anRvMod">—</span></div>
+        <div class="an-slider"><label>Margen opcionales</label><input type="range" id="anRangeOpc" min="0" max="70" step="1" oninput="document.getElementById('anRvOpc').textContent=this.value+'%';setMargen('opcional',this.value)"><span class="rv" id="anRvOpc">—</span></div>
+        <div class="cost-note" style="margin-top:12px">Impuestos y gastos (fijos): IVA 21% · IIBB 3% · IDC 0,6% · Ganancias 20% · factor gastos 0,957 · Prorrateables 13%.</div>
+      </div>
+      <div class="an-kpis" id="anKpis"></div>
+      <div class="cost-section">
+        <div class="cost-section-title">Cómo se forma el precio (casa base)</div>
+        <div class="an-stack" id="anStack"></div>
+        <div class="an-legend" id="anStackLeg"></div>
       </div>
       <div class="cost-section">
-        <div class="cost-section-title">Comparación de modelos — casa base (sin opcionales)</div>
-        <div style="overflow-x:auto"><table class="cost-table" id="anCompare"></table></div>
+        <div class="cost-section-title">Precio base por modelo</div>
+        <div id="anCompareChart"></div>
       </div>
       <div class="cost-section">
-        <div class="cost-section-title">Apertura de costos por rubro</div>
-        <div style="margin-bottom:12px"><label style="font-size:11px;color:var(--mid);font-family:'IBM Plex Mono',monospace;letter-spacing:1px;text-transform:uppercase">Modelo&nbsp;</label><select id="anModel" onchange="renderAnRubros()" style="padding:7px 12px;border:1px solid var(--border);background:var(--white);border-radius:6px;font-size:13px"></select></div>
-        <div style="overflow-x:auto"><table class="cost-table" id="anRubros"></table></div>
+        <div class="cost-section-title">Composición del costo por rubro</div>
+        <div id="anRubrosChart"></div>
       </div>
-      <div class="cost-section">
-        <div class="cost-section-title">Desglose impositivo — casa base del modelo</div>
-        <div style="overflow-x:auto"><table class="cost-table" id="anTax"></table></div>
-      </div>
+      <details class="cost-section">
+        <summary style="cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--mid)">Ver tablas detalladas (comparación e impuestos)</summary>
+        <div style="overflow-x:auto;margin-top:12px"><table class="cost-table" id="anCompare"></table></div>
+        <div style="overflow-x:auto;margin-top:16px"><table class="cost-table" id="anTax"></table></div>
+      </details>
       <div style="display:flex;gap:10px;margin-top:8px">
         <button class="btn bo" onclick="goStep(1)">← Volver al cotizador</button>
       </div>
@@ -2405,7 +2440,7 @@ function laboRubroBreakdown(model){
   var rub={}, add=function(k,v){rub[k]=(rub[k]||0)+v;};
   LABO_DATA.module.mc_items.forEach(function(it){add(it.rubro||'Otros',(it.qty[model]||0)*(it.mo+it.mat));});
   var dimRubro={cielorraso:'Aislación / Revestimiento',muros_int:'Aislación / Revestimiento',muros_ext:'Aislación / Revestimiento',piso:'Piso',esquema_piso:'Piso'};
-  LABO_DATA.config.forEach(function(dim){var v=laboCfg[dim.key];var opt=dim.options.find(function(o){return o.value===v;})||dim.options.find(function(o){return o.default;})||dim.options[0];add(dimRubro[dim.key]||'Aislación / Revestimiento',opt.cost[model]||0);});
+  LABO_DATA.config.forEach(function(dim){var v=laboCfg[dim.key];var opt=dim.options.find(function(o){return o.value===v;})||dim.options.find(function(o){return o.default;})||dim.options[0];add(dimRubro[dim.key]||'Aislación / Revestimiento',laboOptCost(opt,model));});
   var mc=Object.keys(rub).reduce(function(s,k){return s+rub[k];},0);
   var mod=0; LABO_DATA.module.mod_items.forEach(function(it){mod+=(it.qty[model]||0)*it.valorhora*it.horas;});
   if(mod)add('M.O.D.',mod);
@@ -2416,50 +2451,60 @@ function laboRubroBreakdown(model){
   return arr;
 }
 function fmtPct(x){return (x*100).toFixed(1)+'%';}
+function _anModel(){var s=document.getElementById('anModel');return (s&&s.value)||(LINEA[sel]==='modular'?sel:'SE');}
 function buildAnalisis(){
-  var mm=document.getElementById('anMargenMod'), mo=document.getElementById('anMargenOpc');
-  if(mm)mm.value=+(LABO_DATA.params.margen_modulo*100).toFixed(2);
-  if(mo)mo.value=+(LABO_DATA.params.margen_opcional*100).toFixed(2);
-  var msel=document.getElementById('anModel');
+  var msel=document.getElementById('anModel'); if(!msel)return;
   var cur=(LINEA[sel]==='modular')?sel:'SE';
   msel.innerHTML=LABO_MODULAR_ORDER.filter(function(m){return LABO_DATA.models[m];}).map(function(m){return '<option value="'+m+'"'+(m===cur?' selected':'')+'>'+m+' ('+LABO_DATA.models[m].m2+' m²)</option>';}).join('');
-  renderAnCompare(); renderAnRubros();
+  var mm=document.getElementById('anRangeMod'),mo=document.getElementById('anRangeOpc');
+  if(mm){mm.value=Math.round(LABO_DATA.params.margen_modulo*100);var rv=document.getElementById('anRvMod');if(rv)rv.textContent=mm.value+'%';}
+  if(mo){mo.value=Math.round(LABO_DATA.params.margen_opcional*100);var rv2=document.getElementById('anRvOpc');if(rv2)rv2.textContent=mo.value+'%';}
+  renderAnalisis();
 }
-function renderAnCompare(){
-  var t=document.getElementById('anCompare'); if(!t)return;
-  var h='<thead><tr><th>Modelo</th><th>m²</th><th>Costo (USD)</th><th>Precio (USD)</th><th>Utilidad (USD)</th><th>Ut. %</th><th>Precio/m²</th><th>Costo/m²</th></tr></thead><tbody>';
-  LABO_MODULAR_ORDER.filter(function(m){return LABO_DATA.models[m];}).forEach(function(m){
-    var x=laboBaseIndicators(m);
-    h+='<tr><td>'+m+'</td><td>'+x.m2+'</td><td>'+fmtCot(x.costo)+'</td><td>'+fmtCot(x.precio)+'</td><td>'+fmtCot(x.utilidad)+'</td><td>'+fmtPct(x.margenPct)+'</td><td>'+fmtCot(x.precioM2)+'</td><td>'+fmtCot(x.costoM2)+'</td></tr>';
-  });
-  h+='</tbody>'; t.innerHTML=h;
+function renderAnalisis(){ if(!document.getElementById('anKpis'))return; renderAnKpis(); renderAnStack(); renderAnCompareChart(); renderAnRubrosChart(); renderAnTables(); }
+function _anKpi(l,v,s,cls){return '<div class="an-kpi'+(cls?' '+cls:'')+'"><div class="l">'+l+'</div><div class="v">'+v+'</div><div class="s">'+(s||'')+'</div></div>';}
+function renderAnKpis(){
+  var m=_anModel(),x=laboBaseIndicators(m),el=document.getElementById('anKpis'); if(!el)return;
+  el.innerHTML=_anKpi('Precio base','USD '+fmtCot(x.precio),m+' · '+x.m2+' m²','dark')
+    +_anKpi('Costo producción','USD '+fmtCot(x.costo),'módulo + equip.')
+    +_anKpi('Utilidad neta','USD '+fmtCot(x.utilidad),'después de impuestos','green')
+    +_anKpi('Margen neto',fmtPct(x.margenPct),'sobre costo')
+    +_anKpi('Precio / m²','USD '+fmtCot(x.precioM2),'costo/m² '+fmtCot(x.costoM2));
 }
-function renderAnRubros(){
-  var msel=document.getElementById('anModel'); if(!msel)return; var m=msel.value||'SE';
-  var arr=laboRubroBreakdown(m); var tot=arr.reduce(function(s,x){return s+x.costo;},0);
-  var t=document.getElementById('anRubros');
-  var h='<thead><tr><th>Rubro</th><th>Costo (USD)</th><th>Incidencia</th></tr></thead><tbody>';
-  arr.forEach(function(x){var pct=tot?x.costo/tot*100:0;
-    h+='<tr><td>'+x.rubro+'</td><td>'+fmtCot(x.costo)+'</td><td class="inccol"><div class="inc-wrap"><div class="inc-bar"><div class="inc-fill opt" style="width:'+pct.toFixed(1)+'%"></div></div><span class="inc-pct">'+pct.toFixed(1)+'%</span></div></td></tr>';});
-  h+='<tr class="trow"><td><strong>COSTO TOTAL (casa base)</strong></td><td><strong>'+fmtCot(tot)+'</strong></td><td></td></tr></tbody>';
-  t.innerHTML=h;
-  // tax breakdown
-  var x=laboBaseIndicators(m); var tm=x.tm, te=x.te;
-  function row(lbl,a,b){return '<tr><td>'+lbl+'</td><td>'+fmtCot(a)+'</td><td>'+fmtCot(b)+'</td><td>'+fmtCot(a+b)+'</td></tr>';}
-  var tt=document.getElementById('anTax');
-  var H='<thead><tr><th>Concepto</th><th>Módulo</th><th>Equipam.</th><th>Total</th></tr></thead><tbody>';
-  H+=row('Costo (precio compra)',tm.costo,te.costo);
-  H+=row('IVA compras (21%)',tm.ivaC,te.ivaC);
-  H+=row('Precio de venta',tm.pv,te.pv);
-  H+=row('IVA ventas (21%)',tm.ivaV,te.ivaV);
-  H+=row('IIBB (3%)',tm.iibb,te.iibb);
-  H+=row('IDC (0,6%)',tm.idc,te.idc);
-  H+=row('Ganancias (20%)',tm.gan,te.gan);
-  H+=row('Margen bruto',tm.mb,te.mb);
-  H+=row('Margen neto imp.',tm.mn,te.mn);
-  H+='<tr class="trow"><td><strong>Utilidad neta</strong></td><td><strong>'+fmtCot(tm.ut)+'</strong></td><td><strong>'+fmtCot(te.ut)+'</strong></td><td><strong>'+fmtCot(tm.ut+te.ut)+'</strong></td></tr>';
-  H+='<tr><td>Margen neto %</td><td colspan="3" style="text-align:right"><strong>'+fmtPct(x.margenPct)+'</strong></td></tr>';
-  H+='</tbody>'; tt.innerHTML=H;
+function renderAnStack(){
+  var m=_anModel(),x=laboBaseIndicators(m),precio=x.precio,costo=x.costo,util=x.utilidad,imp=precio-costo-util;
+  var seg=[['Costo',costo,'#8A8780'],['Impuestos y gastos',imp,'#D4870A'],['Utilidad neta',util,'#1E8449']];
+  var st=document.getElementById('anStack'); if(!st)return;
+  st.innerHTML=seg.map(function(s){var w=precio>0?s[1]/precio*100:0;return '<div style="width:'+w.toFixed(2)+'%;background:'+s[2]+'" title="'+s[0]+': USD '+fmtCot(s[1])+'">'+(w>9?Math.round(w)+'%':'')+'</div>';}).join('');
+  document.getElementById('anStackLeg').innerHTML=seg.map(function(s){return '<span><i style="background:'+s[2]+'"></i>'+s[0]+' · USD '+fmtCot(s[1])+'</span>';}).join('')+'<span style="margin-left:auto;color:var(--black);font-weight:600">Precio: USD '+fmtCot(precio)+'</span>';
+}
+function renderAnCompareChart(){
+  var el=document.getElementById('anCompareChart'); if(!el)return;
+  var models=LABO_MODULAR_ORDER.filter(function(m){return LABO_DATA.models[m];});
+  var vals=models.map(function(m){return laboBaseIndicators(m);});
+  var max=Math.max.apply(null,vals.map(function(v){return v.precio;}))||1; var cur=_anModel();
+  el.innerHTML=models.map(function(m,i){var v=vals[i],w=Math.max(v.precio/max*100,1),col=(m===cur)?'var(--black)':'#B9B5AC';
+    return '<div class="an-bar"><div class="k">'+m+' · '+v.m2+'m²</div><div class="t"><div class="f" style="width:'+w.toFixed(1)+'%;background:'+col+'"></div></div><div class="val">USD '+fmtCot(v.precio)+' <small>('+fmtCot(v.precioM2)+'/m²)</small></div></div>';}).join('');
+}
+function renderAnRubrosChart(){
+  var el=document.getElementById('anRubrosChart'); if(!el)return;
+  var m=_anModel(),arr=laboRubroBreakdown(m),tot=arr.reduce(function(s,x){return s+x.costo;},0)||1,max=Math.max.apply(null,arr.map(function(x){return x.costo;}))||1;
+  var pal=['#1A5276','#2874A6','#5499C7','#7D3C98','#A569BD','#D4870A','#E59866','#1E8449','#52BE80','#5D6D7E','#8A8780','#B9B5AC'];
+  el.innerHTML=arr.map(function(x,i){var w=Math.max(x.costo/max*100,1),pct=x.costo/tot*100;
+    return '<div class="an-bar"><div class="k" title="'+laboEsc(x.rubro)+'">'+laboEsc(x.rubro)+'</div><div class="t"><div class="f" style="width:'+w.toFixed(1)+'%;background:'+pal[i%pal.length]+'"></div></div><div class="val">USD '+fmtCot(x.costo)+' <small>('+pct.toFixed(1)+'%)</small></div></div>';}).join('')
+    +'<div class="an-bar" style="margin-top:6px;border-top:1px solid var(--border);padding-top:8px"><div class="k"><strong>Costo total</strong></div><div class="t"></div><div class="val"><strong>USD '+fmtCot(tot)+'</strong></div></div>';
+}
+function renderAnTables(){
+  var t=document.getElementById('anCompare');
+  if(t){var h='<thead><tr><th>Modelo</th><th>m²</th><th>Costo</th><th>Precio</th><th>Utilidad</th><th>Ut. %</th><th>Precio/m²</th></tr></thead><tbody>';
+    LABO_MODULAR_ORDER.filter(function(m){return LABO_DATA.models[m];}).forEach(function(m){var x=laboBaseIndicators(m);h+='<tr><td>'+m+'</td><td>'+x.m2+'</td><td>'+fmtCot(x.costo)+'</td><td>'+fmtCot(x.precio)+'</td><td>'+fmtCot(x.utilidad)+'</td><td>'+fmtPct(x.margenPct)+'</td><td>'+fmtCot(x.precioM2)+'</td></tr>';});
+    h+='</tbody>';t.innerHTML=h;}
+  var m=_anModel(),x=laboBaseIndicators(m),tm=x.tm,te=x.te,tt=document.getElementById('anTax');
+  if(tt){var row=function(l,a,b){return '<tr><td>'+l+'</td><td>'+fmtCot(a)+'</td><td>'+fmtCot(b)+'</td><td>'+fmtCot(a+b)+'</td></tr>';};
+    var H='<thead><tr><th>Concepto ('+m+')</th><th>Módulo</th><th>Equipam.</th><th>Total</th></tr></thead><tbody>';
+    H+=row('Costo (precio compra)',tm.costo,te.costo)+row('IVA compras (21%)',tm.ivaC,te.ivaC)+row('Precio de venta',tm.pv,te.pv)+row('IVA ventas (21%)',tm.ivaV,te.ivaV)+row('IIBB (3%)',tm.iibb,te.iibb)+row('IDC (0,6%)',tm.idc,te.idc)+row('Ganancias (20%)',tm.gan,te.gan)+row('Margen bruto',tm.mb,te.mb)+row('Margen neto imp.',tm.mn,te.mn);
+    H+='<tr class="trow"><td><strong>Utilidad neta</strong></td><td><strong>'+fmtCot(tm.ut)+'</strong></td><td><strong>'+fmtCot(te.ut)+'</strong></td><td><strong>'+fmtCot(tm.ut+te.ut)+'</strong></td></tr></tbody>';
+    tt.innerHTML=H;}
 }
 function setMargen(tipo,val){
   var v=parseFloat(val); if(isNaN(v))return;
@@ -2467,7 +2512,7 @@ function setMargen(tipo,val){
   laboBuildModularCostos(); buildGrid();
   if(sel){var c=document.getElementById('mc_'+sel);if(c)c.classList.add('selected');}
   if(sel)upd();
-  renderAnCompare(); renderAnRubros();
+  renderAnalisis();
 }
 function resetMargenes(){
   LABO_DATA.params.margen_modulo=0.35; LABO_DATA.params.margen_opcional=0.15;
@@ -2484,7 +2529,7 @@ function matMsg(txt,ok){var e=document.getElementById('matMsg');if(!e)return;e.t
 function laboRefreshAll(){
   laboBuildModularCostos(); buildGrid();
   if(sel){var c=document.getElementById('mc_'+sel);if(c)c.classList.add('selected'); upd();}
-  var p5=document.getElementById('panel5'); if(p5&&p5.classList.contains('active')){renderAnCompare();renderAnRubros();}
+  var p5=document.getElementById('panel5'); if(p5&&p5.classList.contains('active')){renderAnalisis();}
 }
 function laboSet(path,val){var v=parseFloat(val);if(isNaN(v))v=0;var p=path.split('.');var o=LABO_DATA;for(var i=0;i<p.length-1;i++)o=o[p[i]];o[p[p.length-1]]=v;laboRefreshAll();laboScheduleAutosave();}
 function laboSetPct(path,val){var v=parseFloat(val);if(isNaN(v))v=0;laboSet(path,v/100);}
