@@ -2406,6 +2406,16 @@ function diasDesde(l){
 function fmt(n){return Number(n||0).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0});}
 function fmtK(n){return n>=1000000?Math.round(n/1000)+'K':n>=1000?Math.round(n/1000)+'K':String(Math.round(n));}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+// esc() alcanza para texto, pero dentro de un atributo HTML una comilla se escapa
+// del atributo y permite inyectar código. Todo valor que venga de la base y termine
+// en un atributo pasa por acá.
+function escAttr(s){return esc(String(s===null||s===undefined?'':s)).replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+// Un href sólo puede ser http o https: así una "url" con javascript: no se vuelve
+// un link ejecutable.
+function urlSegura(u){
+  var v=String(u===null||u===undefined?'':u).trim();
+  return /^https?:\/\//i.test(v)?v:'';
+}
 // El # del Pipeline se guarda como entero en la base pero tiene que verse igual
 // que el número de proyecto del PDF/SharePoint (con ceros a la izquierda, ej. 0169).
 function _fmtLeadNum(n){return n?String(n).padStart(4,'0'):'—';}
@@ -2619,7 +2629,7 @@ function renderProsTable(){
     var etapa=prosEtapa(p);
     var cls=PROS_CLS[etapa]||'p-nuevo';
     var edot=PROS_ETAPAS.find(function(e){return e.key===etapa;})||PROS_ETAPAS[0];
-    var pid=String(p.id);
+    var pid=escAttr(p.id);   // va a parar a varios atributos
     var dias=_prosDias(p);
     var alerta=etapa==='Nuevo'&&dias>3;
     var fuente=p.fuente||'formulario';
@@ -2631,7 +2641,7 @@ function renderProsTable(){
     var listaVend=PROS_VENDEDORES.slice();
     if(resp&&listaVend.indexOf(resp)<0)listaVend.push(resp);   // alguien que no está en la lista fija
     var opciones=['<option value="">— sin asignar —</option>'].concat(listaVend.map(function(v){
-      return '<option value="'+esc(v)+'"'+(resp===v?' selected':'')+'>'+esc(v)+'</option>';
+      return '<option value="'+escAttr(v)+'"'+(resp===v?' selected':'')+'>'+esc(v)+'</option>';
     })).join('');
     var yaCliente=prosYaEsCliente(p);
     var hermanos=prosHermanos(p);
@@ -2640,13 +2650,13 @@ function renderProsTable(){
     var contacto=[p.email,p.telefono].filter(Boolean).join(' · ');
     var interes=[p.modelo,p.tipo_proyecto].filter(Boolean).join(' · ')||'—';
     var accion=etapa==='Convertido'
-      ? (p.lead_id?'<button class="pr-act ghost" data-lid="'+esc(String(p.lead_id))+'" onclick="event.stopPropagation();openDetail(this.dataset.lid)">Ver lead →</button>':'<span class="td-muted">cotizado</span>')
+      ? (p.lead_id?'<button class="pr-act ghost" data-lid="'+escAttr(p.lead_id)+'" onclick="event.stopPropagation();openDetail(this.dataset.lid)">Ver lead →</button>':'<span class="td-muted">cotizado</span>')
       : '<button class="pr-act" data-pid="'+pid+'" onclick="event.stopPropagation();convertirProspecto(this.dataset.pid)">Cotizar →</button>';
     return '<tr data-pid="'+pid+'" onclick="openProspecto(this.dataset.pid)" style="cursor:pointer">'+
       '<td style="font-family:IBM Plex Mono,monospace;font-size:11px">'+_prosFecha(p)+'</td>'+
       '<td><div class="td-bold">'+esc(p.nombre||'—')+avisos+'</div><div class="td-muted" style="font-size:10px">'+esc(contacto||'sin datos de contacto')+'</div></td>'+
       '<td><div style="font-size:12px">'+esc(interes)+'</div><div class="td-muted" style="font-size:10px">'+esc(p.region||'')+'</div></td>'+
-      '<td><span class="fu fu-'+esc(fuente)+'">'+esc(PROS_FUENTE_LABEL[fuente]||fuente)+'</span></td>'+
+      '<td><span class="fu fu-'+escAttr(fuente)+'">'+esc(PROS_FUENTE_LABEL[fuente]||fuente)+'</span></td>'+
       '<td onclick="event.stopPropagation()">'+
         '<select class="pr-sel" data-pid="'+pid+'" onchange="asignarResponsable(this.dataset.pid,this.value)">'+opciones+'</select>'+
       '</td>'+
@@ -3036,7 +3046,7 @@ function openProspecto(id){
   var avisoCliente=yaCliente
     ? '<div class="pr-msg" style="border-color:var(--amber);background:#FEF9E7;margin-bottom:12px">Este contacto ya tiene cotización en el Pipeline'+
       (yaCliente.leadNum?' (#'+_fmtLeadNum(yaCliente.leadNum)+')':'')+'. '+
-      '<a href="#" data-lid="'+esc(String(yaCliente.id))+'" onclick="openDetail(this.dataset.lid);return false;" style="color:var(--blue)">Ver el lead →</a></div>'
+      '<a href="#" data-lid="'+escAttr(yaCliente.id)+'" onclick="openDetail(this.dataset.lid);return false;" style="color:var(--blue)">Ver el lead →</a></div>'
     : '';
   var avisoHermanos=hermanos.length
     ? '<div class="pr-msg" style="border-color:var(--blue);background:#EBF3FC;margin-bottom:12px">El mismo contacto entró '+(hermanos.length+1)+' veces: '+
@@ -3053,15 +3063,15 @@ function openProspecto(id){
   }).join('');
 
   var acciones=etapa==='Convertido'
-    ? (p.lead_id?'<button class="btn-modal primary" data-lid="'+esc(String(p.lead_id))+'" onclick="openDetail(this.dataset.lid)">Ver lead en el Pipeline →</button>':'')
-    : '<button class="btn-modal primary" data-pid="'+esc(String(p.id))+'" onclick="convertirProspecto(this.dataset.pid)">Cotizar →</button>'+
-      '<button class="btn-modal" data-pid="'+esc(String(p.id))+'" onclick="registrarContacto(this.dataset.pid)">Registrar contacto</button>'+
-      '<button class="btn-modal" data-pid="'+esc(String(p.id))+'" onclick="descartarProspecto(this.dataset.pid)">No avanza</button>';
+    ? (p.lead_id?'<button class="btn-modal primary" data-lid="'+escAttr(p.lead_id)+'" onclick="openDetail(this.dataset.lid)">Ver lead en el Pipeline →</button>':'')
+    : '<button class="btn-modal primary" data-pid="'+escAttr(p.id)+'" onclick="convertirProspecto(this.dataset.pid)">Cotizar →</button>'+
+      '<button class="btn-modal" data-pid="'+escAttr(p.id)+'" onclick="registrarContacto(this.dataset.pid)">Registrar contacto</button>'+
+      '<button class="btn-modal" data-pid="'+escAttr(p.id)+'" onclick="descartarProspecto(this.dataset.pid)">No avanza</button>';
 
   document.getElementById('dp-body').innerHTML=
     avisoCliente+avisoHermanos+
     '<div class="dp-badges"><span class="etapa '+cls+'" style="cursor:default">'+esc(etapa)+'</span>'+
-      '<span class="fu fu-'+esc(fuente)+'">'+esc(PROS_FUENTE_LABEL[fuente]||fuente)+'</span>'+
+      '<span class="fu fu-'+escAttr(fuente)+'">'+esc(PROS_FUENTE_LABEL[fuente]||fuente)+'</span>'+
       (p.origen?'<span class="fu" style="background:var(--grey);color:var(--mid)">'+esc(p.origen)+'</span>':'')+'</div>'+
     '<div class="dp-grid">'+
       campo('Email',p.email)+campo('Teléfono',p.telefono)+
@@ -3070,12 +3080,12 @@ function openProspecto(id){
       campo('Responsable',p.responsable)+campo('Contactos',String(p.contactos||0))+
       campo('Calidad',p.calidad)+campo('Días en cartera',_prosDias(p)+' días')+
     '</div>'+
-    (p.url?'<div class="dp-field" style="margin:12px 0 20px"><label>Landing</label><span><a href="'+esc(p.url)+'" target="_blank" rel="noopener" style="color:var(--blue);word-break:break-all">'+esc(p.url)+'</a></span></div>':'')+
+    (urlSegura(p.url)?'<div class="dp-field" style="margin:12px 0 20px"><label>Landing</label><span><a href="'+escAttr(urlSegura(p.url))+'" target="_blank" rel="noopener" style="color:var(--blue);word-break:break-all">'+esc(p.url)+'</a></span></div>':'')+
     consulta+
     '<div class="dp-section"><div class="dp-section-title">Acciones</div><div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap">'+acciones+'</div></div>'+
     '<div class="dp-section"><div class="dp-section-title">Notas y seguimiento</div>'+
       '<textarea id="pr-nota-input" placeholder="Escribí qué pasó en el contacto..." style="width:100%;min-height:60px;padding:8px 10px;border:1px solid var(--border);background:var(--white);font-family:inherit;font-size:12px;outline:none;resize:vertical"></textarea>'+
-      '<div style="margin-top:8px"><button class="btn-modal primary" data-pid="'+esc(String(p.id))+'" onclick="guardarNotaProspecto(this.dataset.pid)">Guardar nota</button></div>'+
+      '<div style="margin-top:8px"><button class="btn-modal primary" data-pid="'+escAttr(p.id)+'" onclick="guardarNotaProspecto(this.dataset.pid)">Guardar nota</button></div>'+
       '<div class="act-timeline">'+(historial||'<div class="td-muted" style="font-size:11px">Sin actividad registrada.</div>')+'</div>'+
     '</div>';
   document.getElementById('detailOverlay').classList.add('open');
