@@ -47,9 +47,15 @@ create table if not exists public.labocomercial_prospectos (
 
 -- Deduplicación: la misma fila del Sheet nunca entra dos veces, aunque el script
 -- de sincronización se ejecute de nuevo sobre filas ya enviadas.
+--
+-- El índice NO puede ser parcial (un "where entry_id is not null"): Postgres sólo
+-- acepta como árbitro de "ON CONFLICT DO NOTHING" a un índice único completo, y el
+-- insert de PostgREST no puede repetir el predicado. Con un índice parcial, la
+-- segunda vez que llega una fila ya cargada el lote entero falla con un 409.
+-- Tanto el script del Sheet como el importador de CSV siempre completan entry_id
+-- (si el Sheet no lo trae, arman uno con la hoja y el número de fila).
 create unique index if not exists idx_prospectos_dedup
-  on public.labocomercial_prospectos (fuente, entry_id)
-  where entry_id is not null;
+  on public.labocomercial_prospectos (fuente, entry_id);
 
 -- Búsqueda del mismo contacto por mail/teléfono (formulario + brochure = una persona).
 create index if not exists idx_prospectos_email on public.labocomercial_prospectos (lower(email));

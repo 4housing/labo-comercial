@@ -311,7 +311,9 @@ function _sincronizarHoja(cfg, incluirYaMarcadas) {
  * insertado. 'ignore-duplicates' hace que las filas ya cargadas se salteen solas.
  */
 function _postProspectos(supa, filas) {
-  var resp = UrlFetchApp.fetch(supa.url + '/rest/v1/labocomercial_prospectos', {
+  // on_conflict nombra las columnas del índice de deduplicación: sin eso PostgREST
+  // mira sólo la clave primaria y las filas repetidas hacen fallar el lote entero.
+  var resp = UrlFetchApp.fetch(supa.url + '/rest/v1/labocomercial_prospectos?on_conflict=fuente,entry_id', {
     method: 'post',
     contentType: 'application/json',
     headers: _headers(supa, 'resolution=ignore-duplicates,return=minimal'),
