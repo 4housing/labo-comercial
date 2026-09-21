@@ -7,6 +7,21 @@ El Sheet sigue funcionando igual que siempre: el script sólo **lee** las filas 
 una columna `CRM` al final de cada hoja para marcar lo que ya está adentro. No toca
 ninguna otra celda y no borra nada.
 
+## Antes que nada: por qué el script no usa la llave maestra
+
+Este Sheet lo administra un proveedor externo. **Cualquiera con acceso de edición al
+Sheet puede abrir el editor de Apps Script y leer las credenciales guardadas ahí**, en
+texto plano. Por eso el script no usa la `service_role key` de Supabase: esa clave
+saltea todas las reglas de seguridad y da control total del proyecto (el pipeline
+completo con datos de clientes y montos, el historial de costos con márgenes, y la
+administración de usuarios).
+
+En su lugar, el script entra con una **cuenta de servicio que sólo puede insertar
+prospectos**. No puede leer el pipeline, ni los costos, ni modificar o borrar nada —
+ni siquiera los prospectos que ella misma cargó. Si esa credencial se filtra, lo peor
+que puede pasar es que alguien cargue prospectos basura, y se corta borrando la cuenta
+en Supabase.
+
 La instalación son **dos pegadas y tres clicks**, y no hace falta saber nada de código.
 
 ---
@@ -17,6 +32,18 @@ La instalación son **dos pegadas y tres clicks**, y no hace falta saber nada de
 2. Pegar todo el contenido de `supabase_prospectos.sql` (está en la raíz del repo) y
    darle **Run**.
 3. Tiene que decir *Success*. Listo, no se toca más.
+
+## Paso A2 — Crear la cuenta de sincronización (una sola vez)
+
+1. En Supabase → **Authentication** → **Users** → **Add user** → *Create new user*.
+   - **Email:** `sheets-sync@labomodular.com` (cualquier dirección sirve, pero **no**
+     una `@4housing.com.ar`: los permisos del equipo se dan por ese dominio y la
+     cuenta heredaría permisos que no queremos que tenga).
+   - **Password:** una contraseña larga y aleatoria.
+   - **Auto Confirm User:** sí.
+2. Volver al **SQL Editor** y ejecutar `supabase_prospectos_sync.sql` (está en la raíz
+   del repo). Es la política que le da a esa cuenta permiso de insertar prospectos, y
+   nada más. Si usaste otro mail, cambialo en las dos líneas que indica el archivo.
 
 ## Paso B — Pegar el script en el Sheet (una sola vez)
 
@@ -31,14 +58,14 @@ La instalación son **dos pegadas y tres clicks**, y no hace falta saber nada de
 Todo desde el menú **LABO CRM** del Sheet, en orden:
 
 **1 · Conectar con el CRM**
-Pide dos cosas: la URL del proyecto (ya viene puesta, sólo dale Aceptar) y la
-**service_role key**, que se saca de Supabase → *Project Settings* → *API* →
-`service_role`. La primera vez Google va a pedir autorizar el script: es de ustedes,
-aceptar. Si todo está bien, contesta *✓ Conectado*.
+Pide tres cosas: la URL del proyecto (ya viene puesta, dale Aceptar), y el **mail y la
+contraseña de la cuenta de sincronización** creada en el paso A2. La primera vez Google
+va a pedir autorizar el script: es de ustedes, aceptar. Si todo está bien, contesta
+*✓ Conectado*.
 
-> ⚠️ Esa clave es la llave maestra de la base. Va **sólo ahí**: nunca por mail, nunca
-> por chat, nunca en el HTML del CRM. Queda guardada dentro del propio Sheet, en los
-> servidores de Google, y no la ve el navegador de nadie.
+> Esa contraseña queda guardada en el Sheet y el proveedor que lo administra podría
+> leerla. Está bien que así sea: esa cuenta no puede hacer nada más que cargar
+> prospectos. Lo que **nunca** va ahí es la `service_role key` del proyecto.
 
 **2 · Subir el histórico**
 Manda al CRM todo lo que ya está cargado (las ~450 filas), con su etapa, estado,
@@ -96,4 +123,11 @@ No. Cada corrida toma lo que hay en ese momento y lo que quede afuera entra en l
 siguiente, diez minutos después.
 
 **¿Se puede apagar?**
-Sí, desde el menú: **LABO CRM → Desactivar sincronización**.
+Sí, desde el menú: **LABO CRM → Desactivar sincronización**. Y para cortar el acceso de
+raíz, sin depender del Sheet: Supabase → *Authentication* → *Users* → borrar la cuenta
+de sincronización (o cambiarle la contraseña). El CRM y el equipo no se ven afectados.
+
+**¿Qué pasa si el proveedor lee la contraseña guardada en el script?**
+Puede cargar prospectos en el CRM y nada más. No puede leer el pipeline, ni los
+precios, ni los costos, ni tocar un registro existente. Si pasara, se borra la cuenta y
+listo.

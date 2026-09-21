@@ -9,9 +9,16 @@
  *
  * Todo se maneja desde el menú "LABO CRM" que aparece en la barra del Sheet.
  *
+ * Seguridad: este Sheet lo administra un proveedor externo, y cualquiera con
+ * acceso de edición puede leer las credenciales guardadas en el script. Por eso
+ * acá NO va la service_role key (que saltea RLS y da control total de la base).
+ * El script entra como una cuenta de Supabase que SÓLO puede insertar prospectos:
+ * si la credencial se filtra, no se puede leer el pipeline ni modificar nada.
+ * Ver supabase_prospectos_sync.sql.
+ *
  * Reglas de oro:
- *  - La clave (service_role) NO va en este archivo: se carga desde el menú y queda
- *    guardada en las Propiedades del Script.
+ *  - Las credenciales NO van en este archivo: se cargan desde el menú y quedan
+ *    guardadas en las Propiedades del Script.
  *  - Nada se duplica: cada fila viaja con su Entry ID y la base tiene índice único.
  *  - Nada se pisa: si la fila ya existe, el CRM manda (etapa, responsable y notas se
  *    trabajan del lado del CRM, no se sobrescriben desde el Sheet).
@@ -33,6 +40,11 @@ var LOTE      = 200;     // filas por request
 // Proyecto Supabase del CRM. Se puede pisar desde el menú si alguna vez cambia.
 var SUPABASE_URL_DEFAULT = 'https://wcpkpwxhqdcdljfwzcmy.supabase.co';
 
+// Clave pública del proyecto (anon). No es un secreto: viaja en el HTML del CRM y
+// por sí sola no da acceso a nada — todo pasa por las políticas de seguridad de la
+// base, que dependen de con qué cuenta se entra.
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcGtwd3hocWRjZGxqZnd6Y215Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDM4NDAsImV4cCI6MjA5NjYxOTg0MH0.MSTk46VAwdAsn5qNBdrHmGIiLYyN-rAyAZC72xZW3D4';
+
 // ── Menú dentro del Sheet ─────────────────────────────────────────────────────
 // Toda la operación se hace desde acá: no hace falta volver a abrir el editor.
 function onOpen() {
@@ -47,29 +59,38 @@ function onOpen() {
     .addToUi();
 }
 
-/** Paso 1: pide la clave y prueba la conexión. */
+/** Paso 1: pide las credenciales de la cuenta de sincronización y prueba la conexión. */
 function menuConfigurar() {
   var ui = SpreadsheetApp.getUi();
   var props = PropertiesService.getScriptProperties();
   var urlActual = props.getProperty('SUPABASE_URL') || SUPABASE_URL_DEFAULT;
 
-  var r1 = ui.prompt('Conectar con el CRM (1 de 2)',
+  var r1 = ui.prompt('Conectar con el CRM (1 de 3)',
     'URL del proyecto Supabase.\n\nSi es el CRM de siempre, dejá la que está y dale Aceptar:\n' + urlActual,
     ui.ButtonSet.OK_CANCEL);
   if (r1.getSelectedButton() !== ui.Button.OK) return;
   var url = (r1.getResponseText() || '').trim() || urlActual;
 
-  var r2 = ui.prompt('Conectar con el CRM (2 de 2)',
-    'Pegá la service_role key del proyecto.\n\n' +
-    'Supabase → Project Settings → API → service_role.\n' +
-    'Queda guardada acá adentro, en este Sheet. No la pases por mail ni por chat.',
+  var r2 = ui.prompt('Conectar con el CRM (2 de 3)',
+    'Mail de la cuenta de sincronización.\n\n' +
+    'Es una cuenta de servicio que sólo puede cargar prospectos: no puede leer ni ' +
+    'modificar el resto del CRM. La crea el equipo de 4housing en Supabase.',
     ui.ButtonSet.OK_CANCEL);
   if (r2.getSelectedButton() !== ui.Button.OK) return;
-  var key = (r2.getResponseText() || '').trim();
-  if (!key) { ui.alert('No pegaste ninguna clave. No se guardó nada.'); return; }
+  var mail = (r2.getResponseText() || '').trim();
+  if (!mail) { ui.alert('No pusiste ningún mail. No se guardó nada.'); return; }
+
+  var r3 = ui.prompt('Conectar con el CRM (3 de 3)', 'Contraseña de esa cuenta.',
+    ui.ButtonSet.OK_CANCEL);
+  if (r3.getSelectedButton() !== ui.Button.OK) return;
+  var pass = r3.getResponseText() || '';
+  if (!pass) { ui.alert('No pusiste ninguna contraseña. No se guardó nada.'); return; }
 
   props.setProperty('SUPABASE_URL', url.replace(/\/+$/, ''));
-  props.setProperty('SUPABASE_SERVICE_KEY', key);
+  props.setProperty('SYNC_EMAIL', mail);
+  props.setProperty('SYNC_PASSWORD', pass);
+  // Restos de la versión anterior, que guardaba la llave maestra del proyecto.
+  props.deleteProperty('SUPABASE_SERVICE_KEY');
 
   try {
     if (verificarConexion()) {
@@ -78,8 +99,9 @@ function menuConfigurar() {
         ui.ButtonSet.OK);
     } else {
       ui.alert('No se pudo conectar',
-        'La clave o la URL no son correctas. Revisalas en Supabase → Project Settings → API ' +
-        'y volvé a correr "1 · Conectar con el CRM".', ui.ButtonSet.OK);
+        'El mail o la contraseña no son correctos, o la cuenta todavía no existe. ' +
+        'Pedíselos al equipo de 4housing y volvé a correr "1 · Conectar con el CRM".',
+        ui.ButtonSet.OK);
     }
   } catch (e) {
     ui.alert('No se pudo conectar', String(e), ui.ButtonSet.OK);
@@ -126,7 +148,7 @@ function menuDesactivar() {
 function menuEstado() {
   var ui = SpreadsheetApp.getUi();
   var props = PropertiesService.getScriptProperties();
-  var conectado = !!props.getProperty('SUPABASE_SERVICE_KEY');
+  var conectado = !!(props.getProperty('SYNC_EMAIL') && props.getProperty('SYNC_PASSWORD'));
   var auto = ScriptApp.getProjectTriggers().some(function (t) {
     return t.getHandlerFunction() === 'sincronizarProspectos';
   });
@@ -211,18 +233,20 @@ function instalarDisparador() {
   Logger.log('Disparador instalado: sincronizarProspectos cada 10 minutos.');
 }
 
-/** Chequeo rápido de configuración y conectividad (correr después de instalar). */
+/**
+ * Chequeo de configuración: valida que la cuenta de sincronización pueda entrar.
+ * No se comprueba con una lectura porque esta cuenta, a propósito, no puede leer
+ * nada: lo único que sabe hacer es insertar prospectos.
+ */
 function verificarConexion() {
-  var cfg = _config();
-  var resp = UrlFetchApp.fetch(
-    cfg.url + '/rest/v1/labocomercial_prospectos?select=id&limit=1',
-    { method: 'get', headers: _headers(cfg), muteHttpExceptions: true }
-  );
-  var code = resp.getResponseCode();
-  Logger.log(code === 200
-    ? '✓ Conexión OK con Supabase.'
-    : '✗ Error ' + code + ': ' + resp.getContentText());
-  return code === 200;
+  try {
+    var ok = !!_token(_config());
+    Logger.log(ok ? '✓ Conexión OK con el CRM.' : '✗ No se pudo entrar.');
+    return ok;
+  } catch (e) {
+    Logger.log('✗ ' + e);
+    return false;
+  }
 }
 
 // ── Motor ─────────────────────────────────────────────────────────────────────
@@ -258,22 +282,18 @@ function _sincronizarHoja(cfg, incluirYaMarcadas) {
   // una escritura por celda es lo que haría que la carga histórica se pase del
   // límite de 6 minutos de Apps Script.
   var marcas = datos.map(function (fila) { return [fila[colMarca - 1] || '']; });
+  var hoy = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yy');
   var enviadas = 0;
   for (var d = 0; d < pendientes.length; d += LOTE) {
     var lote = pendientes.slice(d, d + LOTE);
-    var insertados = _postProspectos(supa, lote.map(function (p) { return p.payload; }));
-    if (insertados === null) break;                          // error de red/API: se reintenta en la próxima corrida
-
-    // Mapa entry_id → id de la base, para marcar cada fila con su id del CRM.
-    var porEntry = {};
-    insertados.forEach(function (row) { if (row && row.entry_id) porEntry[String(row.entry_id)] = row.id; });
+    var ok = _postProspectos(supa, lote.map(function (p) { return p.payload; }));
+    if (!ok) break;                                          // error de red/API: se reintenta en la próxima corrida
 
     lote.forEach(function (p) {
-      var id = porEntry[String(p.payload.entry_id)];
       var previa = marcas[p.fila - 2][0];
-      // Si ya tenía su id del CRM anotado, se respeta: una resincronización no
-      // debería borrar el número que el equipo usa para encontrar el registro.
-      marcas[p.fila - 2] = [id ? ('✓ ' + id) : (previa || '✓ ya estaba')];
+      // Una resincronización no pisa la marca original: la fecha que interesa es la
+      // de cuándo entró al CRM por primera vez.
+      marcas[p.fila - 2] = [previa || ('✓ ' + hoy)];
     });
     enviadas += lote.length;
   }
@@ -285,20 +305,25 @@ function _sincronizarHoja(cfg, incluirYaMarcadas) {
   return enviadas;
 }
 
+/**
+ * Manda un lote de filas. 'return=minimal' es a propósito: la cuenta de
+ * sincronización sólo puede insertar, así que no puede pedir que le devuelvan lo
+ * insertado. 'ignore-duplicates' hace que las filas ya cargadas se salteen solas.
+ */
 function _postProspectos(supa, filas) {
   var resp = UrlFetchApp.fetch(supa.url + '/rest/v1/labocomercial_prospectos', {
     method: 'post',
     contentType: 'application/json',
-    headers: _headers(supa, 'resolution=ignore-duplicates,return=representation'),
+    headers: _headers(supa, 'resolution=ignore-duplicates,return=minimal'),
     payload: JSON.stringify(filas),
     muteHttpExceptions: true
   });
   var code = resp.getResponseCode();
   if (code < 200 || code >= 300) {
-    Logger.log('Supabase respondió ' + code + ': ' + resp.getContentText());
-    return null;
+    Logger.log('El CRM respondió ' + code + ': ' + resp.getContentText());
+    return false;
   }
-  try { return JSON.parse(resp.getContentText() || '[]'); } catch (e) { return []; }
+  return true;
 }
 
 // ── Armado del registro ───────────────────────────────────────────────────────
@@ -478,16 +503,43 @@ function _filaVacia(fila, mapa) {
 function _config() {
   var p = PropertiesService.getScriptProperties();
   var url = (p.getProperty('SUPABASE_URL') || SUPABASE_URL_DEFAULT).replace(/\/+$/, '');
-  var key = p.getProperty('SUPABASE_SERVICE_KEY') || '';
-  if (!url || !key) {
+  var email = p.getProperty('SYNC_EMAIL') || '';
+  var password = p.getProperty('SYNC_PASSWORD') || '';
+  if (!url || !email || !password) {
     throw new Error('Todavía no está conectado con el CRM. Andá al menú "LABO CRM" ' +
                     'del Sheet y corré "1 · Conectar con el CRM".');
   }
-  return { url: url, key: key };
+  return { url: url, email: email, password: password };
+}
+
+/**
+ * Entra a Supabase con la cuenta de sincronización y devuelve su token. Dura una
+ * hora y cada corrida del script es de segundos, así que se pide uno nuevo por
+ * corrida y no se guarda en ningún lado.
+ */
+var _tokenCache = null;
+function _token(cfg) {
+  if (_tokenCache) return _tokenCache;
+  var resp = UrlFetchApp.fetch(cfg.url + '/auth/v1/token?grant_type=password', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { 'apikey': SUPABASE_ANON_KEY },
+    payload: JSON.stringify({ email: cfg.email, password: cfg.password }),
+    muteHttpExceptions: true
+  });
+  if (resp.getResponseCode() !== 200) {
+    throw new Error('No se pudo entrar al CRM con la cuenta de sincronización (' +
+                    resp.getResponseCode() + '). Revisá el mail y la contraseña en ' +
+                    'el menú "LABO CRM" → "1 · Conectar con el CRM".');
+  }
+  var tok = JSON.parse(resp.getContentText()).access_token;
+  if (!tok) throw new Error('El CRM no devolvió un token de acceso.');
+  _tokenCache = tok;
+  return tok;
 }
 
 function _headers(cfg, prefer) {
-  var h = { 'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key };
+  var h = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + _token(cfg) };
   if (prefer) h['Prefer'] = prefer;
   return h;
 }
