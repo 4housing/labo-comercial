@@ -1055,6 +1055,7 @@ tr:hover td{background:#F5F3ED}
         <span class="table-title" id="pros-table-title">Prospectos a trabajar</span>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span id="pros-sync-info" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--mid)"></span>
+          <button class="pr-act ghost" onclick="abrirImportador()" title="Subir un CSV descargado del Google Sheet">↑ Importar CSV</button>
           <div class="search-wrap"><input type="text" placeholder="Buscar..." oninput="filterProsSearch(this.value)"></div>
         </div>
       </div>
@@ -1162,6 +1163,29 @@ tr:hover td{background:#F5F3ED}
 </div>
 
 <!-- VERSIÓN NUEVA vs PROYECTO NUEVO MODAL -->
+<!-- IMPORTAR CSV DEL GOOGLE SHEET -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal-box">
+    <div class="modal-title">Importar prospectos desde el Sheet</div>
+    <div style="font-size:12px;color:var(--mid);line-height:1.6;margin-bottom:16px">
+      En el Google Sheet: <strong>Archivo → Descargar → Valores separados por comas (.csv)</strong>.
+      Descarga la hoja que tengas abierta. Elegí abajo cuál es y subí el archivo.<br>
+      Lo que ya esté en el CRM no se duplica ni se pisa.
+    </div>
+    <div class="modal-options" id="import-options">
+      <div class="modal-opt" onclick="selImportFuente(this,'formulario')">Hoja <strong>Formulario</strong></div>
+      <div class="modal-opt" onclick="selImportFuente(this,'brochure')">Hoja <strong>Brochure</strong></div>
+      <div class="modal-opt" onclick="selImportFuente(this,'landing_meta')">Hoja <strong>Landing Meta</strong></div>
+    </div>
+    <input type="file" id="import-file" accept=".csv,text/csv" style="display:none" onchange="importarCSVArchivo(this)">
+    <div id="import-estado" style="font-size:12px;margin-top:14px;display:none"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-modal" onclick="cerrarImportador()">Cerrar</button>
+      <button class="btn-modal primary" id="import-btn" onclick="elegirArchivoCSV()" disabled style="opacity:.5">Elegir archivo…</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="versionModal">
   <div class="modal-box">
     <div class="modal-title">Este cliente ya tiene una cotización activa</div>
@@ -2603,8 +2627,11 @@ function renderProsTable(){
       return '<button class="'+e.cls+'" data-eid="'+e.key+'" data-pid="'+pid+'" onclick="cambiarEtapaProspecto(this.dataset.pid,this.dataset.eid)">'+
         '<span class="etapa-dot" style="background:'+e.color+'"></span>'+e.key+'</button>';
     }).join('');
-    var opciones=['<option value="">— sin asignar —</option>'].concat(PROS_VENDEDORES.map(function(v){
-      return '<option value="'+esc(v)+'"'+((p.responsable||'')===v?' selected':'')+'>'+esc(v)+'</option>';
+    var resp=(p.responsable||'').trim();
+    var listaVend=PROS_VENDEDORES.slice();
+    if(resp&&listaVend.indexOf(resp)<0)listaVend.push(resp);   // alguien que no está en la lista fija
+    var opciones=['<option value="">— sin asignar —</option>'].concat(listaVend.map(function(v){
+      return '<option value="'+esc(v)+'"'+(resp===v?' selected':'')+'>'+esc(v)+'</option>';
     })).join('');
     var yaCliente=prosYaEsCliente(p);
     var hermanos=prosHermanos(p);
@@ -2726,6 +2753,267 @@ function exportProspectosCSV(){
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download='LABO_Prospectos_'+new Date().toISOString().split('T')[0]+'.csv';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+/* ── Importar CSV del Google Sheet ────────────────────────────────────────────
+   Alternativa a la sincronización automática para cuando la cuenta de Google no
+   permite instalar Apps Script en el Sheet. Se descarga la hoja como CSV y se
+   sube acá: mismo mapeo de columnas, misma deduplicación por Entry ID. Repetir
+   una importación no duplica ni pisa lo que ya se trabajó en el CRM. */
+let _importFuente=null;
+
+function abrirImportador(){
+  _importFuente=null;
+  document.querySelectorAll('#import-options .modal-opt').forEach(function(o){o.classList.remove('selected');});
+  var est=document.getElementById('import-estado');est.style.display='none';est.textContent='';
+  _importBtn(false);
+  document.getElementById('import-file').value='';
+  document.getElementById('importModal').classList.add('open');
+}
+function cerrarImportador(){document.getElementById('importModal').classList.remove('open');}
+function selImportFuente(el,f){
+  document.querySelectorAll('#import-options .modal-opt').forEach(function(o){o.classList.remove('selected');});
+  el.classList.add('selected');
+  _importFuente=f;
+  _importBtn(true);
+}
+function _importBtn(activo){
+  var b=document.getElementById('import-btn');
+  if(!b)return;
+  b.disabled=!activo;b.style.opacity=activo?'1':'.5';
+}
+function elegirArchivoCSV(){
+  if(!_importFuente){alert('Elegí primero de qué hoja es el archivo.');return;}
+  document.getElementById('import-file').click();
+}
+function _importMsg(html,color){
+  var est=document.getElementById('import-estado');
+  est.style.display='block';
+  est.style.color=color||'var(--mid)';
+  est.innerHTML=html;
+}
+
+function importarCSVArchivo(input){
+  var file=input.files&&input.files[0];
+  if(!file)return;
+  var fuente=_importFuente;
+  var lector=new FileReader();
+  lector.onload=function(){
+    try{
+      var filas=_csvParse(String(lector.result||''));
+      if(filas.length<2){_importMsg('El archivo no tiene filas de datos.','var(--red)');return;}
+      var encabezados=filas[0];
+      var mapa=_csvMapear(encabezados);
+      if(mapa.nombre===undefined&&mapa.email===undefined){
+        _importMsg('No encontré las columnas del Sheet en ese archivo. Revisá que sea la hoja correcta y que la primera fila tenga los títulos.','var(--red)');
+        return;
+      }
+      var vacias=0;
+      var registros=[];
+      filas.slice(1).forEach(function(fila,i){
+        var r=_csvAProspecto(fila,mapa,fuente,i+2,encabezados);
+        if(!r){vacias++;return;}
+        registros.push(r);
+      });
+      if(!registros.length){_importMsg('No había ninguna fila con datos de contacto.','var(--red)');return;}
+      _importMsg('Subiendo '+registros.length+' filas…');
+      _subirProspectos(registros,fuente,vacias);
+    }catch(e){
+      console.warn('importarCSV:',e);
+      _importMsg('No pude leer el archivo: '+e.message,'var(--red)');
+    }
+  };
+  lector.onerror=function(){_importMsg('No pude leer el archivo.','var(--red)');};
+  lector.readAsText(file,'UTF-8');
+  input.value='';
+}
+
+async function _subirProspectos(registros,fuente,vacias){
+  try{
+    // Lo que ya está en el CRM para esa hoja: se compara por Entry ID.
+    var yaEstan={};
+    var r=await _sbFetch('labocomercial_prospectos?select=entry_id&fuente=eq.'+encodeURIComponent(fuente)+'&limit=10000',{method:'GET'});
+    if(r.ok){(await r.json()).forEach(function(x){if(x.entry_id)yaEstan[String(x.entry_id)]=true;});}
+    else{_importMsg('No pude consultar el CRM ('+r.status+'). Probá de nuevo.','var(--red)');return;}
+
+    var nuevos=registros.filter(function(x){return !yaEstan[String(x.entry_id)];});
+    var repetidos=registros.length-nuevos.length;
+    if(!nuevos.length){
+      _importMsg('✓ Ya estaba todo: las '+registros.length+' filas del archivo están en el CRM.','var(--green)');
+      return;
+    }
+    var subidos=0;
+    for(var i=0;i<nuevos.length;i+=200){
+      var lote=nuevos.slice(i,i+200);
+      var resp=await _sbFetch('labocomercial_prospectos',{
+        method:'POST',
+        headers:{'Prefer':'resolution=ignore-duplicates,return=minimal'},
+        body:JSON.stringify(lote)
+      });
+      if(!resp.ok){
+        var txt=await resp.text();
+        console.warn('importar lote:',resp.status,txt);
+        _importMsg('Se subieron '+subidos+' y después falló ('+resp.status+'). Volvé a importar el mismo archivo: lo que ya entró no se duplica.','var(--red)');
+        await loadProspectos();
+        return;
+      }
+      subidos+=lote.length;
+      _importMsg('Subiendo… '+subidos+' de '+nuevos.length);
+    }
+    await loadProspectos();
+    _importMsg('✓ Listo: <strong>'+subidos+'</strong> prospectos nuevos'+
+      (repetidos?' · '+repetidos+' ya estaban':'')+
+      (vacias?' · '+vacias+' filas vacías ignoradas':'')+'.','var(--green)');
+  }catch(e){
+    console.warn('_subirProspectos:',e);
+    _importMsg('Falló la subida: '+e.message,'var(--red)');
+  }
+}
+
+/** Parser de CSV completo: respeta comas, comillas y saltos de línea dentro de
+    una celda (los comentarios de los clientes traen los tres). */
+function _csvParse(texto){
+  texto=texto.replace(/^﻿/,'');                 // BOM que agregan Excel y Sheets
+  // Sheets exporta con coma; algunas configuraciones regionales usan punto y coma.
+  var cab=texto.slice(0,texto.indexOf('\n')>0?texto.indexOf('\n'):texto.length);
+  var sep=(cab.split(';').length>cab.split(',').length)?';':',';
+  var filas=[],fila=[],campo='',comillas=false,i=0;
+  while(i<texto.length){
+    var c=texto.charAt(i);
+    if(comillas){
+      if(c==='"'){
+        if(texto.charAt(i+1)==='"'){campo+='"';i+=2;continue;}
+        comillas=false;i++;continue;
+      }
+      campo+=c;i++;continue;
+    }
+    if(c==='"'){comillas=true;i++;continue;}
+    if(c===sep){fila.push(campo);campo='';i++;continue;}
+    if(c==='\r'){i++;continue;}
+    if(c==='\n'){fila.push(campo);filas.push(fila);fila=[];campo='';i++;continue;}
+    campo+=c;i++;
+  }
+  if(campo!==''||fila.length){fila.push(campo);filas.push(fila);}
+  return filas;
+}
+
+// Mismos alias que el Apps Script: las columnas se buscan por nombre de
+// encabezado, sin importar orden, mayúsculas ni acentos.
+const PROS_ALIAS={
+  entry_id:['entryid','id','identry'],
+  nombre:['nombreyapellido','nombre','nombreapellido','nombrecompleto','apellidoynombre'],
+  telefono:['telefono','tel','celular','whatsapp','movil'],
+  email:['correoelectronico','email','mail','correo','e-mail'],
+  modelo:['modelo','modelodeinteres'],
+  tipo_proyecto:['tipodeproyecto','tipoproyecto','proyecto'],
+  comentario:['comentariosadicional','comentariosadicionales','comentarioadicional','mensaje','consulta'],
+  fecha:['fecha','fechadeenvio','timestamp','marcatemporal'],
+  url:['url','link','pagina'],
+  region:['region','provincia','zona','ubicacion'],
+  etapa_sheet:['etapa'],
+  estado_sheet:['estado'],
+  calidad:['calidaddellead','calidad','calidadlead'],
+  responsable:['contacto','responsable','vendedor','asignadoa'],
+  notas:['comentarios','observaciones','notas'],
+  descargo_brochure:['descargobrochure','descargobrochures','brochure']
+};
+const PROS_ORIGEN={formulario:'Google Ads',brochure:'Google Ads',landing_meta:'Meta'};
+
+/** "Hector" (como lo escriben en el Sheet) → "Hector Bermudez" (como está en el CRM).
+    Si no hay una coincidencia única, se respeta lo que vino escrito. */
+function _prosVendedor(v){
+  var n=_csvNorm(v);
+  if(!n)return '';
+  var exacto=PROS_VENDEDORES.find(function(x){return _csvNorm(x)===n;});
+  if(exacto)return exacto;
+  var candidatos=PROS_VENDEDORES.filter(function(x){return _csvNorm(x).indexOf(n)===0;});
+  return candidatos.length===1?candidatos[0]:String(v).trim();
+}
+function _csvNorm(s){
+  return String(s===null||s===undefined?'':s)
+    .normalize('NFD').replace(new RegExp('['+String.fromCharCode(768)+'-'+String.fromCharCode(879)+']','g'),'')
+    .toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+function _csvMapear(encabezados){
+  var norm=encabezados.map(function(h){return _csvNorm(h);});
+  var mapa={},usadas={};
+  Object.keys(PROS_ALIAS).forEach(function(campo){
+    for(var a=0;a<PROS_ALIAS[campo].length;a++){
+      var idx=norm.indexOf(PROS_ALIAS[campo][a]);
+      if(idx>=0&&!usadas[idx]){mapa[campo]=idx;usadas[idx]=true;return;}
+    }
+  });
+  return mapa;
+}
+function _csvAProspecto(fila,mapa,fuente,nroFila,encabezados){
+  function v(campo){var i=mapa[campo];return (i===undefined)?'':(fila[i]===undefined?'':fila[i]);}
+  function t(x){return String(x===null||x===undefined?'':x).trim();}
+  if(!t(v('nombre'))&&!t(v('email'))&&!t(v('telefono')))return null;   // fila vacía
+  var raw={};
+  encabezados.forEach(function(h,i){
+    var k=t(h);if(!k)return;
+    var val=t(fila[i]);if(val)raw[k]=val;
+  });
+  return {
+    fuente:fuente,
+    entry_id:t(v('entry_id'))||(fuente+'-r'+nroFila),
+    origen:PROS_ORIGEN[fuente]||'',
+    fecha:_csvFecha(v('fecha')),
+    url:t(v('url')),
+    nombre:t(v('nombre')),
+    email:t(v('email')).toLowerCase(),
+    telefono:t(v('telefono')),
+    region:t(v('region')),
+    modelo:t(v('modelo')),
+    tipo_proyecto:t(v('tipo_proyecto')),
+    comentario:t(v('comentario')),
+    etapa:_csvEtapa(v('etapa_sheet'),v('estado_sheet')),
+    contactos:_csvContactos(v('etapa_sheet')),
+    calidad:_csvCalidad(v('calidad')),
+    responsable:_prosVendedor(v('responsable')),
+    notas:t(v('notas')),
+    descargo_brochure:fuente==='brochure'?true:_csvSiNo(v('descargo_brochure')),
+    actividad:[],
+    raw:raw
+  };
+}
+function _csvFecha(v){
+  var s=String(v||'').trim();
+  if(!s)return null;
+  var m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);        // d/m/aaaa
+  if(m){
+    var anio=m[3].length===2?2000+parseInt(m[3],10):parseInt(m[3],10);
+    var d=new Date(anio,parseInt(m[2],10)-1,parseInt(m[1],10),12,0,0);
+    return isNaN(d.getTime())?null:d.toISOString();
+  }
+  var d2=new Date(s);
+  return isNaN(d2.getTime())?null:d2.toISOString();
+}
+function _csvEtapa(etapaSheet,estadoSheet){
+  var est=_csvNorm(estadoSheet),et=_csvNorm(etapaSheet);
+  if(est.indexOf('noavanza')>=0||est.indexOf('perdido')>=0||est.indexOf('descart')>=0)return 'Descartado';
+  if(est.indexOf('cotiz')>=0||est.indexOf('ganado')>=0||est.indexOf('convert')>=0)return 'Convertido';
+  if(est.indexOf('encurso')>=0||est.indexOf('seguimiento')>=0)return 'En seguimiento';
+  if(et)return 'Contactado';
+  return 'Nuevo';
+}
+function _csvContactos(etapaSheet){
+  var m=String(etapaSheet||'').match(/(\d+)/);
+  return m?parseInt(m[1],10):0;
+}
+function _csvCalidad(v){
+  var n=_csvNorm(v);
+  if(!n||n==='na')return null;
+  if(n.indexOf('buen')>=0)return 'Bueno';
+  if(n.indexOf('regular')>=0||n.indexOf('medio')>=0)return 'Regular';
+  if(n.indexOf('mal')>=0||n.indexOf('bajo')>=0)return 'Malo';
+  return String(v).trim();
+}
+function _csvSiNo(v){
+  var n=_csvNorm(v);
+  if(!n)return false;
+  if(n==='no'||n==='false'||n==='0')return false;
+  return true;
 }
 
 // ── Panel de detalle ──────────────────────────────────────────────────────────

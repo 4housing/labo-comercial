@@ -329,7 +329,7 @@ function _filaAProspecto(fila, mapa, cfg, nroFila, encabezados) {
     etapa:             _etapa(v('etapa_sheet'), v('estado_sheet')),
     contactos:         _contactos(v('etapa_sheet')),
     calidad:           _calidad(v('calidad')),
-    responsable:       _txt(v('responsable')),
+    responsable:       _vendedor(v('responsable')),
     notas:             _txt(v('notas')),
     descargo_brochure: cfg.fuente === 'brochure' ? true : _siNo(v('descargo_brochure')),
 
@@ -405,6 +405,19 @@ function _norm(s) {
     .normalize('NFD').replace(_RE_TILDES, '')            // saca acentos
     .toLowerCase().replace(/[^a-z0-9]/g, '');           // saca espacios, ¿?, °, etc.
 }
+// Vendedores del CRM. En el Sheet se anota el nombre corto ("Hector"): se traduce
+// al nombre completo para que el prospecto quede asignado de verdad.
+var VENDEDORES = ['Pablo Spinetto', 'Leandro Seoane', 'Hector Bermudez',
+                  'Victoria Lopez Aybar', 'Matias Formica'];
+
+function _vendedor(v) {
+  var n = _norm(v);
+  if (!n) return '';
+  for (var i = 0; i < VENDEDORES.length; i++) if (_norm(VENDEDORES[i]) === n) return VENDEDORES[i];
+  var cand = VENDEDORES.filter(function (x) { return _norm(x).indexOf(n) === 0; });
+  return cand.length === 1 ? cand[0] : _txt(v);
+}
+
 function _txt(v) {
   if (v === null || v === undefined) return '';
   if (v instanceof Date) return v.toISOString();
