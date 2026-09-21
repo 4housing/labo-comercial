@@ -1264,13 +1264,14 @@ tr:hover td{background:#F5F3ED}
 
       <div class="cost-section">
         <div class="cost-section-title">Costos de materiales — LABO Modular</div>
-        <div class="cost-note">Actualizá el costo unitario (Mano de Obra + Material) de cada ítem, o <strong>importá el Excel de costeo</strong>. Los precios de venta se recalculan solos. Guardá cada cambio como una <strong>versión</strong> (queda registro de fecha y responsable). <span id="matDirty" style="display:none;color:var(--red);font-weight:600">· Hay cambios sin guardar</span></div>
+        <div class="cost-note">Actualizá el costo unitario (Mano de Obra + Material) de cada ítem, o <strong>importá el Excel de costeo</strong>. Los precios de venta se recalculan solos. <strong>Cada cambio se guarda automáticamente</strong> con fecha y responsable; usá <strong>Guardar versión</strong> para dejar un hito con nota. <span id="matDirty" style="display:none;color:var(--red);font-weight:600">· cambios sin guardar</span></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
           <label class="btn bp" style="cursor:pointer;margin:0">↑ Importar Excel<input type="file" id="xlsFile" accept=".xlsx,.xlsm" style="display:none" onchange="laboImportExcel(this)"></label>
           <input type="text" id="verNota" placeholder="Nota (ej: actualización acero set-2026)" style="flex:1;min-width:220px;padding:9px 12px;border:1px solid var(--border);background:var(--white);border-radius:6px;font-size:12px">
           <button class="btn bp" onclick="laboGuardarVersion('app')">💾 Guardar versión</button>
           <button class="btn bo" onclick="laboVerHistorial()">🕘 Historial</button>
           <button class="btn bo" onclick="laboRecargarUltima()">↻ Recargar última</button>
+          <span id="matSaveStatus" style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--mid);margin-left:auto"></span>
         </div>
         <div class="success-msg" id="matMsg" style="display:none"></div>
         <div id="matHist" style="display:none;margin-bottom:16px"></div>
@@ -2484,7 +2485,7 @@ function laboRefreshAll(){
   if(sel){var c=document.getElementById('mc_'+sel);if(c)c.classList.add('selected'); upd();}
   var p5=document.getElementById('panel5'); if(p5&&p5.classList.contains('active')){renderAnCompare();renderAnRubros();}
 }
-function laboSet(path,val){var v=parseFloat(val);if(isNaN(v))v=0;var p=path.split('.');var o=LABO_DATA;for(var i=0;i<p.length-1;i++)o=o[p[i]];o[p[p.length-1]]=v;laboRefreshAll();laboMarkDirty();}
+function laboSet(path,val){var v=parseFloat(val);if(isNaN(v))v=0;var p=path.split('.');var o=LABO_DATA;for(var i=0;i<p.length-1;i++)o=o[p[i]];o[p[p.length-1]]=v;laboRefreshAll();laboScheduleAutosave();}
 function laboSetPct(path,val){var v=parseFloat(val);if(isNaN(v))v=0;laboSet(path,v/100);}
 function _pnum(label,path,val,step){return '<div class="fg"><label style="font-size:9px">'+label+'</label><input type="number" step="'+(step||1)+'" value="'+val+'" onchange="laboSet(\''+path+'\',this.value)" style="width:150px;padding:8px;border:1px solid var(--border);background:var(--white);border-radius:6px;font-family:\'IBM Plex Mono\',monospace"></div>';}
 function _ppct(label,path,val){return '<div class="fg"><label style="font-size:9px">'+label+'</label><input type="number" step="0.5" value="'+(+(val*100).toFixed(3))+'" onchange="laboSetPct(\''+path+'\',this.value)" style="width:150px;padding:8px;border:1px solid var(--border);background:var(--white);border-radius:6px;font-family:\'IBM Plex Mono\',monospace"></div>';}
@@ -2554,6 +2555,32 @@ function laboSnapshotBase(d){
     return out;
   }catch(e){return {};}
 }
+var _laboAutoId=null,_laboAutoTimer=null;
+function laboSaveStatus(txt,cls){var e=document.getElementById('matSaveStatus');if(!e)return;e.textContent=txt||'';e.style.color=(cls==='err')?'var(--red)':((cls==='ok')?'var(--green)':'var(--mid)');}
+function laboScheduleAutosave(){laboMarkDirty();laboSaveStatus('Editando…');if(_laboAutoTimer)clearTimeout(_laboAutoTimer);_laboAutoTimer=setTimeout(laboAutosave,2500);}
+async function laboAutosave(){
+  laboSaveStatus('Guardando…');
+  var email=await laboUserEmail();
+  var body={usuario:email,tc:LABO_DATA.tc,source:'app-auto',nota:'(autoguardado)',version_label:new Date().toISOString(),data:LABO_DATA};
+  try{localStorage.setItem('labo_costos_last',JSON.stringify(LABO_DATA));}catch(e){}
+  try{
+    var r;
+    if(_laboAutoId){
+      body.created_at=new Date().toISOString();
+      r=await _sbFetch('labocomercial_costos_versiones?id=eq.'+_laboAutoId,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify(body)});
+      if(!r.ok)throw new Error('patch '+r.status);
+    }else{
+      r=await _sbFetch('labocomercial_costos_versiones',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(body)});
+      if(!r.ok)throw new Error('post '+r.status);
+      var j=await r.json(); if(j&&j[0]&&j[0].id)_laboAutoId=j[0].id;
+    }
+    _laboDirty=false; var d=document.getElementById('matDirty'); if(d)d.style.display='none';
+    laboSaveStatus('✓ Autoguardado '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),'ok');
+  }catch(e){
+    laboSaveStatus('⚠ Guardado sólo local — falta crear la tabla en Supabase','err');
+  }
+}
+try{window.addEventListener('beforeunload',function(ev){if(_laboDirty){ev.preventDefault();ev.returnValue='';}});}catch(e){}
 async function laboGuardarVersion(source){
   var nota=(document.getElementById('verNota')||{}).value||'';
   var email=await laboUserEmail();
@@ -2562,6 +2589,7 @@ async function laboGuardarVersion(source){
     var r=await _sbFetch('labocomercial_costos_versiones',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(payload)});
     if(!r.ok){throw new Error((await r.text())||('HTTP '+r.status));}
     _laboDirty=false;var d=document.getElementById('matDirty');if(d)d.style.display='none';
+    _laboAutoId=null; laboSaveStatus('✓ Versión guardada','ok');
     try{localStorage.setItem('labo_costos_last',JSON.stringify(LABO_DATA));}catch(e){}
     matMsg('✓ Versión guardada por '+email+'.');
     var nt=document.getElementById('verNota');if(nt)nt.value='';
@@ -2619,8 +2647,8 @@ function laboImportExcel(input){
       var tc=cellNum('Análisis','K',2); if(tc!=null)LABO_DATA.tc=tc;
       var mmap={SE:'C',S:'D',M:'E',L:'F',XL:'G'};
       LABO_DATA.montaje_rango.forEach(function(rg,ri){LABO_MODULAR_ORDER.forEach(function(m){var v=cellNum('Montaje x Rango',mmap[m],4+ri);if(v!=null)rg.cost[m]=v;});});
-      laboRefreshAll(); laboBuildMatEditor(); laboMarkDirty();
-      matMsg('✓ Importado del Excel: '+upd+' valores actualizados. Revisá y hacé "Guardar versión" para dejar registro.');
+      laboRefreshAll(); laboBuildMatEditor(); laboScheduleAutosave();
+      matMsg('✓ Importado del Excel: '+upd+' valores actualizados y autoguardados. Podés dejar un hito con "Guardar versión".');
     }catch(err){matMsg('⚠ Error al leer el Excel: '+(err.message||err),false);}
   };
   reader.readAsArrayBuffer(file); input.value='';
