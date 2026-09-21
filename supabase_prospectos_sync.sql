@@ -25,6 +25,20 @@
 -- heredaría permiso de lectura sobre todos los prospectos. Con otro dominio, queda
 -- con lo único que le damos acá: insertar.
 
+-- ── 1) Arreglo del índice de deduplicación ───────────────────────────────────
+-- La primera versión de supabase_prospectos.sql creaba este índice como PARCIAL
+-- ("where entry_id is not null"). Postgres no acepta un índice parcial como árbitro
+-- de "ON CONFLICT DO NOTHING", que es lo que usan el script del Sheet y el
+-- importador de CSV para no duplicar: con el índice parcial, la primera fila
+-- repetida hace fallar el lote entero con un 409.
+--
+-- Si ya corriste la versión vieja, esto lo reemplaza. Si creaste la tabla con la
+-- versión corregida, no hace nada: el índice ya está bien.
+drop index if exists public.idx_prospectos_dedup;
+create unique index if not exists idx_prospectos_dedup
+  on public.labocomercial_prospectos (fuente, entry_id);
+
+-- ── 2) Permiso de la cuenta de sincronización ────────────────────────────────
 -- Si usaste otro mail al crear la cuenta, cambialo en las dos líneas de abajo.
 drop policy if exists prospectos_insert_sync on public.labocomercial_prospectos;
 create policy prospectos_insert_sync

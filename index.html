@@ -2845,7 +2845,9 @@ async function _subirProspectos(registros,fuente,vacias){
     var subidos=0;
     for(var i=0;i<nuevos.length;i+=200){
       var lote=nuevos.slice(i,i+200);
-      var resp=await _sbFetch('labocomercial_prospectos',{
+      // on_conflict nombra las columnas del índice de deduplicación: sin eso
+      // PostgREST mira sólo la clave primaria y un repetido voltea el lote entero.
+      var resp=await _sbFetch('labocomercial_prospectos?on_conflict=fuente,entry_id',{
         method:'POST',
         headers:{'Prefer':'resolution=ignore-duplicates,return=minimal'},
         body:JSON.stringify(lote)
