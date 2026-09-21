@@ -7,45 +7,49 @@ El Sheet sigue funcionando igual que siempre: el script sólo **lee** las filas 
 una columna `CRM` al final de cada hoja para marcar lo que ya está adentro. No toca
 ninguna otra celda y no borra nada.
 
+La instalación son **dos pegadas y tres clicks**, y no hace falta saber nada de código.
+
 ---
 
-## 1. Crear la tabla en Supabase (una sola vez)
+## Paso A — Crear la tabla en Supabase (una sola vez)
 
-1. Entrar al proyecto de Supabase → **SQL Editor**.
-2. Pegar y ejecutar el contenido de `supabase_prospectos.sql` (está en la raíz del repo).
+1. Entrar al proyecto de Supabase → **SQL Editor** → **New query**.
+2. Pegar todo el contenido de `supabase_prospectos.sql` (está en la raíz del repo) y
+   darle **Run**.
+3. Tiene que decir *Success*. Listo, no se toca más.
 
-## 2. Instalar el script en el Sheet (una sola vez)
+## Paso B — Pegar el script en el Sheet (una sola vez)
 
 1. Abrir el Sheet → **Extensiones → Apps Script**.
-2. Borrar el contenido de `Código.gs` y pegar el de `sync_prospectos.gs`.
-3. **Configuración del proyecto** (el engranaje de la izquierda) → bajar hasta
-   **Propiedades del script** → **Agregar propiedad**, dos veces:
+2. Borrar lo que haya en `Código.gs` y pegar todo el contenido de `sync_prospectos.gs`.
+3. Guardar (el disquete) y **cerrar la pestaña de Apps Script**. No hay que volver.
+4. Volver al Sheet y **recargar la página**. Arriba, al lado de *Ayuda*, aparece un
+   menú nuevo: **LABO CRM**.
 
-   | Propiedad | Valor |
-   |---|---|
-   | `SUPABASE_URL` | `https://wcpkpwxhqdcdljfwzcmy.supabase.co` |
-   | `SUPABASE_SERVICE_KEY` | la **service_role key** del proyecto (Supabase → Project Settings → API) |
+## Paso C — Los tres clicks
 
-   > ⚠️ La `service_role key` es la llave maestra de la base. Va **solamente acá**,
-   > nunca en el HTML del CRM, nunca en el repo, nunca en un mail o un chat.
-   > Apps Script corre en los servidores de Google: la clave no queda expuesta al
-   > navegador de nadie.
+Todo desde el menú **LABO CRM** del Sheet, en orden:
 
-4. Arriba, elegir la función **`verificarConexion`** y darle **Ejecutar**.
-   La primera vez Google pide autorizar el script (es de ustedes, aceptar).
-   En el registro tiene que decir `✓ Conexión OK con Supabase`.
+**1 · Conectar con el CRM**
+Pide dos cosas: la URL del proyecto (ya viene puesta, sólo dale Aceptar) y la
+**service_role key**, que se saca de Supabase → *Project Settings* → *API* →
+`service_role`. La primera vez Google va a pedir autorizar el script: es de ustedes,
+aceptar. Si todo está bien, contesta *✓ Conectado*.
 
-## 3. Subir el histórico (una sola vez)
+> ⚠️ Esa clave es la llave maestra de la base. Va **sólo ahí**: nunca por mail, nunca
+> por chat, nunca en el HTML del CRM. Queda guardada dentro del propio Sheet, en los
+> servidores de Google, y no la ve el navegador de nadie.
 
-Elegir la función **`sincronizarTodoElHistorico`** y **Ejecutar**.
-Sube las ~450 filas que ya están cargadas, con su etapa, estado, calidad, responsable
-y comentarios. Es seguro repetirlo: lo que ya está no se duplica ni se pisa.
+**2 · Subir el histórico**
+Manda al CRM todo lo que ya está cargado (las ~450 filas), con su etapa, estado,
+calidad, responsable y comentarios. Avisa cuántas subió. Es seguro repetirlo: lo que
+ya está no se duplica ni se pisa.
 
-## 4. Dejarlo automático
+**3 · Activar sincronización automática**
+Desde ese momento los leads nuevos entran solos cada 10 minutos.
 
-Elegir la función **`instalarDisparador`** y **Ejecutar**.
-Desde ahí corre solo cada 10 minutos. Para ver cómo viene: en el menú de la izquierda,
-**Ejecuciones**.
+El menú tiene además **Sincronizar ahora** (si no querés esperar), **Ver estado**
+(cuántas filas de cada hoja ya están en el CRM) y **Desactivar sincronización**.
 
 ---
 
@@ -65,16 +69,16 @@ Desde ahí corre solo cada 10 minutos. Para ver cómo viene: en el menú de la i
 | Comentarios | Notas |
 | ¿Descargó brochure? | marca de brochure |
 
-La hoja **Brochure** entra con `fuente = brochure` y el resto igual; la hoja
-**Landing Meta** entra con origen `Meta`. Cualquier columna que no esté en esta tabla
-igual se guarda completa en el campo `raw`, así que nunca se pierde nada.
+La hoja **Brochure** entra con `fuente = brochure`; la hoja **Landing Meta**, con
+origen `Meta`. Cualquier columna que no esté en esta tabla igual se guarda completa en
+el campo `raw`, así que nunca se pierde nada.
 
 ## Si cambian las columnas del Sheet
 
 El script busca las columnas **por nombre de encabezado**, sin importar el orden, ni
 mayúsculas, ni acentos. Si le cambian el nombre a una columna, agregar el nombre nuevo
 a la lista `ALIAS` arriba de todo del script. Si agregan una hoja nueva, sumarla al
-array `HOJAS`.
+array `HOJAS`. Si una hoja del array no existe, el script avisa y sigue con las otras.
 
 ## Preguntas frecuentes
 
@@ -87,5 +91,9 @@ responsable, notas) pase a hacerse en la pestaña Prospectos.
 Esa fila se vuelve a mandar en la próxima corrida. Como la base deduplica por Entry ID,
 no se crea un duplicado: sólo se vuelve a marcar.
 
+**¿Se rompe si alguien agrega filas mientras corre?**
+No. Cada corrida toma lo que hay en ese momento y lo que quede afuera entra en la
+siguiente, diez minutos después.
+
 **¿Se puede apagar?**
-Sí: Apps Script → **Disparadores** → borrar el de `sincronizarProspectos`.
+Sí, desde el menú: **LABO CRM → Desactivar sincronización**.

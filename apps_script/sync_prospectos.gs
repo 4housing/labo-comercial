@@ -7,8 +7,11 @@
  *
  * Ver apps_script/README.md para la instalación paso a paso.
  *
+ * Todo se maneja desde el menú "LABO CRM" que aparece en la barra del Sheet.
+ *
  * Reglas de oro:
- *  - La clave (service_role) NO va en este archivo: va en Propiedades del Script.
+ *  - La clave (service_role) NO va en este archivo: se carga desde el menú y queda
+ *    guardada en las Propiedades del Script.
  *  - Nada se duplica: cada fila viaja con su Entry ID y la base tiene índice único.
  *  - Nada se pisa: si la fila ya existe, el CRM manda (etapa, responsable y notas se
  *    trabajan del lado del CRM, no se sobrescriben desde el Sheet).
@@ -26,6 +29,146 @@ var HOJAS = [
 
 var COL_MARCA = 'CRM';   // columna que agrega el script para marcar lo ya sincronizado
 var LOTE      = 200;     // filas por request
+
+// Proyecto Supabase del CRM. Se puede pisar desde el menú si alguna vez cambia.
+var SUPABASE_URL_DEFAULT = 'https://wcpkpwxhqdcdljfwzcmy.supabase.co';
+
+// ── Menú dentro del Sheet ─────────────────────────────────────────────────────
+// Toda la operación se hace desde acá: no hace falta volver a abrir el editor.
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('LABO CRM')
+    .addItem('1 · Conectar con el CRM', 'menuConfigurar')
+    .addItem('2 · Subir el histórico', 'menuHistorico')
+    .addItem('3 · Activar sincronización automática', 'menuActivar')
+    .addSeparator()
+    .addItem('Sincronizar ahora', 'menuSincronizar')
+    .addItem('Ver estado', 'menuEstado')
+    .addItem('Desactivar sincronización', 'menuDesactivar')
+    .addToUi();
+}
+
+/** Paso 1: pide la clave y prueba la conexión. */
+function menuConfigurar() {
+  var ui = SpreadsheetApp.getUi();
+  var props = PropertiesService.getScriptProperties();
+  var urlActual = props.getProperty('SUPABASE_URL') || SUPABASE_URL_DEFAULT;
+
+  var r1 = ui.prompt('Conectar con el CRM (1 de 2)',
+    'URL del proyecto Supabase.\n\nSi es el CRM de siempre, dejá la que está y dale Aceptar:\n' + urlActual,
+    ui.ButtonSet.OK_CANCEL);
+  if (r1.getSelectedButton() !== ui.Button.OK) return;
+  var url = (r1.getResponseText() || '').trim() || urlActual;
+
+  var r2 = ui.prompt('Conectar con el CRM (2 de 2)',
+    'Pegá la service_role key del proyecto.\n\n' +
+    'Supabase → Project Settings → API → service_role.\n' +
+    'Queda guardada acá adentro, en este Sheet. No la pases por mail ni por chat.',
+    ui.ButtonSet.OK_CANCEL);
+  if (r2.getSelectedButton() !== ui.Button.OK) return;
+  var key = (r2.getResponseText() || '').trim();
+  if (!key) { ui.alert('No pegaste ninguna clave. No se guardó nada.'); return; }
+
+  props.setProperty('SUPABASE_URL', url.replace(/\/+$/, ''));
+  props.setProperty('SUPABASE_SERVICE_KEY', key);
+
+  try {
+    if (verificarConexion()) {
+      ui.alert('✓ Conectado',
+        'La conexión con el CRM funciona.\n\nAhora corré el paso 2 (Subir el histórico).',
+        ui.ButtonSet.OK);
+    } else {
+      ui.alert('No se pudo conectar',
+        'La clave o la URL no son correctas. Revisalas en Supabase → Project Settings → API ' +
+        'y volvé a correr "1 · Conectar con el CRM".', ui.ButtonSet.OK);
+    }
+  } catch (e) {
+    ui.alert('No se pudo conectar', String(e), ui.ButtonSet.OK);
+  }
+}
+
+/** Paso 2: sube todo lo que ya está cargado en el Sheet. */
+function menuHistorico() {
+  var ui = SpreadsheetApp.getUi();
+  var r = ui.alert('Subir el histórico',
+    'Manda al CRM todas las filas de las hojas Formulario, Brochure y Landing Meta.\n\n' +
+    'Es seguro repetirlo: lo que ya está no se duplica ni se pisa.\n\n¿Seguimos?',
+    ui.ButtonSet.YES_NO);
+  if (r !== ui.Button.YES) return;
+  _menuCorrer(function () { return sincronizarTodoElHistorico(); }, 'Histórico subido');
+}
+
+/** Paso 3: deja la sincronización corriendo sola. */
+function menuActivar() {
+  var ui = SpreadsheetApp.getUi();
+  try {
+    _config();                      // falla temprano si todavía no se configuró
+    instalarDisparador();
+    ui.alert('✓ Sincronización activada',
+      'De acá en más los leads nuevos entran solos al CRM, cada 10 minutos.', ui.ButtonSet.OK);
+  } catch (e) {
+    ui.alert('Falta conectar', String(e), ui.ButtonSet.OK);
+  }
+}
+
+function menuSincronizar() {
+  _menuCorrer(function () { return sincronizarProspectos(); }, 'Sincronización lista');
+}
+
+function menuDesactivar() {
+  var ui = SpreadsheetApp.getUi();
+  var n = 0;
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'sincronizarProspectos') { ScriptApp.deleteTrigger(t); n++; }
+  });
+  ui.alert(n ? 'Sincronización automática desactivada.' : 'No había ninguna sincronización activa.');
+}
+
+function menuEstado() {
+  var ui = SpreadsheetApp.getUi();
+  var props = PropertiesService.getScriptProperties();
+  var conectado = !!props.getProperty('SUPABASE_SERVICE_KEY');
+  var auto = ScriptApp.getProjectTriggers().some(function (t) {
+    return t.getHandlerFunction() === 'sincronizarProspectos';
+  });
+  var detalle = HOJAS.map(function (cfg) {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(cfg.hoja);
+    if (!sh) return '· ' + cfg.hoja + ': hoja no encontrada';
+    var filas = Math.max(0, sh.getLastRow() - 1);
+    var enc = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    var col = -1;
+    for (var i = 0; i < enc.length; i++) if (_norm(enc[i]) === _norm(COL_MARCA)) col = i;
+    var enviadas = 0;
+    if (col >= 0 && filas > 0) {
+      sh.getRange(2, col + 1, filas, 1).getValues().forEach(function (f) { if (String(f[0] || '').trim()) enviadas++; });
+    }
+    return '· ' + cfg.hoja + ': ' + enviadas + ' de ' + filas + ' en el CRM';
+  }).join('\n');
+
+  ui.alert('Estado de la sincronización',
+    (conectado ? '✓ Conectado con el CRM' : '✗ Todavía no está conectado (paso 1)') + '\n' +
+    (auto ? '✓ Sincronización automática activa (cada 10 min)' : '✗ Sincronización automática apagada (paso 3)') +
+    '\n\n' + detalle, ui.ButtonSet.OK);
+}
+
+/** Corre una sincronización mostrando el resultado, sin dejar al usuario a ciegas. */
+function _menuCorrer(fn, titulo) {
+  var ui = SpreadsheetApp.getUi();
+  try {
+    _config();
+  } catch (e) {
+    ui.alert('Falta conectar', String(e), ui.ButtonSet.OK);
+    return;
+  }
+  SpreadsheetApp.getActiveSpreadsheet().toast('Mandando filas al CRM…', 'LABO CRM', 10);
+  try {
+    var n = fn();
+    ui.alert(titulo, n
+      ? (n + ' fila(s) enviadas al CRM. Ya se ven en la pestaña Prospectos.')
+      : 'No había filas nuevas para enviar.', ui.ButtonSet.OK);
+  } catch (e) {
+    ui.alert('Hubo un problema', String(e), ui.ButtonSet.OK);
+  }
+}
 
 // ── Punto de entrada: esto es lo que corre el disparador cada 10 minutos ──────
 function sincronizarProspectos() {
@@ -111,6 +254,10 @@ function _sincronizarHoja(cfg, incluirYaMarcadas) {
 
   if (!pendientes.length) return 0;
 
+  // Las marcas se acumulan y se escriben de una sola vez: con cientos de filas,
+  // una escritura por celda es lo que haría que la carga histórica se pase del
+  // límite de 6 minutos de Apps Script.
+  var marcas = datos.map(function (fila) { return [fila[colMarca - 1] || '']; });
   var enviadas = 0;
   for (var d = 0; d < pendientes.length; d += LOTE) {
     var lote = pendientes.slice(d, d + LOTE);
@@ -123,9 +270,15 @@ function _sincronizarHoja(cfg, incluirYaMarcadas) {
 
     lote.forEach(function (p) {
       var id = porEntry[String(p.payload.entry_id)];
-      sh.getRange(p.fila, colMarca).setValue(id ? ('✓ ' + id) : '✓ ya estaba');
+      var previa = marcas[p.fila - 2][0];
+      // Si ya tenía su id del CRM anotado, se respeta: una resincronización no
+      // debería borrar el número que el equipo usa para encontrar el registro.
+      marcas[p.fila - 2] = [id ? ('✓ ' + id) : (previa || '✓ ya estaba')];
     });
     enviadas += lote.length;
+  }
+  if (enviadas) {
+    sh.getRange(2, colMarca, marcas.length, 1).setValues(marcas);
     SpreadsheetApp.flush();
   }
   Logger.log('Hoja "' + cfg.hoja + '": ' + enviadas + ' filas enviadas.');
@@ -307,11 +460,11 @@ function _filaVacia(fila, mapa) {
 
 function _config() {
   var p = PropertiesService.getScriptProperties();
-  var url = (p.getProperty('SUPABASE_URL') || '').replace(/\/+$/, '');
+  var url = (p.getProperty('SUPABASE_URL') || SUPABASE_URL_DEFAULT).replace(/\/+$/, '');
   var key = p.getProperty('SUPABASE_SERVICE_KEY') || '';
   if (!url || !key) {
-    throw new Error('Falta configurar SUPABASE_URL y SUPABASE_SERVICE_KEY en ' +
-                    'Configuración del proyecto → Propiedades del script.');
+    throw new Error('Todavía no está conectado con el CRM. Andá al menú "LABO CRM" ' +
+                    'del Sheet y corré "1 · Conectar con el CRM".');
   }
   return { url: url, key: key };
 }
