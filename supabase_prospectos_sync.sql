@@ -28,6 +28,15 @@ create unique index if not exists idx_prospectos_dedup
   on public.labocomercial_prospectos (fuente, entry_id);
 
 -- ── 2) Permiso de carga para el Sheet ────────────────────────────────────────
+-- Dos capas, y hacen falta las dos: el permiso de tabla (grant) y la política de
+-- RLS. Supabase suele dar el grant por defecto, pero si por algún motivo no está,
+-- la política sola no alcanza y la carga falla con "permission denied".
+grant insert on public.labocomercial_prospectos to anon;
+grant select on public.labocomercial_prospectos to anon;   -- sin política de select,
+-- RLS igual no devuelve ni una fila: este grant sólo permite que una consulta
+-- responda "200 con lista vacía" en vez de un error, que es lo que usa el Sheet
+-- como prueba de vida.
+
 -- Insertar, y nada más. No hay política de select, update ni delete para anon,
 -- ni en esta tabla ni en ninguna otra: sin política, RLS niega por defecto.
 drop policy if exists prospectos_insert_sheet on public.labocomercial_prospectos;

@@ -33,6 +33,8 @@ var HOJAS = [
   { hoja: 'Landing Meta', fuente: 'landing_meta', origen: 'Meta' }
 ];
 
+var _ULTIMO_ERROR = '';  // último rechazo del CRM, para poder mostrarlo en pantalla
+
 var COL_MARCA = 'CRM';   // columna que agrega el script para marcar lo ya sincronizado
 var LOTE      = 200;     // filas por request
 
@@ -74,17 +76,54 @@ function _limpiarCredencialesViejas() {
   } catch (e) { Logger.log('No se pudieron limpiar las credenciales viejas: ' + e); }
 }
 
-/** Prueba que el Sheet pueda hablar con el CRM. */
+/**
+ * Prueba que el Sheet pueda hablar con el CRM, y dice QUÉ falla. Un mensaje de
+ * error que no se puede accionar obliga a ir a buscar el log: el código y el
+ * detalle que devuelve la base van acá adentro.
+ */
 function menuProbar() {
   var ui = SpreadsheetApp.getUi();
-  if (verificarConexion()) {
-    ui.alert('✓ Conectado', 'El Sheet puede cargar prospectos en el CRM.', ui.ButtonSet.OK);
-  } else {
+  var r;
+  try {
+    r = _probarCRM();
+  } catch (e) {
     ui.alert('No se pudo conectar',
-      'El CRM rechazó la conexión. Puede que falte correr supabase_prospectos_sync.sql ' +
-      'en Supabase, o que haya cambiado la clave pública del proyecto.\n\n' +
-      'Detalle en el editor de Apps Script → Ejecuciones.', ui.ButtonSet.OK);
+      'No hubo respuesta del CRM. Puede ser la URL o un problema de red.\n\n' + e,
+      ui.ButtonSet.OK);
+    return;
   }
+  if (r.code === 200) {
+    ui.alert('✓ Conectado', 'El Sheet llega al CRM y la tabla de prospectos existe.', ui.ButtonSet.OK);
+    return;
+  }
+  var pista;
+  if (r.code === 404) {
+    pista = 'La tabla labocomercial_prospectos no existe en este proyecto.\n' +
+            'Falta correr supabase_prospectos.sql en el SQL Editor de Supabase, ' +
+            'o el proyecto configurado no es el del CRM.';
+  } else if (r.code === 401 || r.code === 403) {
+    pista = 'El CRM rechazó la clave pública. Puede que la hayan rotado o ' +
+            'desactivado las claves legacy en Supabase.';
+  } else {
+    pista = 'Respuesta inesperada del CRM.';
+  }
+  ui.alert('No se pudo conectar',
+    'El CRM respondió ' + r.code + '.\n\n' + pista + '\n\nDetalle:\n' + r.body,
+    ui.ButtonSet.OK);
+}
+
+/**
+ * Pide una lectura mínima de la tabla. Sirve como prueba de vida: comprueba la
+ * URL, la clave y que la tabla exista. Devuelve 200 con una lista vacía aunque
+ * este script no tenga permiso de leer — las reglas de la base filtran filas, no
+ * rechazan la consulta.
+ */
+function _probarCRM() {
+  var cfg = _config();
+  var resp = UrlFetchApp.fetch(cfg.url + '/rest/v1/labocomercial_prospectos?select=id&limit=1', {
+    method: 'get', headers: _headers(cfg), muteHttpExceptions: true
+  });
+  return { code: resp.getResponseCode(), body: String(resp.getContentText() || '').slice(0, 400) };
 }
 
 /** Paso 1 del menú: sube todo lo que ya está cargado en el Sheet. */
@@ -154,9 +193,16 @@ function menuEstado() {
 /** Corre una sincronización mostrando el resultado, sin dejar al usuario a ciegas. */
 function _menuCorrer(fn, titulo) {
   var ui = SpreadsheetApp.getUi();
+  _ULTIMO_ERROR = '';
   SpreadsheetApp.getActiveSpreadsheet().toast('Mandando filas al CRM…', 'LABO CRM', 10);
   try {
     var n = fn();
+    if (_ULTIMO_ERROR) {
+      ui.alert('El CRM rechazó la carga',
+        (n ? ('Alcanzaron a entrar ' + n + ' fila(s) y después falló.\n\n') : '') + _ULTIMO_ERROR,
+        ui.ButtonSet.OK);
+      return;
+    }
     ui.alert(titulo, n
       ? (n + ' fila(s) enviadas al CRM. Ya se ven en la pestaña Prospectos.')
       : 'No había filas nuevas para enviar.', ui.ButtonSet.OK);
@@ -207,15 +253,12 @@ function instalarDisparador() {
   Logger.log('Disparador instalado: sincronizarProspectos cada 10 minutos.');
 }
 
-/**
- * Chequeo de conectividad: manda un lote vacío. No escribe nada y no hace falta
- * leer — cosa que este script, a propósito, no puede hacer.
- */
+/** Chequeo de conectividad, para correr a mano desde el editor. */
 function verificarConexion() {
   try {
-    var ok = _postProspectos(_config(), []);
-    Logger.log(ok ? '✓ Conexión OK con el CRM.' : '✗ El CRM rechazó la conexión.');
-    return ok;
+    var r = _probarCRM();
+    Logger.log('Prueba de conexión: ' + r.code + ' ' + r.body);
+    return r.code === 200;
   } catch (e) {
     Logger.log('✗ ' + e);
     return false;
@@ -295,7 +338,8 @@ function _postProspectos(supa, filas) {
   });
   var code = resp.getResponseCode();
   if (code < 200 || code >= 300) {
-    Logger.log('El CRM respondió ' + code + ': ' + resp.getContentText());
+    _ULTIMO_ERROR = 'El CRM respondió ' + code + ':\n' + String(resp.getContentText() || '').slice(0, 400);
+    Logger.log(_ULTIMO_ERROR);
     return false;
   }
   return true;
