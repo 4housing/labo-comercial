@@ -293,6 +293,7 @@ tr:hover td{background:#F5F3ED}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="./labo_media_se.js"></script>
 <style>
   #tab-cotizador {
     --black: #0A0A0A;
@@ -3257,6 +3258,31 @@ function goStep(n){
 function gv(id){return document.getElementById(id).value||'—';}
 function fd(s){if(!s||s==='—')return '—';const[a,m,d]=s.split('-');return`${d}/${m}/${a}`;}
 
+function laboMediaPreviewHtml(){
+  var media=(window.LABO_MEDIA||{})[sel]; if(!media)return '';
+  var h='<div class="ostitle" style="margin-top:18px">Plano y renders — '+(media.nombre||('Modelo '+DNAME[sel]))+'</div>';
+  if(media.plano)h+='<img src="'+media.plano+'" alt="Plano" style="width:100%;border:1px solid var(--border);border-radius:6px;margin-bottom:10px">';
+  if(media.renders&&media.renders.length){
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">';
+    media.renders.forEach(function(r){h+='<img src="'+r+'" alt="Render" style="width:100%;border-radius:6px;display:block">';});
+    h+='</div>';
+  }
+  return h;
+}
+function _addModelMediaPages(doc){
+  var media=(window.LABO_MEDIA||{})[sel]; if(!media)return;
+  var W=297,H=210,mg=14;
+  function header(t){doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(10,10,10);doc.text(t,mg,16);doc.setDrawColor(200,197,188);doc.setLineWidth(0.3);doc.line(mg,19,W-mg,19);}
+  function fit(url,x,y,mw,mh){try{var p=doc.getImageProperties(url);var r=Math.min(mw/p.width,mh/p.height);var w=p.width*r,hh=p.height*r;var fmt=(String(url).indexOf('image/png')>=0)?'PNG':'JPEG';doc.addImage(url,fmt,x+(mw-w)/2,y+(mh-hh)/2,w,hh);}catch(e){}}
+  var titulo=(media.nombre||('LABO Modular '+DNAME[sel]));
+  if(media.plano){doc.addPage('a4','landscape');header(titulo+' — Plano');fit(media.plano,mg,24,W-2*mg,H-30);}
+  var rs=media.renders||[]; var cols=2,rows=2,gap=6,y0=24;
+  var cw=(W-2*mg-gap*(cols-1))/cols, ch=(H-y0-mg-gap*(rows-1))/rows;
+  for(var k=0;k<rs.length;k+=4){
+    doc.addPage('a4','landscape');header(titulo+' — Render'+(rs.length>1?'s':''));
+    rs.slice(k,k+4).forEach(function(r,i){var cx=mg+(i%cols)*(cw+gap),cy=y0+Math.floor(i/cols)*(ch+gap);fit(r,cx,cy,cw,ch);});
+  }
+}
 function buildPreview(){const d=COSTOS[sel];const cant=parseInt(document.getElementById('cant').value)||1;const items=getItems();const tot=items.reduce((s,i)=>s+i.precio,0);const totO=tot*cant;const pago=document.getElementById('oPago').value;const notas=document.getElementById('oNotas').value;const rows=items.map(it=>`<tr><td>${it.label}</td><td style="text-align:center">${cant}</td><td style="text-align:right;font-family:'IBM Plex Mono',monospace">USD ${fmtCot(it.precio)}</td><td style="text-align:right;font-family:'IBM Plex Mono',monospace">USD ${fmtCot(it.precio*cant)}</td></tr>`).join('');const binc=getBINC();const inc=binc.map(i=>`<div class="iitem"><span class="dot"></span><span>${i}</span></div>`).join('');const opDesc=getOpcionalesDesc();const incOpts=opDesc.length>0?opDesc.map(i=>`<div class="iitem"><span class="dot" style="background:var(--black)"></span><span>${i}</span></div>`).join(''):'';const exclList=getExclusiones();const excl=exclList.map(i=>`<div class="iitem"><span class="dot" style="background:var(--red)"></span><span>${i}</span></div>`).join('');const nExcl=incOpts?4:3;const nNotas=nExcl+1;
 document.getElementById('pvw').innerHTML=`
 <div class="oempresa">
@@ -3308,6 +3334,7 @@ document.getElementById('pvw').innerHTML=`
 ${incOpts?`<div class="ostitle">3. Opcionales incluidos</div><div class="igrid">${incOpts}</div>`:''}
 <div class="ostitle">${nExcl}. Exclusiones</div><div class="igrid">${excl}</div>
 ${notas?`<div class="ostitle">${nNotas}. Notas adicionales</div><div class="nbox">${notas}</div>`:''}
+${laboMediaPreviewHtml()}
 <div class="oftr">Generada el ${fd(gv('oFecha'))} — validez ${gv('oValidez')} días &nbsp;|&nbsp; LABO Gerencia Comercial &nbsp;|&nbsp; ${gv('oVendedor')}</div>`;}
 
 /* ═══════════════════════════════════════════════════════
@@ -3810,6 +3837,7 @@ function _buildOfferPDF(){
   const lineaNombre=LINEA[sel]==='madera'?'LABO Madera':'LABO Modular';
   const modeloNombre='Modelo '+DNAME[sel];
   const fileName=`${numPad} ${clientName} - ${lineaNombre} ${modeloNombre}.pdf`;
+  try{_addModelMediaPages(doc);}catch(e){console.warn('media pages',e);}
   return doc;
 }
 
