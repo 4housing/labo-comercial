@@ -2401,7 +2401,14 @@ function laboBuildModularCostos(){
     if(!(m in COSTOS_MONTAJE))COSTOS_MONTAJE[m]=LABO_DATA.montaje_rango.map(function(r){return r.cost[m]||0;});
   });
 }
-function getCfgDesc(){ if(LINEA[sel]!=='modular')return []; return LABO_DATA.config.map(function(dim){return dim.label+': '+laboCfg[dim.key];}); }
+const CFG_DESC_MAP={
+ cielorraso:{'Guatambú':'Cielorraso enchapado en madera natural (Guatambú / Jequetibá).','Durlock pintado':'Cielorraso en placa de roca de yeso (Durlock) pintado.','Melamina':'Cielorraso en melamina.'},
+ muros_int:{'Guatambú':'Muros interiores enchapados en madera natural (Guatambú / Jequetibá).','Durlock total':'Muros interiores en placa de roca de yeso (Durlock) pintado.','Durlock tabiq. + panel':'Muros interiores en placa de roca de yeso (Durlock) y panel, pintados.'},
+ muros_ext:{'Ninguno':'Muros exteriores en panel sándwich de acero prepintado (terminación estándar).','Pino':'Revestimiento exterior en listones de madera de pino termotratado.','Fachada ventilada':'Revestimiento exterior tipo fachada ventilada (chapa plegada).'},
+ piso:{'Mosaico':'Piso de mosaico granítico.','Goma':'Piso de goma Indelval.','Entablonado':'Piso entablonado sintético.'},
+ esquema_piso:{'Estándar':'Base de piso estándar (fenólico + poliestireno).','Fenólico 25 + emulsión':'Base de piso en fenólico de 25 mm con emulsión asfáltica.'}
+};
+function getCfgDesc(){ if(LINEA[sel]!=='modular')return []; return LABO_DATA.config.map(function(dim){var v=laboCfg[dim.key];var m=CFG_DESC_MAP[dim.key];return (m&&m[v])?m[v]:(dim.label+': '+v);}); }
 function buildCfg(k){
   var card=document.getElementById('cfgCard'),list=document.getElementById('cfgList');
   if(!card||!list)return;
@@ -2730,11 +2737,7 @@ const BINC_MADERA=[
 const BINC_MODULAR=[
   "Estructura de acero autoportante y muros exteriores en panel sándwich de acero galvanizado prepintado al horno, con 50 mm de aislación térmica de poliuretano inyectado (PIR), densidad 40 kg/m³.",
   "Cubierta en panel sándwich de 50 mm (acero galvanizado prepintado + PIR 40 kg/m³), con membrana hidrófuga, piedra volcánica pometina y plegado perimetral de terminación.",
-  "Muros exteriores revestidos en listones de madera impregnada (opcional cerámica).",
-  "Piso de mosaico granítico.",
-  "Muros interiores en placas de madera natural Jequetibá con juntas buñadas.",
   "Muros de baño revestidos en cerámica blanca 15 × 15 cm.",
-  "Cielorrasos en placas de madera natural Guatambú.",
   "Aberturas exteriores de aluminio anodizado natural con DVH.",
   "Puerta exterior en madera de pino impregnado.",
   "Puertas interiores enchapadas en madera natural Jequetibá.",
