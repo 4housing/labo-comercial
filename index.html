@@ -1496,23 +1496,8 @@ tr:hover td{background:#F5F3ED}
       </div>
 
       <div class="cost-section-title" style="margin-top:28px">LABO Madera (legacy)</div>
-      <!-- Google Sheets sync block -->
-      <div class="cost-note" style="margin-bottom:16px">
-        <strong>Sincronización automática vía Google Sheets</strong><br>
-        Publicá tu hoja de costos como CSV (<em>Archivo → Compartir → Publicar en la web → CSV</em>) y pegá la URL aquí. El cotizador leerá los valores cada vez que hagas clic en "Sincronizar".
-      </div>
-      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px">
-        <div class="fg" style="flex:1;min-width:240px">
-          <label>URL pública de Google Sheets (CSV)</label>
-          <input type="url" id="sheetsUrl" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" style="width:100%;padding:9px 12px;border:1px solid var(--border);background:var(--white);font-size:12px;font-family:'IBM Plex Mono',monospace;outline:none;border-radius:0">
-        </div>
-        <button class="btn bp" onclick="syncSheets()" style="white-space:nowrap">↻ Sincronizar</button>
-      </div>
-      <div class="success-msg" id="sheetsMsg" style="display:none"></div>
-
       <div class="cost-note">
-        Todos los valores también pueden editarse manualmente. Para que sean <strong>permanentes sin Google Sheets</strong>, copiá los nuevos valores al objeto <code>COSTOS</code> en el código fuente del .html.<br><br>
-        <strong>Logística:</strong> <code>tarifa_km × km × (km ≥ 101 ? 0.7 : 1) × 1.4</code> &nbsp;·&nbsp; <strong>Montaje:</strong> precio fijo por tramos × 1.4
+        Línea Madera — hoy deshabilitada para cotizar. Editás acá sus <strong>precios de venta</strong> (base, opcionales, logística y montaje). Estos cambios son <strong>de la sesión</strong> (no se versionan ni se comparten). Los costos de la línea <strong>Modular</strong> se gestionan arriba, con autoguardado e historial.
       </div>
       <div id="costEditorWrap"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px">
