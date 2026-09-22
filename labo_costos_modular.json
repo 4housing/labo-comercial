@@ -1,5 +1,5 @@
 {
- "version": "VER02",
+ "version": "VER01-2026-09",
  "tc": 1500,
  "params": {
   "margen_modulo": 0.35,
@@ -41,355 +41,323 @@
   "mc_items": [
    {
     "sheet": "SE",
-    "row": 10,
-    "rubro": "Estructura Modular",
-    "detalle": "Modulo de 7,20 x 3,00 mts. de tubo estructural 150x50 en vigas y 100x50 en columnas (3,2 mm)",
-    "mo": 1020,
-    "mat": 1880,
-    "qty": {
-     "SE": 0,
-     "S": 3,
-     "M": 4,
-     "L": 6,
-     "XL": 7
-    },
-    "unidad": "un."
-   },
-   {
-    "sheet": "SE",
-    "row": 11,
+    "row": 6,
     "rubro": "Estructura Modular",
     "detalle": "Modulo de 7,50 x 3,30 mts. de tubo estructural 150x50 en vigas y 100x50 en columnas (3,2 mm)",
     "mo": 1070,
     "mat": 1955,
+    "unidad": "un.",
     "qty": {
      "SE": 2,
      "S": 0,
      "M": 0,
      "L": 0,
      "XL": 0
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
-    "row": 17,
+    "row": 7,
+    "rubro": "Estructura Modular",
+    "detalle": "Modulo de 7,20 x 3,00 mts. de tubo estructural 150x50 en vigas y 100x50 en columnas (3,2 mm)",
+    "mo": 1020,
+    "mat": 1880,
+    "unidad": "un.",
+    "qty": {
+     "SE": 0,
+     "S": 3,
+     "M": 4,
+     "L": 6,
+     "XL": 7
+    }
+   },
+   {
+    "sheet": "SE",
+    "row": 16,
     "rubro": "Acero / Hierro",
-    "detalle": "Bastidor muros 1,50 x 2,60 mts. con perfl galvanizado de 70",
+    "detalle": "Bastidor de muros 1,00 x 2,60 mts. con perfl galvanizado de 70",
     "mo": 0,
     "mat": 30,
+    "unidad": "ml.",
     "qty": {
      "SE": 12,
      "S": 17.4,
      "M": 17.4,
      "L": 29.099999999999998,
      "XL": 29.099999999999998
-    },
-    "unidad": "ml."
+    }
    },
    {
     "sheet": "SE",
-    "row": 23,
+    "row": 18,
     "rubro": "Acero / Hierro",
     "detalle": "Plegados varios (10% de estructura modular)",
     "mo": 0,
     "mat": 605,
+    "unidad": "gl.",
     "qty": {
      "SE": 1,
      "S": 1,
      "M": 1,
      "L": 1,
      "XL": 1
-    },
-    "unidad": "gl."
+    }
    },
    {
     "sheet": "SE",
-    "row": 31,
+    "row": 19,
     "rubro": "Acero / Hierro",
-    "detalle": "Escalera fija",
+    "detalle": "Escalera fija de dos tramos",
     "mo": 0,
     "mat": 1000,
+    "unidad": "un.",
     "qty": {
      "SE": 0,
      "S": 0,
      "M": 0,
      "L": 1,
      "XL": 1
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
-    "row": 36,
+    "row": 20,
     "rubro": "Acero / Hierro",
     "detalle": "Estructura de tubo estructural para biombo de heladera",
     "mo": 50,
     "mat": 50,
+    "unidad": "un.",
     "qty": {
      "SE": 1,
      "S": 0,
      "M": 0,
      "L": 0,
      "XL": 0
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
-    "row": 43,
+    "row": 40,
     "rubro": "Aislación / Revestimiento",
-    "detalle": "Lana de vidrio con foil 70 mm",
+    "detalle": "Aislación - Lana de vidrio de 80 Isover",
     "mo": 2,
-    "mat": 9,
+    "mat": 5,
+    "unidad": "m2.",
     "qty": {
      "SE": 29.639999999999997,
      "S": 35.88,
      "M": 35.88,
      "L": 75.66,
      "XL": 75.66
-    },
-    "unidad": "m2."
+    }
    },
    {
     "sheet": "SE",
-    "row": 48,
-    "rubro": "Aislación / Revestimiento",
-    "detalle": "Ceramica 15x15 blanca",
-    "mo": 10,
-    "mat": 15,
-    "qty": {
-     "SE": 13.780000000000001,
-     "S": 15.73,
-     "M": 15.73,
-     "L": 47.19,
-     "XL": 47.19
-    },
-    "unidad": "m2."
-   },
-   {
-    "sheet": "SE",
-    "row": 49,
-    "rubro": "Aislación / Revestimiento",
-    "detalle": "Revestimiento placa multinalaminado resistente al agua 15 muro baño",
-    "mo": 3,
-    "mat": 7,
-    "qty": {
-     "SE": 13.780000000000001,
-     "S": 15.73,
-     "M": 15.73,
-     "L": 47.19,
-     "XL": 47.19
-    },
-    "unidad": "m2."
-   },
-   {
-    "sheet": "SE",
-    "row": 50,
-    "rubro": "Aislación / Revestimiento",
-    "detalle": "Webertec muro baño",
-    "mo": 5,
-    "mat": 6,
-    "qty": {
-     "SE": 13.780000000000001,
-     "S": 15.73,
-     "M": 15.73,
-     "L": 47.19,
-     "XL": 47.19
-    },
-    "unidad": "m2."
-   },
-   {
-    "sheet": "SE",
-    "row": 53,
+    "row": 42,
     "rubro": "Aislación / Revestimiento",
     "detalle": "Revestimiento Exterior Muros - Panel Chapa lisa / Poliuretano / Chapa lisa - 50 mm",
     "mo": 8,
     "mat": 40,
+    "unidad": "m2.",
     "qty": {
      "SE": 63.699999999999996,
      "S": 66,
      "M": 84,
      "L": 132,
      "XL": 141
-    },
-    "unidad": "m2."
+    }
    },
    {
     "sheet": "SE",
-    "row": 54,
+    "row": 46,
     "rubro": "Aislación / Revestimiento",
     "detalle": "Revestimiento Exterior Techos - Panel Chapa lisa / Poliuretano / Chapa lisa - 50 mm",
     "mo": 8,
     "mat": 40,
+    "unidad": "m2.",
     "qty": {
      "SE": 50,
      "S": 64.80000000000001,
      "M": 86.4,
      "L": 64.80000000000001,
      "XL": 86.4
-    },
-    "unidad": "m2."
+    }
    },
    {
     "sheet": "SE",
-    "row": 55,
+    "row": 48,
     "rubro": "Aislación / Revestimiento",
     "detalle": "Revestimiento placa multilaminado resistente al agua 15 para techo planta baja",
     "mo": 3,
     "mat": 7,
+    "unidad": "m2.",
     "qty": {
      "SE": 0,
      "S": 0,
      "M": 0,
      "L": 57.9,
      "XL": 57.9
-    },
-    "unidad": "m2."
+    }
    },
    {
     "sheet": "SE",
-    "row": 62,
+    "row": 54,
     "rubro": "Aislación / Revestimiento",
-    "detalle": "Plegado perimetral pometina",
-    "mo": 0,
-    "mat": 25,
+    "detalle": "Ceramica 15x15 blanca",
+    "mo": 10,
+    "mat": 15,
+    "unidad": "m2.",
     "qty": {
-     "SE": 28.2,
-     "S": 32.4,
-     "M": 38.4,
-     "L": 32.4,
-     "XL": 45.6
-    },
-    "unidad": "ml."
+     "SE": 13.780000000000001,
+     "S": 15.73,
+     "M": 15.73,
+     "L": 47.19,
+     "XL": 47.19
+    }
    },
    {
     "sheet": "SE",
-    "row": 63,
+    "row": 55,
     "rubro": "Aislación / Revestimiento",
-    "detalle": "Pometina para cubierta",
-    "mo": 0,
-    "mat": 18,
+    "detalle": "Revestimiento placa multinalaminado resistente al agua 15 muro baño",
+    "mo": 3,
+    "mat": 7,
+    "unidad": "m2.",
     "qty": {
-     "SE": 50,
-     "S": 65,
-     "M": 86.4,
-     "L": 65,
-     "XL": 86.4
-    },
-    "unidad": "m2."
+     "SE": 13.780000000000001,
+     "S": 15.73,
+     "M": 15.73,
+     "L": 47.19,
+     "XL": 47.19
+    }
    },
    {
     "sheet": "SE",
-    "row": 69,
+    "row": 56,
+    "rubro": "Aislación / Revestimiento",
+    "detalle": "Webertec para muro baño",
+    "mo": 5,
+    "mat": 6,
+    "unidad": "m2.",
+    "qty": {
+     "SE": 13.780000000000001,
+     "S": 15.73,
+     "M": 15.73,
+     "L": 47.19,
+     "XL": 47.19
+    }
+   },
+   {
+    "sheet": "SE",
+    "row": 71,
     "rubro": "Piso",
     "detalle": "Membrana hidrofuga Webertec",
     "mo": 3,
     "mat": 6,
+    "unidad": "m2.",
     "qty": {
      "SE": 50,
      "S": 65,
      "M": 86.4,
      "L": 124.50000000000003,
      "XL": 146.10000000000002
-    },
-    "unidad": "m2."
+    }
    },
    {
     "sheet": "SE",
     "row": 77,
     "rubro": "Aberturas",
-    "detalle": "Ventana DVH Oscilobatiente 960x2431 - Anodizado natural",
-    "mo": 68.85,
-    "mat": 459,
+    "detalle": "Ventana DVH Paño fijo + Oscilobatiente 850x2431 - Anodizado natural",
+    "mo": 65.55,
+    "mat": 437,
+    "unidad": "un.",
     "qty": {
      "SE": 4,
      "S": 5,
      "M": 5,
      "L": 12,
      "XL": 12
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
     "row": 78,
     "rubro": "Aberturas",
     "detalle": "Ventana DVH Oscilobatiente 960x1431 - Anodizado natural",
-    "mo": 37.5,
-    "mat": 250,
+    "mo": 50.55,
+    "mat": 337,
+    "unidad": "un.",
     "qty": {
      "SE": 1,
      "S": 0,
      "M": 0,
      "L": 0,
      "XL": 0
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
     "row": 79,
     "rubro": "Aberturas",
-    "detalle": "Paño fijo DVH 1,00 x 2,60 mts - Anodizado natural",
-    "mo": 37.5,
-    "mat": 250,
+    "detalle": "Paño fijo DVH 850 x 2600 - Anodizado natural",
+    "mo": 52.949999999999996,
+    "mat": 353,
+    "unidad": "un.",
     "qty": {
      "SE": 1,
      "S": 2,
      "M": 2,
      "L": 10,
      "XL": 10
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
-    "row": 95,
+    "row": 80,
     "rubro": "Aberturas",
-    "detalle": "Puerta interior enchapada (En el material está el costo de la mano de obra de armado, mientras que en MO está el costo de colocación)",
+    "detalle": "Puerta interior enchapada (En mat. está el costo de la mo de armado, mientras que en MO está el costo de colocación)",
     "mo": 55.5,
     "mat": 370,
+    "unidad": "un.",
     "qty": {
      "SE": 3,
      "S": 3,
      "M": 3,
      "L": 6,
      "XL": 6
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
-    "row": 96,
+    "row": 81,
     "rubro": "Aberturas",
     "detalle": "Puerta de exterior de madera de pino tratado",
     "mo": 55.5,
     "mat": 370,
+    "unidad": "un.",
     "qty": {
      "SE": 1,
      "S": 1,
      "M": 1,
      "L": 1,
      "XL": 1
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
-    "row": 97,
+    "row": 82,
     "rubro": "Aberturas",
-    "detalle": "Estructura Puertas Sala de Maquina ( 0,70 m x Unid)",
+    "detalle": "Estructura Puertas Sala de Maquina (0,70 m x Unid)",
     "mo": 30,
     "mat": 30,
+    "unidad": "un.",
     "qty": {
      "SE": 0,
      "S": 2,
      "M": 2,
      "L": 2,
      "XL": 2
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
@@ -398,94 +366,94 @@
     "detalle": "Instalación eléctrica caño rígido de PVC para casas (Incluye MO & MAT)",
     "mo": 40,
     "mat": 40,
+    "unidad": "m2.",
     "qty": {
      "SE": 50,
      "S": 65,
      "M": 86,
      "L": 129.60000000000002,
      "XL": 151
-    },
-    "unidad": "m2."
+    }
    },
    {
     "sheet": "SE",
-    "row": 112,
+    "row": 110,
     "rubro": "Instalacion Electrica",
     "detalle": "Copita escolar",
     "mo": 0,
     "mat": 20,
+    "unidad": "un.",
     "qty": {
      "SE": 9,
      "S": 11,
      "M": 13,
      "L": 18,
      "XL": 21
-    },
-    "unidad": "un."
+    }
+   },
+   {
+    "sheet": "SE",
+    "row": 125,
+    "rubro": "Pintura",
+    "detalle": "Arenado (Incluye arena)",
+    "mo": 14,
+    "mat": 0,
+    "unidad": "m2.",
+    "qty": {
+     "SE": 120,
+     "S": 180,
+     "M": 240,
+     "L": 360,
+     "XL": 420
+    }
    },
    {
     "sheet": "SE",
     "row": 126,
     "rubro": "Pintura",
-    "detalle": "Arenado (Incluye arena)",
-    "mo": 14,
-    "mat": 0,
+    "detalle": "Base epoxy (Hierros estructura)",
+    "mo": 3,
+    "mat": 3,
+    "unidad": "m2.",
     "qty": {
      "SE": 120,
      "S": 180,
      "M": 240,
      "L": 360,
      "XL": 420
-    },
-    "unidad": "m2."
+    }
    },
    {
     "sheet": "SE",
     "row": 127,
     "rubro": "Pintura",
-    "detalle": "Base epoxy (Hierros estructura)",
+    "detalle": "Poliuretano (Hierros Estructura a la vista + Muros exteriores que requieran)",
     "mo": 3,
     "mat": 3,
+    "unidad": "m2.",
     "qty": {
      "SE": 120,
      "S": 180,
      "M": 240,
      "L": 360,
      "XL": 420
-    },
-    "unidad": "m2."
+    }
    },
    {
     "sheet": "SE",
     "row": 128,
     "rubro": "Pintura",
-    "detalle": "Poliuretano (Hierros Estructura a la vista + Muros exteriores que requieran)",
-    "mo": 3,
-    "mat": 3,
-    "qty": {
-     "SE": 120,
-     "S": 180,
-     "M": 240,
-     "L": 360,
-     "XL": 420
-    },
-    "unidad": "m2."
-   },
-   {
-    "sheet": "SE",
-    "row": 129,
-    "rubro": "Pintura",
     "detalle": "Pintura interior al panel y al durlock",
     "mo": 3,
     "mat": 3,
+    "unidad": "m2.",
     "qty": {
      "SE": 158.42000000000002,
-     "S": 127.27000000000001,
-     "M": 142.87,
-     "L": 257.91999999999996,
-     "XL": 273.52
-    },
-    "unidad": "m2."
+     "S": 192.27,
+     "M": 228.87,
+     "L": 387.91999999999996,
+     "XL": 424.52
+    }
    },
    {
     "sheet": "SE",
@@ -494,126 +462,126 @@
     "detalle": "Inodoro SMART TOILETTE BIO CLEAN",
     "mo": 250,
     "mat": 450,
+    "unidad": "un.",
     "qty": {
      "SE": 1,
      "S": 1,
      "M": 1,
      "L": 3,
      "XL": 3
-    },
-    "unidad": "un."
+    }
+   },
+   {
+    "sheet": "SE",
+    "row": 133,
+    "rubro": "Sanitario",
+    "detalle": "Bacha 19-600-WHITE",
+    "mo": 250,
+    "mat": 150,
+    "unidad": "un.",
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 3,
+     "XL": 3
+    }
    },
    {
     "sheet": "SE",
     "row": 134,
     "rubro": "Sanitario",
-    "detalle": "Bacha 19-600-WHITE",
+    "detalle": "Grifería de ducha FV Puelo c/transferencia y rejilla para ducha 10 x 10",
     "mo": 250,
-    "mat": 150,
+    "mat": 120,
+    "unidad": "un.",
     "qty": {
      "SE": 1,
      "S": 1,
      "M": 1,
      "L": 3,
      "XL": 3
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
     "row": 135,
     "rubro": "Sanitario",
-    "detalle": "Grifería de ducha FV Puelo c/transferencia y rejilla para ducha 10 x 10",
+    "detalle": "Instalación sanitaria para lavarropas",
     "mo": 250,
-    "mat": 120,
+    "mat": 0,
+    "unidad": "un.",
     "qty": {
      "SE": 1,
      "S": 1,
      "M": 1,
      "L": 3,
      "XL": 3
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
     "row": 136,
     "rubro": "Sanitario",
-    "detalle": "Instalación sanitaria para lavarropas",
-    "mo": 250,
-    "mat": 0,
-    "qty": {
-     "SE": 1,
-     "S": 1,
-     "M": 1,
-     "L": 3,
-     "XL": 3
-    },
-    "unidad": "un."
-   },
-   {
-    "sheet": "SE",
-    "row": 137,
-    "rubro": "Sanitario",
     "detalle": "Termotanque de 155 lts",
     "mo": 250,
     "mat": 400,
+    "unidad": "un.",
     "qty": {
      "SE": 1,
      "S": 1,
      "M": 1,
      "L": 2,
      "XL": 2
-    },
-    "unidad": "un."
+    }
+   },
+   {
+    "sheet": "SE",
+    "row": 137,
+    "rubro": "Sanitario",
+    "detalle": "Cortina ducha",
+    "mo": 6,
+    "mat": 18,
+    "unidad": "un.",
+    "qty": {
+     "SE": 1,
+     "S": 1,
+     "M": 1,
+     "L": 3,
+     "XL": 3
+    }
    },
    {
     "sheet": "SE",
     "row": 138,
     "rubro": "Sanitario",
-    "detalle": "Cortina ducha",
+    "detalle": "Accesorios FV Arizona (1 Portarrollo + 1 perchero)",
     "mo": 6,
-    "mat": 18,
+    "mat": 25,
+    "unidad": "un.",
     "qty": {
      "SE": 1,
      "S": 1,
      "M": 1,
      "L": 3,
      "XL": 3
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
     "row": 139,
     "rubro": "Sanitario",
-    "detalle": "Accesorios FV Arizona (1 Portarrollo + 1 perchero)",
-    "mo": 6,
-    "mat": 25,
-    "qty": {
-     "SE": 1,
-     "S": 1,
-     "M": 1,
-     "L": 3,
-     "XL": 3
-    },
-    "unidad": "un."
-   },
-   {
-    "sheet": "SE",
-    "row": 140,
-    "rubro": "Sanitario",
     "detalle": "Espejo redondo",
     "mo": 10,
     "mat": 25,
+    "unidad": "m2.",
     "qty": {
      "SE": 1,
      "S": 1,
      "M": 1,
      "L": 3,
      "XL": 3
-    },
-    "unidad": "m2."
+    }
    },
    {
     "sheet": "SE",
@@ -622,82 +590,66 @@
     "detalle": "Mesada Jhonson con bacha Z52 de 1,80 mts de largo",
     "mo": 38.5,
     "mat": 256.6666666666667,
+    "unidad": "un.",
     "qty": {
      "SE": 1,
      "S": 1,
      "M": 1,
      "L": 1,
      "XL": 1
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
     "row": 155,
     "rubro": "Cocina",
-    "detalle": "Mueble bajo mesada de melamina blanca + mueble de guardado lavarropa y termotanque electrico (Cotizado por difranco por WA. Incluye colocación)",
+    "detalle": "Mueble bajo mesada de melamina blanca + mueble de guardado lavarropa y termotanque (Incluye colocación)",
     "mo": 0,
     "mat": 700,
+    "unidad": "un.",
     "qty": {
      "SE": 1,
      "S": 1,
      "M": 1,
      "L": 1,
      "XL": 1
-    },
-    "unidad": "un."
+    }
    },
    {
     "sheet": "SE",
-    "row": 158,
+    "row": 156,
     "rubro": "Cocina",
     "detalle": "Grifería Monocomando Arizona Cromo FV",
     "mo": 250,
     "mat": 65,
+    "unidad": "un.",
     "qty": {
      "SE": 1,
      "S": 1,
      "M": 1,
      "L": 1,
      "XL": 1
-    },
-    "unidad": "un."
+    }
    }
   ],
   "mod_items": [
    {
     "sheet": "SE",
-    "row": 218,
-    "detalle": "Bastidor muros 1,50 x 2,60 mts. con perfl galvanizado",
+    "row": 173,
+    "detalle": "Bastidor de muros con perfl galvanizado (HS x ML)",
     "valorhora": 5,
-    "horas": 3.5,
+    "horas": 2.5,
+    "unidad": "hs.",
     "qty": {
-     "SE": 8,
-     "S": 11.6,
-     "M": 11.6,
-     "L": 19.4,
-     "XL": 19.4
-    },
-    "unidad": "hs."
+     "SE": 12,
+     "S": 17.4,
+     "M": 17.4,
+     "L": 29.099999999999998,
+     "XL": 29.099999999999998
+    }
    }
   ],
-  "equip_items": [
-   {
-    "sheet": "SE",
-    "row": 246,
-    "detalle": "Mueble lavadero",
-    "mo": 0,
-    "mat": 500,
-    "qty": {
-     "SE": 0,
-     "S": 0,
-     "M": 0,
-     "L": 0,
-     "XL": 1
-    },
-    "unidad": "un."
-   }
-  ]
+  "equip_items": []
  },
  "config": [
   {
@@ -709,18 +661,18 @@
      "items": [
       {
        "sheet": "SE",
-       "row": 45,
+       "row": 49,
        "detalle": "Revestimiento Interior Cielorraso enchapado Guatambú o Jequetiba",
        "mo": 8,
        "mat": 30,
+       "unidad": "m2.",
        "qty": {
         "SE": 50.0,
         "S": 64.8,
         "M": 86.4,
         "L": 129.6,
         "XL": 151.2
-       },
-       "unidad": "m2."
+       }
       }
      ]
     },
@@ -729,18 +681,18 @@
      "items": [
       {
        "sheet": "SE",
-       "row": 46,
+       "row": 50,
        "detalle": "Revestimiento Interior Cielorraso - Durlock pintado (9,5 mm)",
        "mo": 8,
-       "mat": 10,
+       "mat": 5,
+       "unidad": "m2.",
        "qty": {
         "SE": 50.0,
         "S": 64.8,
         "M": 86.4,
         "L": 129.6,
         "XL": 151.2
-       },
-       "unidad": "m2."
+       }
       }
      ],
      "default": true
@@ -750,18 +702,18 @@
      "items": [
       {
        "sheet": "SE",
-       "row": 52,
-       "detalle": "Revestimiento Interior Muro y/o Cielorraso - Melamina Ceniza de 15mm",
+       "row": 51,
+       "detalle": "Revestimiento Interior Muro y/o Cielorraso - Melamina Blanca de 15mm",
        "mo": 8,
-       "mat": 20,
+       "mat": 15,
+       "unidad": "m2.",
        "qty": {
         "SE": 50.0,
         "S": 64.8,
         "M": 86.4,
         "L": 129.6,
         "XL": 151.2
-       },
-       "unidad": "m2."
+       }
       }
      ]
     }
@@ -776,18 +728,18 @@
      "items": [
       {
        "sheet": "SE",
-       "row": 47,
+       "row": 52,
        "detalle": "Revestimiento Interior Muros enchapado Guatambú o Jequetiba",
        "mo": 8,
        "mat": 30,
+       "unidad": "m2.",
        "qty": {
         "SE": 106.16,
         "S": 133.458,
         "M": 149.058,
         "L": 150.67,
         "XL": 166.27
-       },
-       "unidad": "m2."
+       }
       }
      ]
     },
@@ -796,18 +748,18 @@
      "items": [
       {
        "sheet": "SE",
-       "row": 64,
-       "detalle": "Revestimiento Interior Muros - Durlock pintado (2 caras)",
+       "row": 53,
+       "detalle": "Revestimiento Interior Muros - Durlock 12,5 mm",
        "mo": 8,
-       "mat": 12,
+       "mat": 6,
+       "unidad": "m2.",
        "qty": {
         "SE": 106.16,
         "S": 133.458,
         "M": 149.058,
         "L": 150.67,
         "XL": 166.27
-       },
-       "unidad": "m2."
+       }
       }
      ]
     },
@@ -816,18 +768,18 @@
      "items": [
       {
        "sheet": "SE",
-       "row": 64,
-       "detalle": "Revestimiento Interior Muros - Durlock pintado (2 caras)",
+       "row": 53,
+       "detalle": "Revestimiento Interior Muros - Durlock 12,5 mm",
        "mo": 8,
-       "mat": 12,
+       "mat": 6,
+       "unidad": "m2.",
        "qty": {
         "SE": 59.28,
         "S": 81.458,
         "M": 81.458,
         "L": 151.32,
         "XL": 151.32
-       },
-       "unidad": "m2."
+       }
       }
      ],
      "default": true
@@ -848,18 +800,18 @@
      "items": [
       {
        "sheet": "SE",
-       "row": 51,
-       "detalle": "Revestimiento exterior Pino termotratado",
+       "row": 43,
+       "detalle": "Revestimiento exterior Pino impregnado",
        "mo": 8,
-       "mat": 23.8,
+       "mat": 10,
+       "unidad": "m2.",
        "qty": {
         "SE": 63.7,
         "S": 66.0,
         "M": 84.0,
         "L": 132.0,
         "XL": 141.0
-       },
-       "unidad": "m2."
+       }
       }
      ]
     },
@@ -868,18 +820,38 @@
      "items": [
       {
        "sheet": "SE",
-       "row": 58,
+       "row": 44,
        "detalle": "Revestimiento Exterior Muros - Fachada Ventilada - Chapa plegado Zig Zag lisa",
        "mo": 8,
        "mat": 40,
+       "unidad": "m2.",
        "qty": {
         "SE": 63.7,
         "S": 66.0,
         "M": 84.0,
         "L": 132.0,
         "XL": 141.0
-       },
-       "unidad": "m2."
+       }
+      }
+     ]
+    },
+    {
+     "value": "Kiri",
+     "items": [
+      {
+       "sheet": "SE",
+       "row": 45,
+       "detalle": "Revestimiento exterior Kiri (incluye mo de procesamiento y colocación)",
+       "mo": 12,
+       "mat": 46,
+       "unidad": "m2.",
+       "qty": {
+        "SE": 63.7,
+        "S": 66.0,
+        "M": 84.0,
+        "L": 132.0,
+        "XL": 141.0
+       }
       }
      ]
     }
@@ -894,18 +866,18 @@
      "items": [
       {
        "sheet": "SE",
-       "row": 70,
+       "row": 72,
        "detalle": "Mosaico granítico Thin Compact Gris Bison con pastina (Klaukol y pastina nacional)",
        "mo": 10,
        "mat": 25,
+       "unidad": "m2.",
        "qty": {
         "SE": 50.0,
         "S": 65.0,
         "M": 86.4,
         "L": 124.5,
         "XL": 146.1
-       },
-       "unidad": "m2."
+       }
       }
      ],
      "default": true
@@ -915,18 +887,18 @@
      "items": [
       {
        "sheet": "SE",
-       "row": 71,
+       "row": 73,
        "detalle": "Piso de GOMA Indelval 2,5 mm",
        "mo": 12,
        "mat": 18,
+       "unidad": "m2.",
        "qty": {
         "SE": 50.0,
         "S": 65.0,
         "M": 86.4,
         "L": 124.5,
         "XL": 146.1
-       },
-       "unidad": "m2."
+       }
       }
      ]
     },
@@ -935,18 +907,18 @@
      "items": [
       {
        "sheet": "SE",
-       "row": 72,
+       "row": 74,
        "detalle": "Piso entablonado sintético (con fenólico para nivelar)",
        "mo": 8,
        "mat": 27,
+       "unidad": "m2.",
        "qty": {
         "SE": 50.0,
         "S": 65.0,
         "M": 86.4,
         "L": 124.5,
         "XL": 146.1
-       },
-       "unidad": "m2."
+       }
       }
      ]
     }
@@ -965,29 +937,29 @@
        "detalle": "Fenólico de 18 mm (se pone doble)",
        "mo": 3,
        "mat": 7,
+       "unidad": "m2.",
        "qty": {
         "SE": 100.0,
         "S": 130.0,
         "M": 172.8,
         "L": 249.0,
         "XL": 292.2
-       },
-       "unidad": "m2."
+       }
       },
       {
        "sheet": "SE",
        "row": 68,
        "detalle": "Poliestireno de 20 mm y alta densidad",
-       "mo": 3,
-       "mat": 8,
+       "mo": 2,
+       "mat": 6,
+       "unidad": "m2.",
        "qty": {
         "SE": 50.0,
         "S": 65.0,
         "M": 86.4,
         "L": 124.5,
         "XL": 146.1
-       },
-       "unidad": "m2."
+       }
       }
      ]
     },
@@ -996,33 +968,33 @@
      "items": [
       {
        "sheet": "SE",
-       "row": 74,
+       "row": 69,
        "detalle": "Fenólico de 25 mm",
        "mo": 3,
        "mat": 10,
+       "unidad": "m2.",
        "qty": {
         "SE": 50.0,
         "S": 65.0,
         "M": 86.4,
         "L": 124.5,
         "XL": 146.1
-       },
-       "unidad": "m2."
+       }
       },
       {
        "sheet": "SE",
-       "row": 75,
+       "row": 70,
        "detalle": "Emulsión asfáltica",
        "mo": 1,
        "mat": 1,
+       "unidad": "m2.",
        "qty": {
         "SE": 50.0,
         "S": 65.0,
         "M": 86.4,
         "L": 124.5,
         "XL": 146.1
-       },
-       "unidad": "m2."
+       }
       }
      ],
      "default": true
@@ -1038,19 +1010,19 @@
    "items": [
     {
      "sheet": "Fundación",
-     "row": 268,
+     "row": 221,
      "rubro": "Obra Civil",
      "detalle": "Fundaciones (Vigas Cintas)",
      "mo": 0,
      "mat": 50,
+     "unidad": "m2",
      "qty": {
-      "SE": 86,
-      "S": 0,
-      "M": 0,
-      "L": 0,
+      "SE": 50,
+      "S": 65,
+      "M": 86.4,
+      "L": 65,
       "XL": 86.4
-     },
-     "unidad": "m2"
+     }
     }
    ]
   },
@@ -1061,19 +1033,51 @@
    "items": [
     {
      "sheet": "AA",
-     "row": 296,
+     "row": 249,
      "rubro": "Climatización",
-     "detalle": "Equipo de AA bajo silueta",
+     "detalle": "Equipo de aire acondicionado frío calor de 2300 frigorias",
      "mo": 300,
-     "mat": 1275,
+     "mat": 350,
+     "unidad": "un.",
+     "qty": {
+      "SE": 2,
+      "S": 2,
+      "M": 2,
+      "L": 0,
+      "XL": 0
+     }
+    },
+    {
+     "sheet": "AA",
+     "row": 250,
+     "rubro": "Climatización",
+     "detalle": "Equipo de aire acondicionado frío calor de 3000 frigorias",
+     "mo": 300,
+     "mat": 400,
+     "unidad": "un.",
      "qty": {
       "SE": 1,
       "S": 1,
+      "M": 0,
+      "L": 0,
+      "XL": 0
+     }
+    },
+    {
+     "sheet": "AA",
+     "row": 251,
+     "rubro": "Climatización",
+     "detalle": "Equipo de aire acondicionado frío calor de 4500 frigorias",
+     "mo": 370,
+     "mat": 550,
+     "unidad": "un.",
+     "qty": {
+      "SE": 0,
+      "S": 0,
       "M": 1,
-      "L": 2,
-      "XL": 2
-     },
-     "unidad": "un."
+      "L": 5,
+      "XL": 5
+     }
     }
    ]
   },
@@ -1084,19 +1088,19 @@
    "items": [
     {
      "sheet": "Piso Radiante",
-     "row": 303,
+     "row": 249,
      "rubro": "Climatización",
-     "detalle": "Piso radiante",
+     "detalle": "Piso radiante eléctrico",
      "mo": 0,
      "mat": 47,
+     "unidad": "m2",
      "qty": {
-      "SE": 65,
+      "SE": 50,
       "S": 65,
       "M": 86,
       "L": 130,
       "XL": 151
-     },
-     "unidad": "m2"
+     }
     }
    ]
   },
@@ -1107,67 +1111,67 @@
    "items": [
     {
      "sheet": "Línea Blanca",
-     "row": 238,
+     "row": 193,
      "rubro": "Equipamiento",
      "detalle": "Anafe eléctrico 4 hornallas (marca a definir). Incluye MO colocación.",
      "mo": 0,
-     "mat": 102,
+     "mat": 400,
+     "unidad": "un.",
      "qty": {
       "SE": 1,
       "S": 1,
       "M": 1,
       "L": 1,
       "XL": 1
-     },
-     "unidad": "un."
+     }
     },
     {
      "sheet": "Línea Blanca",
-     "row": 239,
+     "row": 194,
      "rubro": "Equipamiento",
      "detalle": "Campana de extracción (marca a definir). Incluye MO colocación.",
      "mo": 0,
-     "mat": 153,
+     "mat": 400,
+     "unidad": "un.",
      "qty": {
       "SE": 1,
       "S": 1,
       "M": 1,
       "L": 1,
       "XL": 1
-     },
-     "unidad": "un."
+     }
     },
     {
      "sheet": "Línea Blanca",
-     "row": 242,
+     "row": 195,
      "rubro": "Equipamiento",
      "detalle": "Heladera 265 lts (GAFA). Incluye MO colocación.",
      "mo": 0,
-     "mat": 425,
+     "mat": 400,
+     "unidad": "un.",
      "qty": {
       "SE": 1,
       "S": 1,
       "M": 1,
       "L": 1,
       "XL": 1
-     },
-     "unidad": "un."
+     }
     },
     {
      "sheet": "Línea Blanca",
-     "row": 243,
+     "row": 196,
      "rubro": "Equipamiento",
      "detalle": "Lavarropas BGH Chico",
      "mo": 0,
-     "mat": 340,
+     "mat": 400,
+     "unidad": "un.",
      "qty": {
       "SE": 1,
       "S": 1,
       "M": 1,
       "L": 1,
       "XL": 1
-     },
-     "unidad": "un."
+     }
     }
    ]
   },
@@ -1178,19 +1182,19 @@
    "items": [
     {
      "sheet": "Paquete Solar",
-     "row": 313,
+     "row": 262,
      "rubro": "Varios",
      "detalle": "Paquete Solar",
      "mo": 0,
      "mat": 8000,
+     "unidad": "gl.",
      "qty": {
       "SE": 1,
-      "S": 0,
-      "M": 0,
-      "L": 0,
-      "XL": 0
-     },
-     "unidad": "gl."
+      "S": 1,
+      "M": 1,
+      "L": 1,
+      "XL": 1
+     }
     }
    ]
   },
@@ -1201,19 +1205,19 @@
    "items": [
     {
      "sheet": "Estufa a Leña",
-     "row": 304,
+     "row": 249,
      "rubro": "Climatización",
      "detalle": "Estufa a Leña",
      "mo": 0,
      "mat": 1500,
+     "unidad": "un.",
      "qty": {
       "SE": 1,
       "S": 1,
       "M": 1,
       "L": 1,
       "XL": 1
-     },
-     "unidad": "un."
+     }
     }
    ]
   },
@@ -1224,19 +1228,19 @@
    "items": [
     {
      "sheet": "Pergola",
-     "row": 312,
+     "row": 262,
      "rubro": "Varios",
      "detalle": "Pergola",
      "mo": 0,
      "mat": 2000,
+     "unidad": "gl.",
      "qty": {
       "SE": 1,
       "S": 1,
       "M": 1,
       "L": 1,
       "XL": 1
-     },
-     "unidad": "gl."
+     }
     }
    ]
   },
@@ -1247,19 +1251,19 @@
    "items": [
     {
      "sheet": "Deck",
-     "row": 312,
+     "row": 262,
      "rubro": "Varios",
      "detalle": "Deck",
      "mo": 0,
      "mat": 2000,
+     "unidad": "gl.",
      "qty": {
       "SE": 1,
       "S": 1,
       "M": 1,
       "L": 1,
       "XL": 1
-     },
-     "unidad": "gl."
+     }
     }
    ]
   },
@@ -1270,19 +1274,19 @@
    "items": [
     {
      "sheet": "Grúa",
-     "row": 282,
+     "row": 234,
      "rubro": "Logística & Montaje",
      "detalle": "Grúa para montaje",
      "mo": 0,
      "mat": 700,
+     "unidad": "dia",
      "qty": {
       "SE": 1,
       "S": 1,
       "M": 1,
       "L": 2,
       "XL": 2
-     },
-     "unidad": "dia"
+     }
     }
    ]
   }
