@@ -791,7 +791,7 @@
    "label": "Muros exteriores",
    "options": [
     {
-     "value": "Ninguno",
+     "value": "Panel visto",
      "items": [],
      "default": true
     },
