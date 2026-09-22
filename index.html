@@ -237,6 +237,29 @@ tr:hover td{background:#F5F3ED}
 .inf-p.active{background:var(--black);color:var(--white)}
 .inf-rango{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mid)}
 .inf-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px 32px}
+.inf-print-hdr{display:none}
+.inf-ph-t{font-family:'IBM Plex Mono',monospace;font-size:15px;letter-spacing:3px;text-transform:uppercase}
+.inf-ph-s{font-size:12px;color:var(--mid);margin-top:4px}
+.inf-ph-r{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mid);margin-top:2px}
+
+/* ── Hoja impresa ──────────────────────────────────────────────────────────
+   Se imprime sólo el informe: sin barra de la app, sin pestañas, sin botones.
+   Lo importante es forzar los fondos: las barras de los gráficos SON el dato,
+   y los navegadores por defecto no imprimen colores de fondo — sin esto sale
+   una hoja con números sueltos y ninguna barra. */
+@media print{
+  @page{margin:14mm}
+  body{background:#fff}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .hdr,.tabs,.pros-vistas,#authGate,.detail-overlay,.modal-overlay,.inf-barra{display:none!important}
+  #pros-vista-informe{display:block!important;padding:0!important}
+  .inf-print-hdr{display:block!important;border-bottom:2px solid var(--black);padding-bottom:10px;margin-bottom:18px}
+  .inf-coments{max-height:none!important;overflow:visible!important}
+  /* Nada se parte al medio entre dos hojas. */
+  .kpi-grid,.funnel,.trend-chart,.inf-grid>div,.inf-com{page-break-inside:avoid;break-inside:avoid}
+  .sec-title{page-break-after:avoid;break-after:avoid}
+  a[href]{text-decoration:none;color:inherit}
+}
 .inf-coments{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;padding-right:4px}
 .inf-com{border:1px solid var(--border);background:var(--card);padding:10px 12px}
 .inf-com-hdr{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--mid);letter-spacing:.5px;margin-bottom:5px;display:flex;gap:8px;flex-wrap:wrap}
@@ -1088,6 +1111,8 @@ tr:hover td{background:#F5F3ED}
      campaña. Mide la campaña, no al equipo: de dónde vienen los leads, qué
      piden, y qué pasó con ellos una vez que los contactamos. ── -->
 <div id="pros-vista-informe" style="display:none;padding:24px">
+  <!-- En pantalla el contexto lo da la app; en papel hay que decirlo. -->
+  <div class="inf-print-hdr" id="inf-print-hdr"></div>
   <div class="inf-barra">
     <div class="inf-periodo">
       <button class="inf-p active" onclick="setInfPeriodo(30,this)">30 días</button>
@@ -1097,6 +1122,7 @@ tr:hover td{background:#F5F3ED}
     </div>
     <div style="flex:1"></div>
     <span id="inf-rango" class="inf-rango"></span>
+    <button class="btn-modal" style="flex:none;padding:8px 14px" onclick="imprimirInforme()">🖨 Imprimir</button>
     <button class="btn-modal primary" style="flex:none;padding:8px 14px" onclick="exportInformeCSV()">↓ Descargar detalle (CSV)</button>
   </div>
 
@@ -2942,6 +2968,12 @@ function renderInforme(){
 
   var etiqueta=infDias?('Últimos '+infDias+' días'):'Historial completo';
   set('inf-rango',etiqueta+' · '+total+' leads');
+  var ph=document.getElementById('inf-print-hdr');
+  if(ph){
+    ph.innerHTML='<div class="inf-ph-t">LABO Modular — Informe de campaña</div>'+
+      '<div class="inf-ph-s">'+esc(etiqueta)+' · '+total+' leads recibidos</div>'+
+      '<div class="inf-ph-r">Emitido el '+new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'})+'</div>';
+  }
   set('inf-total',total);
   set('inf-total-sub',etiqueta.toLowerCase());
   set('inf-contactados',pct(contactados));
@@ -3042,6 +3074,16 @@ function renderInfComentarios(d){
  * Sheet— para que puedan cruzar cada fila con la suya, y sin teléfono ni mail:
  * el dato que aporta esto es qué pasó con cada lead, no los datos personales.
  */
+/**
+ * Imprime el informe. Se asegura de estar en la vista correcta antes de abrir el
+ * diálogo: si alguien llama esto desde la bandeja, saldría una hoja en blanco.
+ */
+function imprimirInforme(){
+  var vis=document.getElementById('pros-vista-informe');
+  if(!vis||vis.style.display==='none')setVistaProspectos('informe');
+  setTimeout(function(){window.print();},80);
+}
+
 function exportInformeCSV(){
   var d=infDatos();
   var cols=['entry_id','fecha','origen','hoja','nombre','modelo','tipo_proyecto','region',
