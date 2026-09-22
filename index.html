@@ -1484,7 +1484,10 @@ tr:hover td{background:#F5F3ED}
 /* ════════════════ CRM (pipeline / análisis / seguimiento) ════════════════ */
 // ── Supabase (datos) + Microsoft Azure AD (login) ────────────────────────────
 const SUPABASE_URL='https://wcpkpwxhqdcdljfwzcmy.supabase.co'; // proyecto del PORTAL unificado (2026-07-19)
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcGtwd3hocWRjZGxqZnd6Y215Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDM4NDAsImV4cCI6MjA5NjYxOTg0MH0.MSTk46VAwdAsn5qNBdrHmGIiLYyN-rAyAZC72xZW3D4';
+// Clave pública del proyecto (publishable). Reemplaza a la anon legacy, que se
+// desactiva desde Supabase → Settings → API Keys. Es pública por diseño: no da
+// acceso a nada por sí sola, todo pasa por las políticas de seguridad de la base.
+const SUPABASE_KEY='sb_publishable_08decRYdCRUdtO5zogvJVg_VEBCN9pf';
 // Cliente Supabase (SDK) — maneja login con Microsoft y la sesión. La global 'supabase' viene del CDN.
 // Se crea esperando a que el SDK termine de cargar (mismo patrón que _initMSAL), para evitar
 // la condición de carrera donde el script corría antes de que 'supabase' estuviera disponible.
