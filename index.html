@@ -226,6 +226,7 @@ tr:hover td{background:#F5F3ED}
 .pr-act.ghost{border-color:var(--border);color:var(--mid)}
 .pr-act.ghost:hover{background:var(--grey);color:var(--black)}
 .pr-msg{font-size:12px;line-height:1.5;background:var(--card);border:1px solid var(--border);padding:8px 10px;white-space:pre-wrap;word-break:break-word}
+.pros-mas{padding:12px 16px;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mid);display:flex;align-items:center;gap:8px;justify-content:center}
 .pr-dup{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;padding:2px 5px;background:var(--amber);color:#fff;border-radius:2px;margin-left:4px}
 .dp-badges{display:flex;gap:6px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
 .tab-badge{display:inline-block;background:var(--amber);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:8px;padding:1px 5px;margin-left:6px;border-radius:8px;vertical-align:middle}
@@ -1672,6 +1673,7 @@ async function loadData(){
     }).filter(function(l){return !leadArchivado(l);})
       .sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
   }catch(e){console.error('loadData error:',e);allLeads=[];}
+  _prosIdxInvalidar();             // los leads entran en el cruce de repetidos
   render();
   // La bandeja de prospectos viaja junto al Pipeline: mismo botón Actualizar,
   // mismo auto-refresh. No bloquea el render del CRM.
@@ -2460,6 +2462,11 @@ const PROS_FUENTE_LABEL={formulario:'Formulario',brochure:'Brochure',landing_met
 const PROS_VENDEDORES=['Pablo Spinetto','Leandro Seoane','Hector Bermudez','Victoria Lopez Aybar','Matias Formica'];
 
 let allProspectos=[], prosFilter='abiertos', prosSearch='', currentProspectoId=null;
+// La bandeja tiene ~1000 filas y cada una lleva un selector y un menú de etapas:
+// dibujarlas todas de una cuesta casi medio segundo, y la pestaña se redibuja sola
+// cada 30 segundos. Se muestran de a tandas, con un botón para traer más.
+const PROS_PAGINA=150;
+let prosVisibles=PROS_PAGINA;
 // Prospecto que se está cotizando en este momento: lo setea convertirProspecto() y lo
 // consume _spSaveLead() cuando la cotización se guarda de verdad.
 let _prospectoPendiente=null;
@@ -2471,7 +2478,7 @@ async function readProspectos(){
   return await r.json();
 }
 async function loadProspectos(){
-  try{allProspectos=await readProspectos();}
+  try{allProspectos=await readProspectos();_prosIdxInvalidar();}
   catch(e){console.warn('loadProspectos:',e);}   // ante un error dejamos lo último que se vio
   renderProspectos();
 }
@@ -2500,6 +2507,7 @@ async function patchProspecto(id,patch,textoActividad){
 // ── Filtros y render ──────────────────────────────────────────────────────────
 function setProsFilter(f,el){
   prosFilter=f;
+  prosVisibles=PROS_PAGINA;
   document.querySelectorAll('#tab-prospectos .s-item').forEach(function(x){x.classList.remove('active');});
   if(el)el.classList.add('active');
   else{
@@ -2510,7 +2518,8 @@ function setProsFilter(f,el){
   }
   renderProspectos();
 }
-function filterProsSearch(v){prosSearch=(v||'').toLowerCase();renderProsTable();}
+function filterProsSearch(v){prosSearch=(v||'').toLowerCase();prosVisibles=PROS_PAGINA;renderProsTable();}
+function verMasProspectos(){prosVisibles+=PROS_PAGINA;renderProsTable();}
 
 function prosEtapa(p){return p.etapa||'Nuevo';}
 function prosFiltered(){
@@ -2536,24 +2545,51 @@ function prosFiltered(){
 // el mismo mail (o el mismo teléfono) es la misma persona.
 function _prosKeyMail(p){return String(p.email||'').trim().toLowerCase();}
 function _prosKeyTel(p){return String(p.telefono||'').replace(/\D/g,'').slice(-8);}
+
+/**
+ * Índice mail/teléfono → prospectos y leads. Se arma una vez por tanda de datos en
+ * vez de recorrer las dos listas por cada fila: con ~1000 prospectos eso era medio
+ * millón de comparaciones en cada redibujado, y la pestaña se redibuja sola cada
+ * 30 segundos y con cada acción.
+ */
+let _prosIdx=null;
+function _prosIdxInvalidar(){_prosIdx=null;}
+function _prosIdxGet(){
+  if(_prosIdx)return _prosIdx;
+  var idx={pMail:{},pTel:{},lMail:{},lTel:{}};
+  function push(m,k,v){if(!k)return;(m[k]=m[k]||[]).push(v);}
+  (allProspectos||[]).forEach(function(o){
+    push(idx.pMail,_prosKeyMail(o),o);
+    push(idx.pTel,_prosKeyTel(o),o);
+  });
+  (allLeads||[]).forEach(function(l){
+    push(idx.lMail,String(l.email||'').trim().toLowerCase(),l);
+    push(idx.lTel,String(l.tel||'').replace(/\D/g,'').slice(-8),l);
+  });
+  _prosIdx=idx;
+  return idx;
+}
 // ¿Este contacto ya está en el Pipeline (es decir, ya tiene cotización)?
 function prosYaEsCliente(p){
   var mail=_prosKeyMail(p), tel=_prosKeyTel(p);
   if(!mail&&!tel)return null;
-  return allLeads.find(function(l){
-    var lm=String(l.email||'').trim().toLowerCase();
-    var lt=String(l.tel||'').replace(/\D/g,'').slice(-8);
-    return (mail&&lm===mail)||(tel&&lt&&lt===tel);
-  })||null;
+  var idx=_prosIdxGet();
+  var porMail=mail&&idx.lMail[mail], porTel=tel&&idx.lTel[tel];
+  return (porMail&&porMail[0])||(porTel&&porTel[0])||null;
 }
 // Otros prospectos del mismo contacto (típicamente: llenó el formulario Y bajó el brochure)
 function prosHermanos(p){
   var mail=_prosKeyMail(p), tel=_prosKeyTel(p);
   if(!mail&&!tel)return [];
-  return allProspectos.filter(function(o){
-    if(String(o.id)===String(p.id))return false;
-    return (mail&&_prosKeyMail(o)===mail)||(tel&&_prosKeyTel(o)===tel);
+  var idx=_prosIdxGet(), vistos={}, out=[];
+  [mail&&idx.pMail[mail], tel&&idx.pTel[tel]].forEach(function(lista){
+    (lista||[]).forEach(function(o){
+      var k=String(o.id);
+      if(k===String(p.id)||vistos[k])return;
+      vistos[k]=true; out.push(o);
+    });
   });
+  return out;
 }
 
 function renderProspectos(){renderProsCounts();renderProsKpis();renderProsTable();}
@@ -2625,7 +2661,10 @@ function renderProsTable(){
       '</div></div>';
     return;
   }
-  var filas=list.map(function(p){
+  // Sólo se dibuja la tanda visible: el resto llega con el botón del pie.
+  var total=list.length;
+  var pagina=list.slice(0,prosVisibles);
+  var filas=pagina.map(function(p){
     var etapa=prosEtapa(p);
     var cls=PROS_CLS[etapa]||'p-nuevo';
     var edot=PROS_ETAPAS.find(function(e){return e.key===etapa;})||PROS_ETAPAS[0];
@@ -2672,9 +2711,14 @@ function renderProsTable(){
       '<td style="text-align:right" onclick="event.stopPropagation()">'+accion+'</td>'+
     '</tr>';
   }).join('');
+  var pie=(total>pagina.length)
+    ? '<div class="pros-mas">Mostrando '+pagina.length+' de '+total+
+      ' · <button class="pr-act ghost" onclick="verMasProspectos()">Mostrar '+
+      Math.min(PROS_PAGINA,total-pagina.length)+' más</button></div>'
+    : '';
   cont.innerHTML='<table><thead><tr>'+
     '<th>Fecha</th><th>Contacto</th><th>Interés</th><th>Origen</th><th>Responsable</th><th>Etapa</th><th style="text-align:center">Días</th><th></th>'+
-    '</tr></thead><tbody>'+filas+'</tbody></table>';
+    '</tr></thead><tbody>'+filas+'</tbody></table>'+pie;
 }
 
 // ── Acciones ──────────────────────────────────────────────────────────────────
