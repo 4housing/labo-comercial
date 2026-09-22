@@ -117,6 +117,11 @@ function menuProbar() {
  * URL, la clave y que la tabla exista. Devuelve 200 con una lista vacía aunque
  * este script no tenga permiso de leer — las reglas de la base filtran filas, no
  * rechazan la consulta.
+ *
+ * NO usar un insert vacío ("[]") como prueba: PostgREST deduce las columnas a
+ * insertar de las claves del JSON, y con un array sin elementos no tiene de dónde,
+ * así que responde 400. Eso hacía fallar la prueba con la base perfectamente bien
+ * configurada, y mandaba a buscar el problema donde no estaba.
  */
 function _probarCRM() {
   var cfg = _config();
