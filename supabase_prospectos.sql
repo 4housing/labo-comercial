@@ -87,9 +87,10 @@ create policy prospectos_insert
   to authenticated
   with check (lower(coalesce(auth.jwt() ->> 'email','')) like '%@4housing.com.ar');
 
--- NOTA: el Apps Script que sincroniza el Google Sheet escribe con la service_role
--- key (guardada en las Propiedades del Script, nunca en este repo ni en el HTML),
--- que no pasa por RLS. Ver apps_script/README.md.
+-- El Apps Script que sincroniza el Google Sheet NO usa la service_role key: ese
+-- Sheet lo administra un proveedor externo y cualquiera con acceso de edición
+-- podría leerla. Entra con la clave pública y sólo puede insertar prospectos.
+-- Su permiso se otorga en supabase_prospectos_sync.sql.
 
 -- updated_at automático
 create or replace function public.labocomercial_prospectos_touch()
