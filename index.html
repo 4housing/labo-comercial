@@ -3502,9 +3502,25 @@ const CFG_DESC_MAP={
  muros_int:{'Guatambú':'Muros interiores enchapados en madera natural (Guatambú / Jequetibá).','Durlock total':'Muros interiores en placa de roca de yeso (Durlock) pintado.','Durlock tabiq. + panel':'Muros interiores en placa de roca de yeso (Durlock) y panel, pintados.'},
  muros_ext:{'Panel visto':'Muros exteriores en panel sándwich de acero prepintado, a la vista (terminación estándar).','Pino':'Revestimiento exterior en listones de madera de pino impregnado.','Fachada ventilada':'Revestimiento exterior tipo fachada ventilada (chapa plegada).','Kiri':'Revestimiento exterior en madera de Kiri.'},
  piso:{'Mosaico':'Piso de mosaico granítico.','Goma':'Piso de goma Indelval.','Entablonado':'Piso entablonado sintético.'},
- esquema_piso:{'Estándar':'Base de piso estándar (fenólico + poliestireno).','Fenólico 25 + emulsión':'Base de piso en fenólico de 25 mm con emulsión asfáltica.'}
+ esquema_piso:{'Estándar':'sobre base estándar (doble fenólico de 18 mm + poliestireno).','Fenólico 25 + emulsión':'sobre base de fenólico de 25 mm con emulsión asfáltica.'}
 };
-function getCfgDesc(){ if(LINEA[sel]!=='modular')return []; return LABO_DATA.config.map(function(dim){var v=laboCfg[dim.key];var m=CFG_DESC_MAP[dim.key];return (m&&m[v])?m[v]:(dim.label+': '+v);}); }
+function getCfgDesc(){
+  if(LINEA[sel]!=='modular')return [];
+  var out=[];
+  LABO_DATA.config.forEach(function(dim){
+    if(dim.key==='esquema_piso')return;                       // se une al ítem de Piso
+    var v=laboCfg[dim.key];
+    if(dim.key==='muros_ext'&&v==='Panel visto')return;       // ya descrito en la línea de estructura
+    var m=CFG_DESC_MAP[dim.key];
+    var line=(m&&m[v])?m[v]:(dim.label+': '+v);
+    if(dim.key==='piso'){                                     // Piso + Base de piso en un solo ítem
+      var ev=laboCfg['esquema_piso'],em=CFG_DESC_MAP['esquema_piso'],tail=(em&&em[ev])?em[ev]:'';
+      if(tail)line=line.replace(/\.\s*$/,'')+' '+tail;
+    }
+    out.push(line);
+  });
+  return out;
+}
 function buildCfg(k){
   var card=document.getElementById('cfgCard'),list=document.getElementById('cfgList');
   if(!card||!list)return;
