@@ -530,8 +530,14 @@ function _config() {
   return { url: url };
 }
 
+/**
+ * La clave del proyecto va sólo en 'apikey'. No se manda como Authorization: eso
+ * funcionaba porque la clave legacy es un JWT, pero las claves nuevas
+ * (sb_publishable_…) no lo son y el header las haría rebotar. Sin Authorization,
+ * la petición entra como anónima, que es exactamente lo que necesita el Sheet.
+ */
 function _headers(cfg, prefer) {
-  var h = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY };
+  var h = { 'apikey': SUPABASE_ANON_KEY };
   if (prefer) h['Prefer'] = prefer;
   return h;
 }
