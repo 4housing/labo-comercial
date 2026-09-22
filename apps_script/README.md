@@ -60,7 +60,7 @@ Todo desde el menú **LABO CRM** del Sheet, en orden. No hay nada que configurar
 script no necesita credenciales.
 
 **1 · Subir el histórico**
-Manda al CRM todo lo que ya está cargado (las ~450 filas), con su etapa, estado,
+Manda al CRM todo lo que ya está cargado en Formulario y Brochure, con su etapa, estado,
 calidad, responsable y comentarios. Avisa cuántas subió. Es seguro repetirlo: lo que
 ya está no se duplica ni se pisa.
 
@@ -90,9 +90,10 @@ sincronización**.
 | Comentarios | Notas |
 | ¿Descargó brochure? | marca de brochure |
 
-La hoja **Brochure** entra con `fuente = brochure`; la hoja **Landing Meta**, con
-origen `Meta`. Cualquier columna que no esté en esta tabla igual se guarda completa en
-el campo `raw`, así que nunca se pierde nada.
+La hoja **Brochure** entra con `fuente = brochure`. La hoja **Landing Meta** no se
+sincroniza: es una tabla de configuración de la agencia, no una fuente de leads.
+Cualquier columna que no esté en esta tabla igual se guarda completa en el campo
+`raw`, así que nunca se pierde nada.
 
 ## Si cambian las columnas del Sheet
 

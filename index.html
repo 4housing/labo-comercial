@@ -1041,7 +1041,6 @@ tr:hover td{background:#F5F3ED}
       <div class="s-label">Origen</div>
       <div class="s-item" onclick="setProsFilter('fuente:formulario',this)">Formulario <span class="s-count" id="pcnt-formulario">0</span></div>
       <div class="s-item" onclick="setProsFilter('fuente:brochure',this)">Brochure <span class="s-count" id="pcnt-brochure">0</span></div>
-      <div class="s-item" onclick="setProsFilter('fuente:landing_meta',this)">Landing Meta <span class="s-count" id="pcnt-landing_meta">0</span></div>
     </div>
   </div>
   <div class="content">
@@ -1176,7 +1175,6 @@ tr:hover td{background:#F5F3ED}
     <div class="modal-options" id="import-options">
       <div class="modal-opt" onclick="selImportFuente(this,'formulario')">Hoja <strong>Formulario</strong></div>
       <div class="modal-opt" onclick="selImportFuente(this,'brochure')">Hoja <strong>Brochure</strong></div>
-      <div class="modal-opt" onclick="selImportFuente(this,'landing_meta')">Hoja <strong>Landing Meta</strong></div>
     </div>
     <input type="file" id="import-file" accept=".csv,text/csv" style="display:none" onchange="importarCSVArchivo(this)">
     <div id="import-estado" style="font-size:12px;margin-top:14px;display:none"></div>
@@ -2462,6 +2460,8 @@ const PROS_ETAPAS=[
 ];
 const PROS_CLS=Object.fromEntries(PROS_ETAPAS.map(function(e){return [e.key,e.cls];}));
 const PROS_ABIERTAS=['Nuevo','Contactado','En seguimiento'];
+// 'landing_meta' se mantiene en la tabla: es sólo una etiqueta, y si alguna vez
+// entró una fila con esa fuente tiene que seguir mostrándose bien.
 const PROS_FUENTE_LABEL={formulario:'Formulario',brochure:'Brochure',landing_meta:'Landing Meta'};
 const PROS_VENDEDORES=['Pablo Spinetto','Leandro Seoane','Hector Bermudez','Victoria Lopez Aybar','Matias Formica'];
 
@@ -2977,7 +2977,7 @@ const PROS_ALIAS={
   notas:['comentarios','observaciones','notas'],
   descargo_brochure:['descargobrochure','descargobrochures','brochure']
 };
-const PROS_ORIGEN={formulario:'Google Ads',brochure:'Google Ads',landing_meta:'Meta'};
+const PROS_ORIGEN={formulario:'Google Ads',brochure:'Google Ads'};
 
 /** "Hector" (como lo escriben en el Sheet) → "Hector Bermudez" (como está en el CRM).
     Si no hay una coincidencia única, se respeta lo que vino escrito. */

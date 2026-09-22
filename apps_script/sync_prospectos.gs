@@ -27,10 +27,11 @@
 
 // ── Hojas a sincronizar ───────────────────────────────────────────────────────
 // 'hoja' tiene que coincidir con el nombre de la pestaña del Sheet.
+// "Landing Meta" NO va: es una tabla de configuración de la agencia, no una
+// fuente de leads. Si algún día hay una hoja de Meta con contactos, se agrega acá.
 var HOJAS = [
-  { hoja: 'Formulario',   fuente: 'formulario',   origen: 'Google Ads' },
-  { hoja: 'Brochure',     fuente: 'brochure',     origen: 'Google Ads' },
-  { hoja: 'Landing Meta', fuente: 'landing_meta', origen: 'Meta' }
+  { hoja: 'Formulario', fuente: 'formulario', origen: 'Google Ads' },
+  { hoja: 'Brochure',   fuente: 'brochure',   origen: 'Google Ads' }
 ];
 
 var _ULTIMO_ERROR = '';  // último rechazo del CRM, para poder mostrarlo en pantalla
@@ -135,7 +136,7 @@ function _probarCRM() {
 function menuHistorico() {
   var ui = SpreadsheetApp.getUi();
   var r = ui.alert('Subir el histórico',
-    'Manda al CRM todas las filas de las hojas Formulario, Brochure y Landing Meta.\n\n' +
+    'Manda al CRM todas las filas de las hojas Formulario y Brochure.\n\n' +
     'Es seguro repetirlo: lo que ya está no se duplica ni se pisa.\n\n¿Seguimos?',
     ui.ButtonSet.YES_NO);
   if (r !== ui.Button.YES) return;
