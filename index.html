@@ -210,6 +210,66 @@ tr:hover td{background:#F5F3ED}
 .e-ganado{background:#D5F5E3;color:#1E8449}.e-ganado .etapa-dot{background:#1E8449}
 .e-perdido{background:#FADBD8;color:#922B21}.e-perdido .etapa-dot{background:#C0392B}
 
+/* ── PROSPECTOS (bandeja de marketing) ── */
+.p-nuevo{background:#FDEBD0;color:#7D4E27}.p-nuevo .etapa-dot{background:#D4870A}
+.p-contactado{background:#D6E4F7;color:#1A5276}.p-contactado .etapa-dot{background:#1A5276}
+.p-seguimiento{background:#E8DAEF;color:#5B2C6F}.p-seguimiento .etapa-dot{background:#7D3C98}
+.p-convertido{background:#D5F5E3;color:#1E8449}.p-convertido .etapa-dot{background:#1E8449}
+.p-descartado{background:#EDEBE5;color:#6B6660}.p-descartado .etapa-dot{background:#9A9690}
+.fu{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;padding:2px 6px;border-radius:2px;white-space:nowrap}
+.fu-formulario{background:#D6E4F7;color:#1A5276}
+.fu-brochure{background:#F0E6D3;color:#7D4E27}
+.fu-landing_meta{background:#E8DAEF;color:#5B2C6F}
+.pr-sel{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 4px;border:1px solid var(--border);background:var(--white);color:var(--black);outline:none;max-width:130px}
+.pr-act{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;padding:3px 8px;border:1px solid var(--green);background:transparent;color:var(--green);cursor:pointer;border-radius:2px;transition:all .15s;white-space:nowrap}
+.pr-act:hover{background:var(--green);color:var(--white)}
+.pr-act.ghost{border-color:var(--border);color:var(--mid)}
+.pr-act.ghost:hover{background:var(--grey);color:var(--black)}
+.pr-msg{font-size:12px;line-height:1.5;background:var(--card);border:1px solid var(--border);padding:8px 10px;white-space:pre-wrap;word-break:break-word}
+.pros-vistas{display:flex;gap:0;border-bottom:1px solid var(--border);background:#F0EEE8;padding:0 24px}
+.pv-btn{padding:11px 18px;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.pv-btn:hover{color:var(--black)}
+.pv-btn.active{color:var(--black);border-bottom-color:var(--black)}
+.inf-barra{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.inf-periodo{display:flex;border:1px solid var(--border);background:var(--white)}
+.inf-p{padding:7px 13px;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mid);cursor:pointer;border-right:1px solid var(--border)}
+.inf-p:last-child{border-right:none}
+.inf-p.active{background:var(--black);color:var(--white)}
+.inf-rango{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mid)}
+.inf-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px 32px}
+.inf-print-hdr{display:none}
+.inf-ph-t{font-family:'IBM Plex Mono',monospace;font-size:15px;letter-spacing:3px;text-transform:uppercase}
+.inf-ph-s{font-size:12px;color:var(--mid);margin-top:4px}
+.inf-ph-r{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mid);margin-top:2px}
+
+/* ── Hoja impresa ──────────────────────────────────────────────────────────
+   Se imprime sólo el informe: sin barra de la app, sin pestañas, sin botones.
+   Lo importante es forzar los fondos: las barras de los gráficos SON el dato,
+   y los navegadores por defecto no imprimen colores de fondo — sin esto sale
+   una hoja con números sueltos y ninguna barra. */
+@media print{
+  @page{margin:14mm}
+  body{background:#fff}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .hdr,.tabs,.pros-vistas,#authGate,.detail-overlay,.modal-overlay,.inf-barra{display:none!important}
+  #pros-vista-informe{display:block!important;padding:0!important}
+  .inf-print-hdr{display:block!important;border-bottom:2px solid var(--black);padding-bottom:10px;margin-bottom:18px}
+  .inf-coments{max-height:none!important;overflow:visible!important}
+  /* Nada se parte al medio entre dos hojas. */
+  .kpi-grid,.funnel,.trend-chart,.inf-grid>div,.inf-com{page-break-inside:avoid;break-inside:avoid}
+  .sec-title{page-break-after:avoid;break-after:avoid}
+  a[href]{text-decoration:none;color:inherit}
+}
+.inf-coments{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;padding-right:4px}
+.inf-com{border:1px solid var(--border);background:var(--card);padding:10px 12px}
+.inf-com-hdr{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--mid);letter-spacing:.5px;margin-bottom:5px;display:flex;gap:8px;flex-wrap:wrap}
+.inf-com-txt{font-size:12px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+@media(max-width:900px){.inf-grid{grid-template-columns:1fr}}
+.pros-mas{padding:12px 16px;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mid);display:flex;align-items:center;gap:8px;justify-content:center}
+.pr-dup{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;padding:2px 5px;background:var(--amber);color:#fff;border-radius:2px;margin-left:4px}
+.dp-badges{display:flex;gap:6px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.tab-badge{display:inline-block;background:var(--amber);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:8px;padding:1px 5px;margin-left:6px;border-radius:8px;vertical-align:middle}
+
 /* ── DROPDOWN ── */
 .etapa-dropdown{position:relative;display:inline-block}
 .etapa-menu{display:none;position:absolute;top:100%;left:0;background:var(--white);border:1px solid var(--border);z-index:100;min-width:170px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
@@ -920,6 +980,7 @@ tr:hover td{background:#F5F3ED}
 
 <div class="tabs">
   <div class="tab active" onclick="switchTab('pipeline',this)">Pipeline</div>
+  <div class="tab" onclick="switchTab('prospectos',this)">Prospectos<span class="tab-badge" id="tab-pros-badge" style="display:none">0</span></div>
   <div class="tab" onclick="switchTab('analisis',this)">Análisis</div>
   <div class="tab" onclick="switchTab('seguimiento',this)">Seguimiento</div>
   <div class="tab" onclick="switchTab('cotizador',this)">+ Cotizador</div>
@@ -992,7 +1053,109 @@ tr:hover td{background:#F5F3ED}
 </div>
 </div>
 
-<!-- ══ TAB 2: ANÁLISIS ══════════════════════════════════════════════════════ -->
+<!-- ══ TAB 2: PROSPECTOS ════════════════════════════════════════════════════ -->
+<!-- Bandeja de entrada comercial: lo que llega de Google Ads / Meta al Google Sheet
+     y sincroniza el Apps Script (ver apps_script/README.md). Todavía no hay
+     cotización: cuando la hay, el prospecto se convierte y pasa al Pipeline. -->
+<div id="tab-prospectos" class="tab-content">
+<div class="pros-vistas">
+  <button class="pv-btn active" id="pv-bandeja" onclick="setVistaProspectos('bandeja')">Bandeja</button>
+  <button class="pv-btn" id="pv-informe" onclick="setVistaProspectos('informe')">Informe para la agencia</button>
+</div>
+<div class="page" id="pros-vista-bandeja">
+  <div class="sidebar">
+    <div class="s-section">
+      <div class="s-label">Vista</div>
+      <div class="s-item active" onclick="setProsFilter('abiertos',this)">A trabajar <span class="s-count" id="pcnt-abiertos">0</span></div>
+      <div class="s-item" onclick="setProsFilter('all',this)">Todos <span class="s-count" id="pcnt-all">0</span></div>
+      <div class="s-item" onclick="setProsFilter('sinasignar',this)">Sin asignar <span class="s-count" id="pcnt-sinasignar">0</span></div>
+    </div>
+    <div class="s-divider"></div>
+    <div class="s-section">
+      <div class="s-label">Etapa</div>
+      <div class="s-item" onclick="setProsFilter('etapa:Nuevo',this)">Sin contactar <span class="s-count" id="pcnt-nuevo">0</span></div>
+      <div class="s-item" onclick="setProsFilter('etapa:Contactado',this)">Contactado <span class="s-count" id="pcnt-contactado">0</span></div>
+      <div class="s-item" onclick="setProsFilter('etapa:En seguimiento',this)">En seguimiento <span class="s-count" id="pcnt-seguimiento">0</span></div>
+      <div class="s-item" onclick="setProsFilter('etapa:Convertido',this)">Convertido <span class="s-count" id="pcnt-convertido">0</span></div>
+      <div class="s-item" onclick="setProsFilter('etapa:Descartado',this)">Descartado <span class="s-count" id="pcnt-descartado">0</span></div>
+    </div>
+    <div class="s-divider"></div>
+    <div class="s-section">
+      <div class="s-label">Origen</div>
+      <div class="s-item" onclick="setProsFilter('fuente:formulario',this)">Formulario <span class="s-count" id="pcnt-formulario">0</span></div>
+      <div class="s-item" onclick="setProsFilter('fuente:brochure',this)">Brochure <span class="s-count" id="pcnt-brochure">0</span></div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="kpi-grid">
+      <div class="kpi amber clickable" onclick="setProsFilter('etapa:Nuevo')" title="Click para filtrar"><div class="kpi-label">Sin contactar</div><div class="kpi-value" id="pkpi-nuevos">0</div><div class="kpi-explain">Todavía nadie los tocó</div><div class="kpi-sub" id="pkpi-nuevos-sub">—</div></div>
+      <div class="kpi clickable" onclick="setProsFilter('etapa:En seguimiento')" title="Click para filtrar"><div class="kpi-label">En seguimiento</div><div class="kpi-value" id="pkpi-seguimiento">0</div><div class="kpi-explain">Contactados y activos</div><div class="kpi-sub">conversaciones abiertas</div></div>
+      <div class="kpi clickable" onclick="setProsFilter('nuevosmes')" title="Click para filtrar"><div class="kpi-label">Entraron este mes</div><div class="kpi-value" id="pkpi-mes">0</div><div class="kpi-explain">Leads nuevos del mes</div><div class="kpi-sub" id="pkpi-mes-sub">—</div></div>
+      <div class="kpi green clickable" onclick="setProsFilter('etapa:Convertido')" title="Click para filtrar"><div class="kpi-label">Pasaron a cotización</div><div class="kpi-value" id="pkpi-conv">0</div><div class="kpi-explain">Convertidos ÷ total</div><div class="kpi-sub" id="pkpi-conv-sub">—</div></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-hdr">
+        <span class="table-title" id="pros-table-title">Prospectos a trabajar</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span id="pros-sync-info" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--mid)"></span>
+          <button class="pr-act ghost" onclick="abrirImportador()" title="Subir un CSV descargado del Google Sheet">↑ Importar CSV</button>
+          <div class="search-wrap"><input type="text" placeholder="Buscar..." oninput="filterProsSearch(this.value)"></div>
+        </div>
+      </div>
+      <div id="pros-table-container"><div class="empty"><div class="empty-icon">◫</div><div class="empty-text">Cargando...</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Informe: lo que se le muestra o se le manda a la agencia que hace la
+     campaña. Mide la campaña, no al equipo: de dónde vienen los leads, qué
+     piden, y qué pasó con ellos una vez que los contactamos. ── -->
+<div id="pros-vista-informe" style="display:none;padding:24px">
+  <!-- En pantalla el contexto lo da la app; en papel hay que decirlo. -->
+  <div class="inf-print-hdr" id="inf-print-hdr"></div>
+  <div class="inf-barra">
+    <div class="inf-periodo">
+      <button class="inf-p active" onclick="setInfPeriodo(30,this)">30 días</button>
+      <button class="inf-p" onclick="setInfPeriodo(90,this)">90 días</button>
+      <button class="inf-p" onclick="setInfPeriodo(365,this)">12 meses</button>
+      <button class="inf-p" onclick="setInfPeriodo(0,this)">Todo</button>
+    </div>
+    <div style="flex:1"></div>
+    <span id="inf-rango" class="inf-rango"></span>
+    <button class="btn-modal" style="flex:none;padding:8px 14px" onclick="imprimirInforme()">🖨 Imprimir</button>
+    <button class="btn-modal primary" style="flex:none;padding:8px 14px" onclick="exportInformeCSV()">↓ Descargar detalle (CSV)</button>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi dark"><div class="kpi-label">Leads recibidos</div><div class="kpi-value" id="inf-total">0</div><div class="kpi-explain">En el período elegido</div><div class="kpi-sub" id="inf-total-sub">—</div></div>
+    <div class="kpi"><div class="kpi-label">Contactados</div><div class="kpi-value" id="inf-contactados">0%</div><div class="kpi-explain">Recibieron al menos un contacto</div><div class="kpi-sub" id="inf-contactados-sub">—</div></div>
+    <div class="kpi green"><div class="kpi-label">Pasaron a cotización</div><div class="kpi-value" id="inf-cotizados">0%</div><div class="kpi-explain">Llegaron a pedir presupuesto</div><div class="kpi-sub" id="inf-cotizados-sub">—</div></div>
+    <div class="kpi amber"><div class="kpi-label">Sin contactar aún</div><div class="kpi-value" id="inf-pendientes">0</div><div class="kpi-explain">Esperando primer contacto</div><div class="kpi-sub" id="inf-pendientes-sub">—</div></div>
+  </div>
+
+  <div class="sec-title">Qué pasó con los leads del período</div>
+  <div class="funnel" id="inf-funnel" style="margin-bottom:24px"></div>
+
+  <div class="sec-title">Evolución mensual</div>
+  <div class="trend-chart" id="inf-trend-wrap" style="margin-bottom:24px">
+    <div class="trend-bars" id="inf-trend"></div>
+  </div>
+
+  <div class="inf-grid">
+    <div><div class="sec-title">Por origen</div><div class="bar-chart" id="inf-origen"></div></div>
+    <div><div class="sec-title">Modelo que piden</div><div class="bar-chart" id="inf-modelo"></div></div>
+    <div><div class="sec-title">Tipo de proyecto</div><div class="bar-chart" id="inf-tipo"></div></div>
+    <div><div class="sec-title">Región</div><div class="bar-chart" id="inf-region"></div></div>
+    <div><div class="sec-title">Calidad del lead</div><div class="bar-chart" id="inf-calidad"></div></div>
+    <div><div class="sec-title">Por qué no avanzan</div><div class="bar-chart" id="inf-motivos"></div></div>
+  </div>
+
+  <div class="sec-title" style="margin-top:24px">Lo que dicen los clientes</div>
+  <div id="inf-comentarios" class="inf-coments"></div>
+</div>
+</div>
+
+<!-- ══ TAB 3: ANÁLISIS ══════════════════════════════════════════════════════ -->
 <div id="tab-analisis" class="tab-content">
 <div style="padding:24px">
   <!-- Funnel -->
@@ -1037,7 +1200,7 @@ tr:hover td{background:#F5F3ED}
 </div>
 </div>
 
-<!-- ══ TAB 3: SEGUIMIENTO ═══════════════════════════════════════════════════ -->
+<!-- ══ TAB 4: SEGUIMIENTO ═══════════════════════════════════════════════════ -->
 <div id="tab-seguimiento" class="tab-content">
 <div style="padding:24px">
   <!-- Velocidad entre etapas -->
@@ -1090,6 +1253,28 @@ tr:hover td{background:#F5F3ED}
 </div>
 
 <!-- VERSIÓN NUEVA vs PROYECTO NUEVO MODAL -->
+<!-- IMPORTAR CSV DEL GOOGLE SHEET -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal-box">
+    <div class="modal-title">Importar prospectos desde el Sheet</div>
+    <div style="font-size:12px;color:var(--mid);line-height:1.6;margin-bottom:16px">
+      En el Google Sheet: <strong>Archivo → Descargar → Valores separados por comas (.csv)</strong>.
+      Descarga la hoja que tengas abierta. Elegí abajo cuál es y subí el archivo.<br>
+      Lo que ya esté en el CRM no se duplica ni se pisa.
+    </div>
+    <div class="modal-options" id="import-options">
+      <div class="modal-opt" onclick="selImportFuente(this,'formulario')">Hoja <strong>Formulario</strong></div>
+      <div class="modal-opt" onclick="selImportFuente(this,'brochure')">Hoja <strong>Brochure</strong></div>
+    </div>
+    <input type="file" id="import-file" accept=".csv,text/csv" style="display:none" onchange="importarCSVArchivo(this)">
+    <div id="import-estado" style="font-size:12px;margin-top:14px;display:none"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-modal" onclick="cerrarImportador()">Cerrar</button>
+      <button class="btn-modal primary" id="import-btn" onclick="elegirArchivoCSV()" disabled style="opacity:.5">Elegir archivo…</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="versionModal">
   <div class="modal-box">
     <div class="modal-title">Este cliente ya tiene una cotización activa</div>
@@ -1101,7 +1286,7 @@ tr:hover td{background:#F5F3ED}
   </div>
 </div>
 
-<!-- ══ TAB 4: COTIZADOR ═══════════════════════════════════════════════════════ -->
+<!-- ══ TAB 5: COTIZADOR ═══════════════════════════════════════════════════════ -->
 <div id="tab-cotizador" class="tab-content">
 
 <!-- Modal contraseña -->
@@ -1387,7 +1572,10 @@ tr:hover td{background:#F5F3ED}
 /* ════════════════ CRM (pipeline / análisis / seguimiento) ════════════════ */
 // ── Supabase (datos) + Microsoft Azure AD (login) ────────────────────────────
 const SUPABASE_URL='https://wcpkpwxhqdcdljfwzcmy.supabase.co'; // proyecto del PORTAL unificado (2026-07-19)
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcGtwd3hocWRjZGxqZnd6Y215Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDM4NDAsImV4cCI6MjA5NjYxOTg0MH0.MSTk46VAwdAsn5qNBdrHmGIiLYyN-rAyAZC72xZW3D4';
+// Clave pública del proyecto (publishable). Reemplaza a la anon legacy, que se
+// desactiva desde Supabase → Settings → API Keys. Es pública por diseño: no da
+// acceso a nada por sí sola, todo pasa por las políticas de seguridad de la base.
+const SUPABASE_KEY='sb_publishable_08decRYdCRUdtO5zogvJVg_VEBCN9pf';
 // Cliente Supabase (SDK) — maneja login con Microsoft y la sesión. La global 'supabase' viene del CDN.
 // Se crea esperando a que el SDK termine de cargar (mismo patrón que _initMSAL), para evitar
 // la condición de carrera donde el script corría antes de que 'supabase' estuviera disponible.
@@ -1428,8 +1616,7 @@ async function _sbFetch(path,opts){
   // Pedir el token de sesión vigente directamente al SDK en cada llamada.
   // Es más confiable que depender de _sbAccessToken (que puede quedar viejo tras
   // recargas o redirects). Si hay sesión, RLS reconoce al usuario @4housing.
-  // Si no hay sesión, cae a la clave anon (lecturas públicas que aún lo permitan).
-  var authToken=_sbAccessToken||SUPABASE_KEY;
+  var authToken=_sbAccessToken||'';
   try{
     if(_sbClient){
       var s=await _sbClient.auth.getSession();
@@ -1437,14 +1624,16 @@ async function _sbFetch(path,opts){
       if(tok){authToken=tok;_sbAccessToken=tok;}
     }
   }catch(e){/* si falla, usa el fallback ya calculado */}
+  // La clave del proyecto va SIEMPRE en 'apikey'. El header Authorization lleva el
+  // token del usuario y sólo va si hay sesión: sin sesión, la petición entra como
+  // anónima y RLS decide. Antes se mandaba la clave anon como si fuera un token,
+  // lo cual funcionaba sólo porque la clave legacy es un JWT — las claves nuevas
+  // (sb_publishable_…) no lo son y ese header las haría rebotar.
+  var headers={'apikey':SUPABASE_KEY,'Content-Type':'application/json'};
+  if(authToken)headers['Authorization']='Bearer '+authToken;
   return fetch(SUPABASE_URL+'/rest/v1/'+path,{
     ...opts,
-    headers:{
-      'apikey':SUPABASE_KEY,
-      'Authorization':'Bearer '+authToken,
-      'Content-Type':'application/json',
-      ...(opts&&opts.headers)
-    }
+    headers:{...headers,...(opts&&opts.headers)}
   });
 }
 // Read all leads from Supabase
@@ -1576,7 +1765,11 @@ async function loadData(){
     }).filter(function(l){return !leadArchivado(l);})
       .sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
   }catch(e){console.error('loadData error:',e);allLeads=[];}
+  _prosIdxInvalidar();             // los leads entran en el cruce de repetidos
   render();
+  // La bandeja de prospectos viaja junto al Pipeline: mismo botón Actualizar,
+  // mismo auto-refresh. No bloquea el render del CRM.
+  try{loadProspectos();}catch(e){console.warn('loadProspectos:',e);}
 }
 
 // ── Temperature score ─────────────────────────────────────────────────────────
@@ -2036,7 +2229,7 @@ function renderRanking(){
 function openDetail(id){
   var l=allLeads.find(function(x){return x.id===id;});
   if(!l)return;
-  currentLeadId=id;
+  currentLeadId=id;currentProspectoId=null;
   document.getElementById('dp-title').textContent=(l.leadNum?'#'+_fmtLeadNum(l.leadNum)+' \u2014 ':'')+( l.cliente||'Lead');
   var cls=ETAPA_CLS[l.etapa]||'e-cotizado';
   var edot=ETAPAS.find(function(e){return e.key===l.etapa;})||ETAPAS[0];
@@ -2150,7 +2343,7 @@ function openDetail(id){
   document.getElementById('detailOverlay').classList.add('open');
 }
 function field(l,v){return '<div class="dp-field"><label>'+l+'</label><span>'+v+'</span></div>';}
-function closeDetailPanel(){document.getElementById('detailOverlay').classList.remove('open');currentLeadId=null;}
+function closeDetailPanel(){document.getElementById('detailOverlay').classList.remove('open');currentLeadId=null;currentProspectoId=null;}
 function closeDetail(e){if(e.target===document.getElementById('detailOverlay'))closeDetailPanel();}
 
 // ── Etapa change ──────────────────────────────────────────────────────────────
@@ -2264,10 +2457,14 @@ function switchTab(id,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
   el.classList.add('active');
+  if(id==='prospectos'){try{loadProspectos();}catch(e){console.warn('loadProspectos:',e);}}
 }
 
 // ── Export CSV ────────────────────────────────────────────────────────────────
 function exportCSV(){
+  // Con la pestaña Prospectos abierta, el botón exporta la bandeja de marketing.
+  var tp=document.getElementById('tab-prospectos');
+  if(tp&&tp.classList.contains('active')){exportProspectosCSV();return;}
   const cols=['num','fecha','cliente','contacto','email','tel','vendedor','linea','modelo','sup','cant','total','etapa','motivoPerdida','lugar','pago','plazo'];
   const csv=cols.join(',')+'\n'+allLeads.map(l=>cols.map(c=>'"'+String(l[c]||'').replace(/"/g,'""')+'"').join(',')).join('\n');
   const a=document.createElement('a');
@@ -2303,6 +2500,16 @@ function diasDesde(l){
 function fmt(n){return Number(n||0).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0});}
 function fmtK(n){return n>=1000000?Math.round(n/1000)+'K':n>=1000?Math.round(n/1000)+'K':String(Math.round(n));}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+// esc() alcanza para texto, pero dentro de un atributo HTML una comilla se escapa
+// del atributo y permite inyectar código. Todo valor que venga de la base y termine
+// en un atributo pasa por acá.
+function escAttr(s){return esc(String(s===null||s===undefined?'':s)).replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+// Un href sólo puede ser http o https: así una "url" con javascript: no se vuelve
+// un link ejecutable.
+function urlSegura(u){
+  var v=String(u===null||u===undefined?'':u).trim();
+  return /^https?:\/\//i.test(v)?v:'';
+}
 // El # del Pipeline se guarda como entero en la base pero tiene que verse igual
 // que el número de proyecto del PDF/SharePoint (con ceros a la izquierda, ej. 0169).
 function _fmtLeadNum(n){return n?String(n).padStart(4,'0'):'—';}
@@ -2328,6 +2535,909 @@ setInterval(function(){
   var modalOpen=document.getElementById('motivoModal')&&document.getElementById('motivoModal').classList.contains('open');
   if(!detailOpen&&!modalOpen)loadData();
 },30000);
+
+/* ════════════════ PROSPECTOS (bandeja de marketing: Ads/Meta → Sheet → CRM) ════════════════
+   Un prospecto es un lead ANTES de la cotización: entra solo desde el Google Sheet
+   (Apps Script, ver apps_script/README.md) y se trabaja acá hasta que se cotiza.
+   Al cotizarlo se convierte: nace la fila del Pipeline y el prospecto queda enlazado
+   por lead_id — de ahí en más el proyecto vive en el CRM de siempre. */
+const PROS_ETAPAS=[
+  {key:'Nuevo',          cls:'p-nuevo',       color:'#D4870A'},
+  {key:'Contactado',     cls:'p-contactado',  color:'#1A5276'},
+  {key:'En seguimiento', cls:'p-seguimiento', color:'#7D3C98'},
+  {key:'Convertido',     cls:'p-convertido',  color:'#1E8449'},
+  {key:'Descartado',     cls:'p-descartado',  color:'#9A9690'}
+];
+const PROS_CLS=Object.fromEntries(PROS_ETAPAS.map(function(e){return [e.key,e.cls];}));
+const PROS_ABIERTAS=['Nuevo','Contactado','En seguimiento'];
+// 'landing_meta' se mantiene en la tabla: es sólo una etiqueta, y si alguna vez
+// entró una fila con esa fuente tiene que seguir mostrándose bien.
+const PROS_FUENTE_LABEL={formulario:'Formulario',brochure:'Brochure',landing_meta:'Landing Meta'};
+const PROS_VENDEDORES=['Pablo Spinetto','Leandro Seoane','Hector Bermudez','Victoria Lopez Aybar','Matias Formica'];
+
+let allProspectos=[], prosFilter='abiertos', prosSearch='', currentProspectoId=null;
+// La bandeja tiene ~1000 filas y cada una lleva un selector y un menú de etapas:
+// dibujarlas todas de una cuesta casi medio segundo, y la pestaña se redibuja sola
+// cada 30 segundos. Se muestran de a tandas, con un botón para traer más.
+const PROS_PAGINA=150;
+let prosVisibles=PROS_PAGINA;
+// Prospecto que se está cotizando en este momento: lo setea convertirProspecto() y lo
+// consume _spSaveLead() cuando la cotización se guarda de verdad.
+let _prospectoPendiente=null;
+
+// ── Datos ─────────────────────────────────────────────────────────────────────
+async function readProspectos(){
+  const r=await _sbFetch('labocomercial_prospectos?select=*&order=fecha.desc.nullslast&limit=3000',{method:'GET'});
+  if(!r.ok)throw new Error('Supabase prospectos '+r.status);
+  return await r.json();
+}
+async function loadProspectos(){
+  try{allProspectos=await readProspectos();_prosIdxInvalidar();}
+  catch(e){console.warn('loadProspectos:',e);}   // ante un error dejamos lo último que se vio
+  renderProspectos();
+}
+// Guarda un cambio puntual del prospecto y deja registro en su historial.
+async function patchProspecto(id,patch,textoActividad){
+  const p=allProspectos.find(function(x){return String(x.id)===String(id);});
+  if(!p)return false;
+  const body=Object.assign({},patch);
+  if(textoActividad){
+    const act=(p.actividad||[]).slice();
+    act.unshift({fecha:new Date().toISOString(),texto:textoActividad,usuario:_userEmail||''});
+    body.actividad=act;
+  }
+  Object.assign(p,body);           // optimista: la UI responde ya
+  renderProspectos();
+  if(currentProspectoId===String(id))openProspecto(id);
+  try{
+    const r=await _sbFetch('labocomercial_prospectos?id=eq.'+encodeURIComponent(id),{
+      method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify(body)
+    });
+    if(!r.ok){console.warn('patchProspecto '+r.status,await r.text());alert('No se pudo guardar el cambio. Revisá la conexión y probá de nuevo.');return false;}
+    return true;
+  }catch(e){console.warn('patchProspecto:',e);return false;}
+}
+
+// ── Filtros y render ──────────────────────────────────────────────────────────
+function setProsFilter(f,el){
+  prosFilter=f;
+  prosVisibles=PROS_PAGINA;
+  document.querySelectorAll('#tab-prospectos .s-item').forEach(function(x){x.classList.remove('active');});
+  if(el)el.classList.add('active');
+  else{
+    // Vino de un KPI: marcamos el ítem equivalente del sidebar si existe.
+    document.querySelectorAll('#tab-prospectos .s-item').forEach(function(x){
+      if((x.getAttribute('onclick')||'').indexOf("'"+f+"'")>=0)x.classList.add('active');
+    });
+  }
+  renderProspectos();
+}
+function filterProsSearch(v){prosSearch=(v||'').toLowerCase();prosVisibles=PROS_PAGINA;renderProsTable();}
+function verMasProspectos(){prosVisibles+=PROS_PAGINA;renderProsTable();}
+
+function prosEtapa(p){return p.etapa||'Nuevo';}
+function prosFiltered(){
+  var list=allProspectos.slice();
+  if(prosFilter==='abiertos')list=list.filter(function(p){return PROS_ABIERTAS.indexOf(prosEtapa(p))>=0;});
+  else if(prosFilter==='sinasignar')list=list.filter(function(p){return !(p.responsable||'').trim()&&PROS_ABIERTAS.indexOf(prosEtapa(p))>=0;});
+  else if(prosFilter==='nuevosmes'){
+    var n=new Date();
+    list=list.filter(function(p){var d=p.fecha?new Date(p.fecha):null;return d&&!isNaN(d)&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();});
+  }
+  else if(prosFilter.indexOf('etapa:')===0){var et=prosFilter.slice(6);list=list.filter(function(p){return prosEtapa(p)===et;});}
+  else if(prosFilter.indexOf('fuente:')===0){var fu=prosFilter.slice(7);list=list.filter(function(p){return (p.fuente||'')===fu;});}
+  if(prosSearch){
+    list=list.filter(function(p){
+      return [p.nombre,p.email,p.telefono,p.modelo,p.tipo_proyecto,p.region,p.responsable,p.comentario]
+        .some(function(v){return String(v||'').toLowerCase().indexOf(prosSearch)>=0;});
+    });
+  }
+  return list.sort(function(a,b){return new Date(b.fecha||b.created_at||0)-new Date(a.fecha||a.created_at||0);});
+}
+
+// Clave de contacto para cruzar formulario + brochure + clientes ya cotizados:
+// el mismo mail (o el mismo teléfono) es la misma persona.
+function _prosKeyMail(p){return String(p.email||'').trim().toLowerCase();}
+function _prosKeyTel(p){return String(p.telefono||'').replace(/\D/g,'').slice(-8);}
+
+/**
+ * Índice mail/teléfono → prospectos y leads. Se arma una vez por tanda de datos en
+ * vez de recorrer las dos listas por cada fila: con ~1000 prospectos eso era medio
+ * millón de comparaciones en cada redibujado, y la pestaña se redibuja sola cada
+ * 30 segundos y con cada acción.
+ */
+let _prosIdx=null;
+function _prosIdxInvalidar(){_prosIdx=null;}
+function _prosIdxGet(){
+  if(_prosIdx)return _prosIdx;
+  var idx={pMail:{},pTel:{},lMail:{},lTel:{}};
+  function push(m,k,v){if(!k)return;(m[k]=m[k]||[]).push(v);}
+  (allProspectos||[]).forEach(function(o){
+    push(idx.pMail,_prosKeyMail(o),o);
+    push(idx.pTel,_prosKeyTel(o),o);
+  });
+  (allLeads||[]).forEach(function(l){
+    push(idx.lMail,String(l.email||'').trim().toLowerCase(),l);
+    push(idx.lTel,String(l.tel||'').replace(/\D/g,'').slice(-8),l);
+  });
+  _prosIdx=idx;
+  return idx;
+}
+// ¿Este contacto ya está en el Pipeline (es decir, ya tiene cotización)?
+function prosYaEsCliente(p){
+  var mail=_prosKeyMail(p), tel=_prosKeyTel(p);
+  if(!mail&&!tel)return null;
+  var idx=_prosIdxGet();
+  var porMail=mail&&idx.lMail[mail], porTel=tel&&idx.lTel[tel];
+  return (porMail&&porMail[0])||(porTel&&porTel[0])||null;
+}
+// Otros prospectos del mismo contacto (típicamente: llenó el formulario Y bajó el brochure)
+function prosHermanos(p){
+  var mail=_prosKeyMail(p), tel=_prosKeyTel(p);
+  if(!mail&&!tel)return [];
+  var idx=_prosIdxGet(), vistos={}, out=[];
+  [mail&&idx.pMail[mail], tel&&idx.pTel[tel]].forEach(function(lista){
+    (lista||[]).forEach(function(o){
+      var k=String(o.id);
+      if(k===String(p.id)||vistos[k])return;
+      vistos[k]=true; out.push(o);
+    });
+  });
+  return out;
+}
+
+function renderProspectos(){renderProsCounts();renderProsKpis();renderProsTable();}
+
+function renderProsCounts(){
+  function set(id,n){var el=document.getElementById(id);if(el)el.textContent=n;}
+  var abiertos=allProspectos.filter(function(p){return PROS_ABIERTAS.indexOf(prosEtapa(p))>=0;});
+  set('pcnt-all',allProspectos.length);
+  set('pcnt-abiertos',abiertos.length);
+  set('pcnt-sinasignar',abiertos.filter(function(p){return !(p.responsable||'').trim();}).length);
+  PROS_ETAPAS.forEach(function(e){
+    var key=e.key==='En seguimiento'?'seguimiento':e.key.toLowerCase();
+    set('pcnt-'+key,allProspectos.filter(function(p){return prosEtapa(p)===e.key;}).length);
+  });
+  Object.keys(PROS_FUENTE_LABEL).forEach(function(f){
+    set('pcnt-'+f,allProspectos.filter(function(p){return (p.fuente||'')===f;}).length);
+  });
+  // Badge en la pestaña: cuántos están esperando el primer contacto.
+  var nuevos=allProspectos.filter(function(p){return prosEtapa(p)==='Nuevo';}).length;
+  var b=document.getElementById('tab-pros-badge');
+  if(b){b.textContent=nuevos;b.style.display=nuevos?'':'none';}
+}
+
+function renderProsKpis(){
+  function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
+  var nuevos=allProspectos.filter(function(p){return prosEtapa(p)==='Nuevo';});
+  var seg=allProspectos.filter(function(p){return prosEtapa(p)==='En seguimiento';});
+  var conv=allProspectos.filter(function(p){return prosEtapa(p)==='Convertido';});
+  var ahora=new Date();
+  var delMes=allProspectos.filter(function(p){
+    var d=p.fecha?new Date(p.fecha):null;
+    return d&&!isNaN(d)&&d.getMonth()===ahora.getMonth()&&d.getFullYear()===ahora.getFullYear();
+  });
+  var viejos=nuevos.filter(function(p){return _prosDias(p)>3;}).length;
+  set('pkpi-nuevos',nuevos.length);
+  set('pkpi-nuevos-sub',viejos?(viejos+' con más de 3 días'):'al día');
+  set('pkpi-seguimiento',seg.length);
+  set('pkpi-mes',delMes.length);
+  var convMes=delMes.filter(function(p){return prosEtapa(p)==='Convertido';}).length;
+  set('pkpi-mes-sub',convMes+' ya cotizados');
+  var pct=allProspectos.length?Math.round(conv.length/allProspectos.length*100):0;
+  set('pkpi-conv',pct+'%');
+  set('pkpi-conv-sub',conv.length+' de '+allProspectos.length+' prospectos');
+}
+
+function _prosDias(p){
+  var base=p.fecha?new Date(p.fecha):(p.created_at?new Date(p.created_at):null);
+  if(!base||isNaN(base))return 0;
+  return Math.max(0,Math.floor((new Date()-base)/(1000*60*60*24)));
+}
+function _prosFecha(p){
+  var d=p.fecha?new Date(p.fecha):(p.created_at?new Date(p.created_at):null);
+  return (d&&!isNaN(d))?d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
+}
+
+function renderProsTable(){
+  var list=prosFiltered();
+  var cont=document.getElementById('pros-table-container');
+  if(!cont)return;
+  var titulos={abiertos:'Prospectos a trabajar',all:'Todos los prospectos',sinasignar:'Sin responsable asignado',nuevosmes:'Entraron este mes'};
+  var t=document.getElementById('pros-table-title');
+  if(t)t.textContent=titulos[prosFilter]||('Prospectos — '+prosFilter.split(':')[1]);
+  var info=document.getElementById('pros-sync-info');
+  if(info)info.textContent=allProspectos.length?(list.length+' de '+allProspectos.length):'';
+
+  if(!list.length){
+    cont.innerHTML='<div class="empty"><div class="empty-icon">◫</div><div class="empty-text">'+
+      (allProspectos.length?'Sin resultados':'Todavía no llegó ningún prospecto. La sincronización con el Google Sheet corre cada 10 minutos.')+
+      '</div></div>';
+    return;
+  }
+  // Sólo se dibuja la tanda visible: el resto llega con el botón del pie.
+  var total=list.length;
+  var pagina=list.slice(0,prosVisibles);
+  var filas=pagina.map(function(p){
+    var etapa=prosEtapa(p);
+    var cls=PROS_CLS[etapa]||'p-nuevo';
+    var edot=PROS_ETAPAS.find(function(e){return e.key===etapa;})||PROS_ETAPAS[0];
+    var pid=escAttr(p.id);   // va a parar a varios atributos
+    var dias=_prosDias(p);
+    var alerta=etapa==='Nuevo'&&dias>3;
+    var fuente=p.fuente||'formulario';
+    var menu=PROS_ETAPAS.filter(function(e){return e.key!=='Convertido';}).map(function(e){
+      return '<button class="'+e.cls+'" data-eid="'+e.key+'" data-pid="'+pid+'" onclick="cambiarEtapaProspecto(this.dataset.pid,this.dataset.eid)">'+
+        '<span class="etapa-dot" style="background:'+e.color+'"></span>'+e.key+'</button>';
+    }).join('');
+    var resp=(p.responsable||'').trim();
+    var listaVend=PROS_VENDEDORES.slice();
+    if(resp&&listaVend.indexOf(resp)<0)listaVend.push(resp);   // alguien que no está en la lista fija
+    var opciones=['<option value="">— sin asignar —</option>'].concat(listaVend.map(function(v){
+      return '<option value="'+escAttr(v)+'"'+(resp===v?' selected':'')+'>'+esc(v)+'</option>';
+    })).join('');
+    var yaCliente=prosYaEsCliente(p);
+    var hermanos=prosHermanos(p);
+    var avisos=(yaCliente?'<span class="pr-dup" title="Este contacto ya tiene cotización en el Pipeline">YA COTIZADO</span>':'')+
+               (hermanos.length?'<span class="pr-dup" style="background:var(--blue)" title="El mismo contacto entró '+(hermanos.length+1)+' veces (formulario y/o brochure)">×'+(hermanos.length+1)+'</span>':'');
+    var contacto=[p.email,p.telefono].filter(Boolean).join(' · ');
+    var interes=[p.modelo,p.tipo_proyecto].filter(Boolean).join(' · ')||'—';
+    var accion=etapa==='Convertido'
+      ? (p.lead_id?'<button class="pr-act ghost" data-lid="'+escAttr(p.lead_id)+'" onclick="event.stopPropagation();openDetail(this.dataset.lid)">Ver lead →</button>':'<span class="td-muted">cotizado</span>')
+      : '<button class="pr-act" data-pid="'+pid+'" onclick="event.stopPropagation();convertirProspecto(this.dataset.pid)">Cotizar →</button>';
+    return '<tr data-pid="'+pid+'" onclick="openProspecto(this.dataset.pid)" style="cursor:pointer">'+
+      '<td style="font-family:IBM Plex Mono,monospace;font-size:11px">'+_prosFecha(p)+'</td>'+
+      '<td><div class="td-bold">'+esc(p.nombre||'—')+avisos+'</div><div class="td-muted" style="font-size:10px">'+esc(contacto||'sin datos de contacto')+'</div></td>'+
+      '<td><div style="font-size:12px">'+esc(interes)+'</div><div class="td-muted" style="font-size:10px">'+esc(p.region||'')+'</div></td>'+
+      '<td><span class="fu fu-'+escAttr(fuente)+'">'+esc(PROS_FUENTE_LABEL[fuente]||fuente)+'</span></td>'+
+      '<td onclick="event.stopPropagation()">'+
+        '<select class="pr-sel" data-pid="'+pid+'" onchange="asignarResponsable(this.dataset.pid,this.value)">'+opciones+'</select>'+
+      '</td>'+
+      '<td onclick="event.stopPropagation()">'+
+        '<div class="etapa-dropdown" id="pdd_'+pid+'">'+
+          '<button class="etapa '+cls+'" data-did="pdd_'+pid+'" onclick="toggleDD(this.dataset.did)">'+
+            '<span class="etapa-dot" style="background:'+edot.color+'"></span>'+esc(etapa)+
+          '</button>'+
+          '<div class="etapa-menu">'+menu+'</div>'+
+        '</div>'+
+      '</td>'+
+      '<td style="text-align:center;font-family:IBM Plex Mono,monospace;font-size:12px'+(alerta?';color:var(--red)':'')+'">'+dias+'d</td>'+
+      '<td style="text-align:right" onclick="event.stopPropagation()">'+accion+'</td>'+
+    '</tr>';
+  }).join('');
+  var pie=(total>pagina.length)
+    ? '<div class="pros-mas">Mostrando '+pagina.length+' de '+total+
+      ' · <button class="pr-act ghost" onclick="verMasProspectos()">Mostrar '+
+      Math.min(PROS_PAGINA,total-pagina.length)+' más</button></div>'
+    : '';
+  cont.innerHTML='<table><thead><tr>'+
+    '<th>Fecha</th><th>Contacto</th><th>Interés</th><th>Origen</th><th>Responsable</th><th>Etapa</th><th style="text-align:center">Días</th><th></th>'+
+    '</tr></thead><tbody>'+filas+'</tbody></table>'+pie;
+}
+
+// ── Acciones ──────────────────────────────────────────────────────────────────
+function asignarResponsable(id,valor){
+  patchProspecto(id,{responsable:valor},valor?('Asignado a '+valor):'Sin responsable');
+}
+function cambiarEtapaProspecto(id,etapa){
+  document.querySelectorAll('.etapa-dropdown.open').forEach(function(d){d.classList.remove('open');});
+  var p=allProspectos.find(function(x){return String(x.id)===String(id);});
+  if(!p)return;
+  if(p.etapa===etapa)return;
+  var patch={etapa:etapa};
+  if(etapa==='Contactado'&&!(p.contactos>0))patch.contactos=1;
+  patchProspecto(id,patch,'Etapa → '+etapa);
+}
+function registrarContacto(id){
+  var p=allProspectos.find(function(x){return String(x.id)===String(id);});
+  if(!p)return;
+  var n=(p.contactos||0)+1;
+  patchProspecto(id,{contactos:n,etapa:prosEtapa(p)==='Nuevo'?'Contactado':(prosEtapa(p)==='Descartado'?'Contactado':prosEtapa(p))},'Contacto n° '+n);
+}
+function guardarNotaProspecto(id){
+  var el=document.getElementById('pr-nota-input');
+  if(!el)return;
+  var txt=(el.value||'').trim();
+  if(!txt)return;
+  el.value='';
+  patchProspecto(id,{},txt);
+}
+function descartarProspecto(id){
+  var motivo=prompt('¿Por qué no avanza? (queda en el historial)','No responde');
+  if(motivo===null)return;
+  patchProspecto(id,{etapa:'Descartado'},'Descartado — '+(motivo||'sin motivo'));
+}
+
+/**
+ * Convertir: pasa los datos del prospecto al cotizador. Cuando esa cotización se
+ * guarda, _spSaveLead() cierra el círculo (marca el prospecto como Convertido y lo
+ * enlaza con la fila del Pipeline). Si el vendedor no llega a guardar, el prospecto
+ * queda como estaba: no se pierde ni se ensucia.
+ */
+function convertirProspecto(id){
+  var p=allProspectos.find(function(x){return String(x.id)===String(id);});
+  if(!p)return;
+  var yaCliente=prosYaEsCliente(p);
+  if(yaCliente&&!confirm('Ojo: '+(yaCliente.cliente||'este contacto')+' ya tiene una cotización en el Pipeline.\n\n¿Cotizar igual? (si es el mismo proyecto, conviene abrir el lead y cargar una versión nueva)'))return;
+  _prospectoPendiente=String(p.id);
+  function set(idCampo,valor){var el=document.getElementById(idCampo);if(el&&valor)el.value=valor;}
+  set('cNombre',p.nombre);
+  set('cContacto',p.nombre);
+  set('cEmail',p.email);
+  set('cTel',p.telefono);
+  set('oLugar',p.region);
+  if(p.responsable&&PROS_VENDEDORES.indexOf(p.responsable)>=0)set('oVendedor',p.responsable);
+  // Modelo de interés declarado en el formulario ("Modular M", "Madera L", "M"…)
+  try{
+    var k=_prosModeloAClave(p.modelo);
+    if(k&&COSTOS[k])selModel(k);
+  }catch(e){console.warn('preselección de modelo:',e);}
+  _activarTab('cotizador');
+  if(currentProspectoId)closeDetailPanel();
+  if(p.comentario)console.log('[Prospecto] Consulta original:',p.comentario);
+}
+// "Modular M" → 'M'; "Madera L" → 'MAD_L'; "M" → 'M'
+function _prosModeloAClave(modelo){
+  var s=String(modelo||'').trim().toUpperCase();
+  if(!s)return null;
+  var m=s.match(/\b(SE|XL|S|M|L)\b\s*$/);
+  if(!m)return null;
+  var tam=m[1];
+  return /MADERA/.test(s)?('MAD_'+tam):tam;
+}
+function _activarTab(id){
+  var tab=Array.from(document.querySelectorAll('.tabs .tab')).find(function(t){
+    return (t.getAttribute('onclick')||'').indexOf("'"+id+"'")>=0;
+  });
+  if(tab)switchTab(id,tab);
+}
+
+function exportProspectosCSV(){
+  var cols=['fecha','nombre','email','telefono','region','modelo','tipo_proyecto','fuente','origen','etapa','contactos','calidad','responsable','comentario','url','lead_id'];
+  var csv=cols.join(',')+'\n'+prosFiltered().map(function(p){
+    return cols.map(function(c){return '"'+String(p[c]===null||p[c]===undefined?'':p[c]).replace(/"/g,'""')+'"';}).join(',');
+  }).join('\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='LABO_Prospectos_'+new Date().toISOString().split('T')[0]+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+/* ── Informe para la agencia ──────────────────────────────────────────────────
+   Mide la campaña, no al equipo: de dónde vienen los leads, qué piden, y qué
+   pasó con ellos después de contactarlos. Los gráficos son de una sola serie
+   (magnitud, no identidad), así que el color no distingue nada y cada barra
+   lleva su valor al lado: no hace falta leyenda. */
+let infDias=30;
+
+function setVistaProspectos(v){
+  var esInforme=v==='informe';
+  document.getElementById('pros-vista-bandeja').style.display=esInforme?'none':'';
+  document.getElementById('pros-vista-informe').style.display=esInforme?'':'none';
+  document.getElementById('pv-bandeja').classList.toggle('active',!esInforme);
+  document.getElementById('pv-informe').classList.toggle('active',esInforme);
+  if(esInforme)renderInforme();
+}
+function setInfPeriodo(dias,el){
+  infDias=dias;
+  document.querySelectorAll('.inf-p').forEach(function(b){b.classList.remove('active');});
+  if(el)el.classList.add('active');
+  renderInforme();
+}
+
+/** Prospectos del período, por fecha de ingreso. */
+function infDatos(){
+  if(!infDias)return allProspectos.slice();
+  var desde=new Date();desde.setDate(desde.getDate()-infDias);
+  return allProspectos.filter(function(p){
+    var d=p.fecha?new Date(p.fecha):(p.created_at?new Date(p.created_at):null);
+    return d&&!isNaN(d)&&d>=desde;
+  });
+}
+/** Cuenta por una clave, agrupando lo vacío en "Sin dato". */
+function infContar(lista,fn){
+  var o={};
+  lista.forEach(function(p){
+    var k=(fn(p)||'').toString().trim()||'Sin dato';
+    o[k]=(o[k]||0)+1;
+  });
+  return o;
+}
+// El motivo de descarte se escribe en el historial al marcar "No avanza".
+function infMotivo(p){
+  var act=p.actividad||[];
+  for(var i=0;i<act.length;i++){
+    var t=String(act[i].texto||'');
+    if(t.indexOf('Descartado — ')===0)return t.slice('Descartado — '.length).trim()||'Sin motivo';
+  }
+  return '';
+}
+function infContactado(p){
+  var e=prosEtapa(p);
+  return (p.contactos||0)>0||e==='Contactado'||e==='En seguimiento'||e==='Convertido';
+}
+
+function renderInforme(){
+  var d=infDatos(), total=d.length;
+  var contactados=d.filter(infContactado).length;
+  var cotizados=d.filter(function(p){return prosEtapa(p)==='Convertido';}).length;
+  var pendientes=d.filter(function(p){return prosEtapa(p)==='Nuevo';}).length;
+  var descartados=d.filter(function(p){return prosEtapa(p)==='Descartado';}).length;
+  var pct=function(n){return total?Math.round(n/total*100)+'%':'0%';};
+  function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
+
+  var etiqueta=infDias?('Últimos '+infDias+' días'):'Historial completo';
+  set('inf-rango',etiqueta+' · '+total+' leads');
+  var ph=document.getElementById('inf-print-hdr');
+  if(ph){
+    ph.innerHTML='<div class="inf-ph-t">LABO Modular — Informe de campaña</div>'+
+      '<div class="inf-ph-s">'+esc(etiqueta)+' · '+total+' leads recibidos</div>'+
+      '<div class="inf-ph-r">Emitido el '+new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'})+'</div>';
+  }
+  set('inf-total',total);
+  set('inf-total-sub',etiqueta.toLowerCase());
+  set('inf-contactados',pct(contactados));
+  set('inf-contactados-sub',contactados+' de '+total);
+  set('inf-cotizados',pct(cotizados));
+  set('inf-cotizados-sub',cotizados+' de '+total);
+  set('inf-pendientes',pendientes);
+  set('inf-pendientes-sub',descartados+' descartados');
+
+  // Embudo: cada paso es un subconjunto del anterior, con el % de paso al lado.
+  var pasos=[
+    {label:'Recibidos',     n:total,                                                         color:'#0A0A0A'},
+    {label:'Contactados',   n:contactados,                                                   color:'#1A5276'},
+    {label:'En seguimiento',n:d.filter(function(p){return prosEtapa(p)==='En seguimiento'||prosEtapa(p)==='Convertido';}).length, color:'#7D3C98'},
+    {label:'Cotizados',     n:cotizados,                                                     color:'#1E8449'}
+  ];
+  var fh=pasos.map(function(p,i){
+    var ancho=Math.max(total?p.n/total*100:0,2);
+    var conv=i>0?(pasos[i-1].n?Math.round(p.n/pasos[i-1].n*100)+'%':'—'):'';
+    return '<div class="funnel-row">'+
+      '<div class="funnel-label">'+p.label+'</div>'+
+      '<div class="funnel-bar-wrap"><div class="funnel-fill" style="width:'+ancho+'%;background:'+p.color+'"><span>'+p.n+'</span></div></div>'+
+      // El largo de la barra ya muestra la proporción sobre el total: repetirla en
+      // números al lado del paso a paso sólo confunde cuál de los dos se lee.
+      '<div class="funnel-meta">'+(i>0?'<div style="font-size:9px;color:var(--mid)">pasa al siguiente</div>':'')+'</div>'+
+      '<div class="funnel-arrow">'+conv+'</div>'+
+    '</div>';
+  }).join('');
+  document.getElementById('inf-funnel').innerHTML=fh;
+
+  renderInfTrend(d);
+
+  var n=function(v){return String(v);};
+  var TINTA='#1A5276';   // un solo tono: estas barras comparan magnitudes, no identidades
+  renderBarChart('inf-origen', infContar(d,function(p){return PROS_FUENTE_LABEL[p.fuente]||p.fuente;}),TINTA,n);
+  renderBarChart('inf-modelo', infContar(d,function(p){return p.modelo;}),TINTA,n);
+  renderBarChart('inf-tipo',   infContar(d,function(p){return p.tipo_proyecto;}),TINTA,n);
+  renderBarChart('inf-region', infContar(d,function(p){return p.region;}),TINTA,n);
+  renderBarChart('inf-calidad',infContar(d,function(p){return p.calidad;}),'#D4870A',n);
+  var motivos=infContar(d.filter(function(p){return prosEtapa(p)==='Descartado';}),infMotivo);
+  renderBarChart('inf-motivos',motivos,'#C0392B',n);
+
+  renderInfComentarios(d);
+}
+
+/** Leads por mes. Barras verticales, con el mes debajo y el número arriba. */
+function renderInfTrend(d){
+  var cont=document.getElementById('inf-trend');
+  if(!cont)return;
+  var meses={};
+  d.forEach(function(p){
+    var f=p.fecha?new Date(p.fecha):(p.created_at?new Date(p.created_at):null);
+    if(!f||isNaN(f))return;
+    var k=f.getFullYear()+'-'+String(f.getMonth()+1).padStart(2,'0');
+    meses[k]=(meses[k]||0)+1;
+  });
+  var claves=Object.keys(meses).sort().slice(-12);
+  if(!claves.length){cont.innerHTML='<div class="td-muted" style="font-size:12px">Sin datos en el período</div>';return;}
+  var max=Math.max.apply(null,claves.map(function(k){return meses[k];}))||1;
+  var NOM=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  cont.innerHTML=claves.map(function(k){
+    var v=meses[k], mes=NOM[parseInt(k.split('-')[1],10)-1];
+    return '<div class="trend-bar-col" title="'+escAttr(mes+' '+k.split('-')[0]+': '+v+' leads')+'">'+
+      '<div class="trend-bar-val">'+v+'</div>'+
+      '<div class="trend-bar" style="height:'+Math.max(v/max*64,2)+'px"></div>'+
+      '<div class="trend-bar-label">'+mes+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+/** La consulta textual del cliente es el feedback más útil para la agencia:
+    dice con qué expectativa llega la gente que trae la campaña. */
+function renderInfComentarios(d){
+  var cont=document.getElementById('inf-comentarios');
+  if(!cont)return;
+  var con=d.filter(function(p){return (p.comentario||'').trim().length>15;})
+           .sort(function(a,b){return new Date(b.fecha||0)-new Date(a.fecha||0);})
+           .slice(0,40);
+  if(!con.length){cont.innerHTML='<div class="td-muted" style="font-size:12px">Sin consultas escritas en el período.</div>';return;}
+  cont.innerHTML=con.map(function(p){
+    var etapa=prosEtapa(p);
+    var cls=PROS_CLS[etapa]||'p-nuevo';
+    return '<div class="inf-com">'+
+      '<div class="inf-com-hdr">'+
+        '<span>'+_prosFecha(p)+'</span>'+
+        '<span class="fu fu-'+escAttr(p.fuente||'formulario')+'">'+esc(PROS_FUENTE_LABEL[p.fuente]||p.fuente||'—')+'</span>'+
+        (p.modelo?'<span>'+esc(p.modelo)+'</span>':'')+
+        (p.region?'<span>'+esc(p.region)+'</span>':'')+
+        '<span class="etapa '+cls+'" style="cursor:default">'+esc(etapa)+'</span>'+
+      '</div>'+
+      '<div class="inf-com-txt">'+esc(p.comentario)+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+/**
+ * Detalle para mandarle a la agencia. Va con el Entry ID —la clave de su propio
+ * Sheet— para que puedan cruzar cada fila con la suya, y sin teléfono ni mail:
+ * el dato que aporta esto es qué pasó con cada lead, no los datos personales.
+ */
+/**
+ * Imprime el informe. Se asegura de estar en la vista correcta antes de abrir el
+ * diálogo: si alguien llama esto desde la bandeja, saldría una hoja en blanco.
+ */
+function imprimirInforme(){
+  var vis=document.getElementById('pros-vista-informe');
+  if(!vis||vis.style.display==='none')setVistaProspectos('informe');
+  setTimeout(function(){window.print();},80);
+}
+
+function exportInformeCSV(){
+  var d=infDatos();
+  var cols=['entry_id','fecha','origen','hoja','nombre','modelo','tipo_proyecto','region',
+            'calidad','estado','contactos','motivo_no_avanza','paso_a_cotizacion','consulta_del_cliente'];
+  var filas=d.map(function(p){
+    return [
+      p.entry_id||'',
+      p.fecha?String(p.fecha).slice(0,10):'',
+      p.origen||'',
+      PROS_FUENTE_LABEL[p.fuente]||p.fuente||'',
+      p.nombre||'',
+      p.modelo||'',
+      p.tipo_proyecto||'',
+      p.region||'',
+      p.calidad||'',
+      prosEtapa(p),
+      String(p.contactos||0),
+      infMotivo(p),
+      prosEtapa(p)==='Convertido'?'Sí':'No',
+      (p.comentario||'').replace(/\r?\n/g,' ')
+    ].map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');
+  });
+  var csv=cols.join(',')+'\n'+filas.join('\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='LABO_informe_campana_'+(infDias?infDias+'d_':'')+new Date().toISOString().split('T')[0]+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+/* ── Importar CSV del Google Sheet ────────────────────────────────────────────
+   Alternativa a la sincronización automática para cuando la cuenta de Google no
+   permite instalar Apps Script en el Sheet. Se descarga la hoja como CSV y se
+   sube acá: mismo mapeo de columnas, misma deduplicación por Entry ID. Repetir
+   una importación no duplica ni pisa lo que ya se trabajó en el CRM. */
+let _importFuente=null;
+
+function abrirImportador(){
+  _importFuente=null;
+  document.querySelectorAll('#import-options .modal-opt').forEach(function(o){o.classList.remove('selected');});
+  var est=document.getElementById('import-estado');est.style.display='none';est.textContent='';
+  _importBtn(false);
+  document.getElementById('import-file').value='';
+  document.getElementById('importModal').classList.add('open');
+}
+function cerrarImportador(){document.getElementById('importModal').classList.remove('open');}
+function selImportFuente(el,f){
+  document.querySelectorAll('#import-options .modal-opt').forEach(function(o){o.classList.remove('selected');});
+  el.classList.add('selected');
+  _importFuente=f;
+  _importBtn(true);
+}
+function _importBtn(activo){
+  var b=document.getElementById('import-btn');
+  if(!b)return;
+  b.disabled=!activo;b.style.opacity=activo?'1':'.5';
+}
+function elegirArchivoCSV(){
+  if(!_importFuente){alert('Elegí primero de qué hoja es el archivo.');return;}
+  document.getElementById('import-file').click();
+}
+function _importMsg(html,color){
+  var est=document.getElementById('import-estado');
+  est.style.display='block';
+  est.style.color=color||'var(--mid)';
+  est.innerHTML=html;
+}
+
+function importarCSVArchivo(input){
+  var file=input.files&&input.files[0];
+  if(!file)return;
+  var fuente=_importFuente;
+  var lector=new FileReader();
+  lector.onload=function(){
+    try{
+      var filas=_csvParse(String(lector.result||''));
+      if(filas.length<2){_importMsg('El archivo no tiene filas de datos.','var(--red)');return;}
+      var encabezados=filas[0];
+      var mapa=_csvMapear(encabezados);
+      if(mapa.nombre===undefined&&mapa.email===undefined){
+        _importMsg('No encontré las columnas del Sheet en ese archivo. Revisá que sea la hoja correcta y que la primera fila tenga los títulos.','var(--red)');
+        return;
+      }
+      var vacias=0;
+      var registros=[];
+      filas.slice(1).forEach(function(fila,i){
+        var r=_csvAProspecto(fila,mapa,fuente,i+2,encabezados);
+        if(!r){vacias++;return;}
+        registros.push(r);
+      });
+      if(!registros.length){_importMsg('No había ninguna fila con datos de contacto.','var(--red)');return;}
+      _importMsg('Subiendo '+registros.length+' filas…');
+      _subirProspectos(registros,fuente,vacias);
+    }catch(e){
+      console.warn('importarCSV:',e);
+      _importMsg('No pude leer el archivo: '+e.message,'var(--red)');
+    }
+  };
+  lector.onerror=function(){_importMsg('No pude leer el archivo.','var(--red)');};
+  lector.readAsText(file,'UTF-8');
+  input.value='';
+}
+
+async function _subirProspectos(registros,fuente,vacias){
+  try{
+    // Lo que ya está en el CRM para esa hoja: se compara por Entry ID.
+    var yaEstan={};
+    var r=await _sbFetch('labocomercial_prospectos?select=entry_id&fuente=eq.'+encodeURIComponent(fuente)+'&limit=10000',{method:'GET'});
+    if(r.ok){(await r.json()).forEach(function(x){if(x.entry_id)yaEstan[String(x.entry_id)]=true;});}
+    else{_importMsg('No pude consultar el CRM ('+r.status+'). Probá de nuevo.','var(--red)');return;}
+
+    var nuevos=registros.filter(function(x){return !yaEstan[String(x.entry_id)];});
+    var repetidos=registros.length-nuevos.length;
+    if(!nuevos.length){
+      _importMsg('✓ Ya estaba todo: las '+registros.length+' filas del archivo están en el CRM.','var(--green)');
+      return;
+    }
+    var subidos=0;
+    for(var i=0;i<nuevos.length;i+=200){
+      var lote=nuevos.slice(i,i+200);
+      // on_conflict nombra las columnas del índice de deduplicación: sin eso
+      // PostgREST mira sólo la clave primaria y un repetido voltea el lote entero.
+      var resp=await _sbFetch('labocomercial_prospectos?on_conflict=fuente,entry_id',{
+        method:'POST',
+        headers:{'Prefer':'resolution=ignore-duplicates,return=minimal'},
+        body:JSON.stringify(lote)
+      });
+      if(!resp.ok){
+        var txt=await resp.text();
+        console.warn('importar lote:',resp.status,txt);
+        _importMsg('Se subieron '+subidos+' y después falló ('+resp.status+'). Volvé a importar el mismo archivo: lo que ya entró no se duplica.','var(--red)');
+        await loadProspectos();
+        return;
+      }
+      subidos+=lote.length;
+      _importMsg('Subiendo… '+subidos+' de '+nuevos.length);
+    }
+    await loadProspectos();
+    _importMsg('✓ Listo: <strong>'+subidos+'</strong> prospectos nuevos'+
+      (repetidos?' · '+repetidos+' ya estaban':'')+
+      (vacias?' · '+vacias+' filas vacías ignoradas':'')+'.','var(--green)');
+  }catch(e){
+    console.warn('_subirProspectos:',e);
+    _importMsg('Falló la subida: '+e.message,'var(--red)');
+  }
+}
+
+/** Parser de CSV completo: respeta comas, comillas y saltos de línea dentro de
+    una celda (los comentarios de los clientes traen los tres). */
+function _csvParse(texto){
+  texto=texto.replace(/^﻿/,'');                 // BOM que agregan Excel y Sheets
+  // Sheets exporta con coma; algunas configuraciones regionales usan punto y coma.
+  var cab=texto.slice(0,texto.indexOf('\n')>0?texto.indexOf('\n'):texto.length);
+  var sep=(cab.split(';').length>cab.split(',').length)?';':',';
+  var filas=[],fila=[],campo='',comillas=false,i=0;
+  while(i<texto.length){
+    var c=texto.charAt(i);
+    if(comillas){
+      if(c==='"'){
+        if(texto.charAt(i+1)==='"'){campo+='"';i+=2;continue;}
+        comillas=false;i++;continue;
+      }
+      campo+=c;i++;continue;
+    }
+    if(c==='"'){comillas=true;i++;continue;}
+    if(c===sep){fila.push(campo);campo='';i++;continue;}
+    if(c==='\r'){i++;continue;}
+    if(c==='\n'){fila.push(campo);filas.push(fila);fila=[];campo='';i++;continue;}
+    campo+=c;i++;
+  }
+  if(campo!==''||fila.length){fila.push(campo);filas.push(fila);}
+  return filas;
+}
+
+// Mismos alias que el Apps Script: las columnas se buscan por nombre de
+// encabezado, sin importar orden, mayúsculas ni acentos.
+const PROS_ALIAS={
+  entry_id:['entryid','id','identry'],
+  nombre:['nombreyapellido','nombre','nombreapellido','nombrecompleto','apellidoynombre'],
+  telefono:['telefono','tel','celular','whatsapp','movil'],
+  email:['correoelectronico','email','mail','correo','e-mail'],
+  modelo:['modelo','modelodeinteres'],
+  tipo_proyecto:['tipodeproyecto','tipoproyecto','proyecto'],
+  comentario:['comentariosadicional','comentariosadicionales','comentarioadicional','mensaje','consulta'],
+  fecha:['fecha','fechadeenvio','timestamp','marcatemporal'],
+  url:['url','link','pagina'],
+  region:['region','provincia','zona','ubicacion'],
+  etapa_sheet:['etapa'],
+  estado_sheet:['estado'],
+  calidad:['calidaddellead','calidad','calidadlead'],
+  responsable:['contacto','responsable','vendedor','asignadoa'],
+  notas:['comentarios','observaciones','notas'],
+  descargo_brochure:['descargobrochure','descargobrochures','brochure']
+};
+const PROS_ORIGEN={formulario:'Google Ads',brochure:'Google Ads'};
+
+/** "Hector" (como lo escriben en el Sheet) → "Hector Bermudez" (como está en el CRM).
+    Si no hay una coincidencia única, se respeta lo que vino escrito. */
+function _prosVendedor(v){
+  var n=_csvNorm(v);
+  if(!n)return '';
+  var exacto=PROS_VENDEDORES.find(function(x){return _csvNorm(x)===n;});
+  if(exacto)return exacto;
+  var candidatos=PROS_VENDEDORES.filter(function(x){return _csvNorm(x).indexOf(n)===0;});
+  return candidatos.length===1?candidatos[0]:String(v).trim();
+}
+function _csvNorm(s){
+  return String(s===null||s===undefined?'':s)
+    .normalize('NFD').replace(new RegExp('['+String.fromCharCode(768)+'-'+String.fromCharCode(879)+']','g'),'')
+    .toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+function _csvMapear(encabezados){
+  var norm=encabezados.map(function(h){return _csvNorm(h);});
+  var mapa={},usadas={};
+  Object.keys(PROS_ALIAS).forEach(function(campo){
+    for(var a=0;a<PROS_ALIAS[campo].length;a++){
+      var idx=norm.indexOf(PROS_ALIAS[campo][a]);
+      if(idx>=0&&!usadas[idx]){mapa[campo]=idx;usadas[idx]=true;return;}
+    }
+  });
+  return mapa;
+}
+function _csvAProspecto(fila,mapa,fuente,nroFila,encabezados){
+  function v(campo){var i=mapa[campo];return (i===undefined)?'':(fila[i]===undefined?'':fila[i]);}
+  function t(x){return String(x===null||x===undefined?'':x).trim();}
+  if(!t(v('nombre'))&&!t(v('email'))&&!t(v('telefono')))return null;   // fila vacía
+  var raw={};
+  encabezados.forEach(function(h,i){
+    var k=t(h);if(!k)return;
+    var val=t(fila[i]);if(val)raw[k]=val;
+  });
+  return {
+    fuente:fuente,
+    entry_id:t(v('entry_id'))||(fuente+'-r'+nroFila),
+    origen:PROS_ORIGEN[fuente]||'',
+    fecha:_csvFecha(v('fecha')),
+    url:t(v('url')),
+    nombre:t(v('nombre')),
+    email:t(v('email')).toLowerCase(),
+    telefono:t(v('telefono')),
+    region:t(v('region')),
+    modelo:t(v('modelo')),
+    tipo_proyecto:t(v('tipo_proyecto')),
+    comentario:t(v('comentario')),
+    etapa:_csvEtapa(v('etapa_sheet'),v('estado_sheet')),
+    contactos:_csvContactos(v('etapa_sheet')),
+    calidad:_csvCalidad(v('calidad')),
+    responsable:_prosVendedor(v('responsable')),
+    notas:t(v('notas')),
+    descargo_brochure:fuente==='brochure'?true:_csvSiNo(v('descargo_brochure')),
+    actividad:[],
+    raw:raw
+  };
+}
+function _csvFecha(v){
+  var s=String(v||'').trim();
+  if(!s)return null;
+  var m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);        // d/m/aaaa
+  if(m){
+    var anio=m[3].length===2?2000+parseInt(m[3],10):parseInt(m[3],10);
+    var d=new Date(anio,parseInt(m[2],10)-1,parseInt(m[1],10),12,0,0);
+    return isNaN(d.getTime())?null:d.toISOString();
+  }
+  var d2=new Date(s);
+  return isNaN(d2.getTime())?null:d2.toISOString();
+}
+function _csvEtapa(etapaSheet,estadoSheet){
+  var est=_csvNorm(estadoSheet),et=_csvNorm(etapaSheet);
+  if(est.indexOf('noavanza')>=0||est.indexOf('perdido')>=0||est.indexOf('descart')>=0)return 'Descartado';
+  if(est.indexOf('cotiz')>=0||est.indexOf('ganado')>=0||est.indexOf('convert')>=0)return 'Convertido';
+  if(est.indexOf('encurso')>=0||est.indexOf('seguimiento')>=0)return 'En seguimiento';
+  if(et)return 'Contactado';
+  return 'Nuevo';
+}
+function _csvContactos(etapaSheet){
+  var m=String(etapaSheet||'').match(/(\d+)/);
+  return m?parseInt(m[1],10):0;
+}
+function _csvCalidad(v){
+  var n=_csvNorm(v);
+  if(!n||n==='na')return null;
+  if(n.indexOf('buen')>=0)return 'Bueno';
+  if(n.indexOf('regular')>=0||n.indexOf('medio')>=0)return 'Regular';
+  if(n.indexOf('mal')>=0||n.indexOf('bajo')>=0)return 'Malo';
+  return String(v).trim();
+}
+function _csvSiNo(v){
+  var n=_csvNorm(v);
+  if(!n)return false;
+  if(n==='no'||n==='false'||n==='0')return false;
+  return true;
+}
+
+// ── Panel de detalle ──────────────────────────────────────────────────────────
+function openProspecto(id){
+  var p=allProspectos.find(function(x){return String(x.id)===String(id);});
+  if(!p)return;
+  currentProspectoId=String(id);
+  var etapa=prosEtapa(p);
+  var cls=PROS_CLS[etapa]||'p-nuevo';
+  var fuente=p.fuente||'formulario';
+  document.getElementById('dp-title').textContent=p.nombre||'Prospecto';
+
+  function campo(label,valor){
+    return '<div class="dp-field"><label>'+label+'</label><span>'+esc(valor||'—')+'</span></div>';
+  }
+  var yaCliente=prosYaEsCliente(p);
+  var hermanos=prosHermanos(p);
+  var avisoCliente=yaCliente
+    ? '<div class="pr-msg" style="border-color:var(--amber);background:#FEF9E7;margin-bottom:12px">Este contacto ya tiene cotización en el Pipeline'+
+      (yaCliente.leadNum?' (#'+_fmtLeadNum(yaCliente.leadNum)+')':'')+'. '+
+      '<a href="#" data-lid="'+escAttr(yaCliente.id)+'" onclick="openDetail(this.dataset.lid);return false;" style="color:var(--blue)">Ver el lead →</a></div>'
+    : '';
+  var avisoHermanos=hermanos.length
+    ? '<div class="pr-msg" style="border-color:var(--blue);background:#EBF3FC;margin-bottom:12px">El mismo contacto entró '+(hermanos.length+1)+' veces: '+
+      esc([p].concat(hermanos).map(function(o){return (PROS_FUENTE_LABEL[o.fuente]||o.fuente)+' '+_prosFecha(o);}).join(' · '))+'</div>'
+    : '';
+  var consulta=p.comentario
+    ? '<div class="dp-section"><div class="dp-section-title">Consulta del cliente</div><div class="pr-msg">'+esc(p.comentario)+'</div></div>'
+    : '';
+  var historial=(p.actividad||[]).map(function(a){
+    var d=a.fecha?new Date(a.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
+    return '<div class="act-entry"><div class="act-dot is-nota">•</div><div class="act-body">'+
+      '<div class="act-fecha-txt">'+d+(a.usuario?' · '+esc(a.usuario):'')+'</div>'+
+      '<div class="act-texto-txt">'+esc(a.texto||'')+'</div></div></div>';
+  }).join('');
+
+  var acciones=etapa==='Convertido'
+    ? (p.lead_id?'<button class="btn-modal primary" data-lid="'+escAttr(p.lead_id)+'" onclick="openDetail(this.dataset.lid)">Ver lead en el Pipeline →</button>':'')
+    : '<button class="btn-modal primary" data-pid="'+escAttr(p.id)+'" onclick="convertirProspecto(this.dataset.pid)">Cotizar →</button>'+
+      '<button class="btn-modal" data-pid="'+escAttr(p.id)+'" onclick="registrarContacto(this.dataset.pid)">Registrar contacto</button>'+
+      '<button class="btn-modal" data-pid="'+escAttr(p.id)+'" onclick="descartarProspecto(this.dataset.pid)">No avanza</button>';
+
+  document.getElementById('dp-body').innerHTML=
+    avisoCliente+avisoHermanos+
+    '<div class="dp-badges"><span class="etapa '+cls+'" style="cursor:default">'+esc(etapa)+'</span>'+
+      '<span class="fu fu-'+escAttr(fuente)+'">'+esc(PROS_FUENTE_LABEL[fuente]||fuente)+'</span>'+
+      (p.origen?'<span class="fu" style="background:var(--grey);color:var(--mid)">'+esc(p.origen)+'</span>':'')+'</div>'+
+    '<div class="dp-grid">'+
+      campo('Email',p.email)+campo('Teléfono',p.telefono)+
+      campo('Modelo de interés',p.modelo)+campo('Tipo de proyecto',p.tipo_proyecto)+
+      campo('Región',p.region)+campo('Fecha de ingreso',_prosFecha(p))+
+      campo('Responsable',p.responsable)+campo('Contactos',String(p.contactos||0))+
+      campo('Calidad',p.calidad)+campo('Días en cartera',_prosDias(p)+' días')+
+    '</div>'+
+    (urlSegura(p.url)?'<div class="dp-field" style="margin:12px 0 20px"><label>Landing</label><span><a href="'+escAttr(urlSegura(p.url))+'" target="_blank" rel="noopener" style="color:var(--blue);word-break:break-all">'+esc(p.url)+'</a></span></div>':'')+
+    consulta+
+    '<div class="dp-section"><div class="dp-section-title">Acciones</div><div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap">'+acciones+'</div></div>'+
+    '<div class="dp-section"><div class="dp-section-title">Notas y seguimiento</div>'+
+      '<textarea id="pr-nota-input" placeholder="Escribí qué pasó en el contacto..." style="width:100%;min-height:60px;padding:8px 10px;border:1px solid var(--border);background:var(--white);font-family:inherit;font-size:12px;outline:none;resize:vertical"></textarea>'+
+      '<div style="margin-top:8px"><button class="btn-modal primary" data-pid="'+escAttr(p.id)+'" onclick="guardarNotaProspecto(this.dataset.pid)">Guardar nota</button></div>'+
+      '<div class="act-timeline">'+(historial||'<div class="td-muted" style="font-size:11px">Sin actividad registrada.</div>')+'</div>'+
+    '</div>';
+  document.getElementById('detailOverlay').classList.add('open');
+}
 
 /* ════════════════ COTIZADOR (generación de oferta + PDF + SharePoint) ════════════════ */
 const MARKUP=1.4;
@@ -4266,7 +5376,10 @@ async function _spSaveLead(lead){
           ultima_cot:cot,fecha_ultima_cot:cot.fecha,updated_at:new Date().toISOString()
         })
       });
-      if(pr.ok)console.log('[CRM] ✓ Versión agregada al proyecto existente:',clienteName,'#'+lead.num);
+      if(pr.ok){
+        console.log('[CRM] ✓ Versión agregada al proyecto existente:',clienteName,'#'+lead.num);
+        await _cerrarProspectoConvertido(existing.id,lead);
+      }
       else console.error('[CRM] ✗ Error al actualizar lead:',pr.status,await pr.text());
     }else{
       // Proyecto nuevo (cliente nuevo, o cliente que vuelve por algo distinto):
@@ -4284,10 +5397,43 @@ async function _spSaveLead(lead){
         headers:{'Prefer':'return=minimal'},
         body:JSON.stringify(newRow)
       });
-      if(nr.ok)console.log('[CRM] ✓ Proyecto nuevo creado:',clienteName,'#'+lead.num);
+      if(nr.ok){
+        console.log('[CRM] ✓ Proyecto nuevo creado:',clienteName,'#'+lead.num);
+        await _cerrarProspectoConvertido(lead.id,lead);
+      }
       else console.error('[CRM] ✗ Error al crear lead:',nr.status,await nr.text());
     }
   }catch(e){console.error('[CRM] ✗ _spSaveLead excepción:',e);}
+}
+
+/**
+ * Cierra el círculo de la conversión: si esta cotización salió de un prospecto
+ * (botón "Cotizar →" de la pestaña Prospectos), lo marca Convertido y lo enlaza con
+ * la fila del Pipeline. Antes chequea que el contacto sea realmente el mismo: si el
+ * vendedor abandonó esa cotización y terminó cotizando a otra persona, no se toca
+ * nada.
+ */
+async function _cerrarProspectoConvertido(leadId,lead){
+  if(!_prospectoPendiente)return;
+  var pid=_prospectoPendiente;
+  var p=(typeof allProspectos!=='undefined')?allProspectos.find(function(x){return String(x.id)===String(pid);}):null;
+  if(!p){_prospectoPendiente=null;return;}
+  function nrm(v){return String(v||'').trim().toLowerCase();}
+  var mismoMail=nrm(p.email)&&nrm(p.email)===nrm(lead.email);
+  var mismoNombre=nrm(p.nombre)&&nrm(p.nombre)===nrm(lead.cliente);
+  if(!mismoMail&&!mismoNombre){
+    console.warn('[CRM] La cotización no coincide con el prospecto pendiente: no se marca como convertido.');
+    _prospectoPendiente=null;return;
+  }
+  _prospectoPendiente=null;
+  try{
+    await patchProspecto(pid,{
+      etapa:'Convertido',
+      lead_id:String(leadId),
+      convertido_at:new Date().toISOString()
+    },'Convertido en cotización '+(lead.num||'')+(lead.vendedor?(' · '+lead.vendedor):''));
+    console.log('[CRM] ✓ Prospecto',pid,'marcado como convertido →',leadId);
+  }catch(e){console.warn('_cerrarProspectoConvertido:',e);}
 }
 
 function saveLead(pdfMeta){
