@@ -41,10 +41,10 @@ var LOTE      = 200;     // filas por request
 // Proyecto Supabase del CRM. Se puede pisar desde el menú si alguna vez cambia.
 var SUPABASE_URL_DEFAULT = 'https://wcpkpwxhqdcdljfwzcmy.supabase.co';
 
-// Clave pública del proyecto (anon). No es un secreto: viaja en el HTML del CRM y
-// por sí sola no da acceso a nada — todo pasa por las políticas de seguridad de la
-// base, que dependen de con qué cuenta se entra.
-var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcGtwd3hocWRjZGxqZnd6Y215Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDM4NDAsImV4cCI6MjA5NjYxOTg0MH0.MSTk46VAwdAsn5qNBdrHmGIiLYyN-rAyAZC72xZW3D4';
+// Clave pública del proyecto (publishable), la misma que usa el HTML del CRM. No
+// es un secreto: por sí sola no da acceso a nada — todo pasa por las políticas de
+// la base, que a este script sólo le permiten insertar prospectos.
+var SUPABASE_PUBLIC_KEY = 'sb_publishable_08decRYdCRUdtO5zogvJVg_VEBCN9pf';
 
 // ── Menú dentro del Sheet ─────────────────────────────────────────────────────
 // Toda la operación se hace desde acá: no hace falta volver a abrir el editor.
@@ -537,7 +537,7 @@ function _config() {
  * la petición entra como anónima, que es exactamente lo que necesita el Sheet.
  */
 function _headers(cfg, prefer) {
-  var h = { 'apikey': SUPABASE_ANON_KEY };
+  var h = { 'apikey': SUPABASE_PUBLIC_KEY };
   if (prefer) h['Prefer'] = prefer;
   return h;
 }
