@@ -4449,7 +4449,7 @@ function _addModelMediaPages(doc){
   function header(t){doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(10,10,10);doc.text(t,mg,16);doc.setDrawColor(200,197,188);doc.setLineWidth(0.3);doc.line(mg,19,W-mg,19);}
   function fit(url,x,y,mw,mh){try{var p=doc.getImageProperties(url);var r=Math.min(mw/p.width,mh/p.height);var w=p.width*r,hh=p.height*r;var fmt=(String(url).indexOf('image/png')>=0)?'PNG':'JPEG';doc.addImage(url,fmt,x+(mw-w)/2,y+(mh-hh)/2,w,hh);}catch(e){}}
   var titulo=(media.nombre||('LABO Modular '+DNAME[sel]));
-  if(media.plano){doc.addPage('a4','landscape');header(titulo+' — Plano');fit(media.plano,mg,24,W-2*mg,H-30);}
+  if(media.plano){doc.addPage('a4','landscape');header(titulo+' — Plano de planta');var pw=Math.min(W-2*mg,200),ph=Math.min(H-34,150);fit(media.plano,(W-pw)/2,28,pw,ph);}
   var rs=media.renders||[]; var cols=2,rows=2,gap=6,y0=24;
   var cw=(W-2*mg-gap*(cols-1))/cols, ch=(H-y0-mg-gap*(rows-1))/rows;
   for(var k=0;k<rs.length;k+=4){
@@ -4525,7 +4525,7 @@ const CATALOG_B64_MAP={'madera':null,'modular':null};// set at runtime
 
 const CATALOG_MODEL_PAGES={
   'madera': {'S':[8,9],'M':[10,11],'L':[12,13],'XL':[14,15]},
-  'modular': {'S':[8,9,10],'M':[8,11,12],'L':[13,14,15,16],'XL':[13,17,18,19]}
+  'modular': {'SE':[],'S':[8,9,10],'M':[8,11,12],'L':[13,14,15,16],'XL':[13,17,18,19]}
 };
 const CATALOG_COMMON_BEFORE=Array.from({length:8},(_,i)=>i);  // 0-7 both catalogs
 const CATALOG_COMMON_AFTER_MADERA =Array.from({length:11},(_,i)=>i+16); // 16-26
