@@ -226,6 +226,8 @@ tr:hover td{background:#F5F3ED}
 .pr-act.ghost{border-color:var(--border);color:var(--mid)}
 .pr-act.ghost:hover{background:var(--grey);color:var(--black)}
 .pr-msg{font-size:12px;line-height:1.5;background:var(--card);border:1px solid var(--border);padding:8px 10px;white-space:pre-wrap;word-break:break-word}
+.pros-alerta{background:#FEF9E7;border:1px solid var(--amber);border-left-width:3px;padding:12px 14px;margin-bottom:16px;font-size:13px;line-height:1.55}
+.pros-alerta-que{margin-top:6px;font-size:12px;color:var(--mid);line-height:1.55}
 .pros-vistas{display:flex;gap:0;border-bottom:1px solid var(--border);background:#F0EEE8;padding:0 24px}
 .pv-btn{padding:11px 18px;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .pv-btn:hover{color:var(--black)}
@@ -1087,6 +1089,7 @@ tr:hover td{background:#F5F3ED}
     </div>
   </div>
   <div class="content">
+    <div class="pros-alerta" id="pros-alerta" style="display:none"></div>
     <div class="kpi-grid">
       <div class="kpi amber clickable" onclick="setProsFilter('etapa:Nuevo')" title="Click para filtrar"><div class="kpi-label">Sin contactar</div><div class="kpi-value" id="pkpi-nuevos">0</div><div class="kpi-explain">Todavía nadie los tocó</div><div class="kpi-sub" id="pkpi-nuevos-sub">—</div></div>
       <div class="kpi clickable" onclick="setProsFilter('etapa:En seguimiento')" title="Click para filtrar"><div class="kpi-label">En seguimiento</div><div class="kpi-value" id="pkpi-seguimiento">0</div><div class="kpi-explain">Contactados y activos</div><div class="kpi-sub">conversaciones abiertas</div></div>
@@ -2671,7 +2674,54 @@ function prosHermanos(p){
   return out;
 }
 
-function renderProspectos(){renderProsCounts();renderProsKpis();renderProsTable();}
+function renderProspectos(){renderProsCounts();renderProsKpis();renderProsAlerta();renderProsTable();}
+
+/**
+ * Detecta que dejaron de entrar leads y lo dice acá, que es donde el equipo
+ * trabaja. El script del Google Sheet corre solo cada 10 minutos, sin nadie
+ * mirando: cuando se corta no avisa, y en septiembre de 2026 estuvo días caído
+ * hasta que alguien comparó el Sheet con el CRM de casualidad.
+ *
+ * Mira created_at (cuándo llegó el lead al CRM), no fecha (cuándo completó el
+ * formulario): lo que interesa es si la puerta de entrada sigue abierta.
+ *
+ * El umbral no es un número fijo, sale del ritmo propio de la campaña (leads de
+ * los últimos 60 días). Con 3 leads por día, 3 días en blanco es una señal; con
+ * uno por semana, no es nada. Así no grita en temporada baja ni se queda callado
+ * cuando la campaña está andando fuerte.
+ */
+function prosAlertaDatos(){
+  if(!allProspectos.length)return null;
+  var DIA=86400000, ahora=Date.now(), ultimo=0, recientes=0;
+  allProspectos.forEach(function(p){
+    var c=p.created_at?new Date(p.created_at).getTime():0;
+    if(c&&!isNaN(c)&&c>ultimo)ultimo=c;
+    var f=p.fecha?new Date(p.fecha).getTime():0;
+    if(f&&!isNaN(f)&&f<=ahora&&ahora-f<=60*DIA)recientes++;
+  });
+  if(!ultimo)return null;
+  var dias=Math.floor((ahora-ultimo)/DIA);
+  var porDia=recientes/60;
+  var umbral=porDia>0?Math.min(14,Math.max(3,Math.ceil(3/porDia))):7;
+  if(dias<umbral)return null;
+  var sem=porDia*7;
+  return {dias:dias,ultimo:new Date(ultimo),porSemana:sem>=3?Math.round(sem):Math.round(sem*10)/10};
+}
+
+function renderProsAlerta(){
+  var el=document.getElementById('pros-alerta');
+  if(!el)return;
+  var a=prosAlertaDatos();
+  if(!a){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='';
+  el.innerHTML='<strong>Hace '+a.dias+' d\u00edas que no entra ning\u00fan lead nuevo.</strong> El \u00faltimo lleg\u00f3 el '+
+    esc(a.ultimo.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'}))+
+    (a.porSemana>=0.5?(' y ven\u00edamos recibiendo alrededor de '+esc(String(a.porSemana))+' por semana.'):'.')+
+    '<div class="pros-alerta-que">Puede que la sincronizaci\u00f3n con el Google Sheet se haya cortado. '+
+    'Para chequearlo: abr\u00ed el Sheet <strong>Env\u00edos Formularios - Labo Modular</strong> \u2192 men\u00fa '+
+    '<strong>LABO CRM</strong> \u2192 <strong>Ver estado</strong>. Ah\u00ed dice si la sincronizaci\u00f3n autom\u00e1tica ' +
+    'est\u00e1 activa y c\u00f3mo termin\u00f3 la \u00faltima corrida. Si la campa\u00f1a est\u00e1 pausada, este aviso es esperable.</div>';
+}
 
 function renderProsCounts(){
   function set(id,n){var el=document.getElementById(id);if(el)el.textContent=n;}
