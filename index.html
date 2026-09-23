@@ -4443,19 +4443,28 @@ function laboMediaPreviewHtml(){
   }
   return h;
 }
-function _addModelMediaPages(doc){
-  var media=(window.LABO_MEDIA||{})[sel]; if(!media)return;
-  var W=297,H=210,mg=14;
+function _drawMediaPages(doc,append){
+  var media=(window.LABO_MEDIA||{})[sel]; if(!media)return false;
+  var W=297,H=210,mg=14; var first=!append;
+  function newPage(){ if(first){first=false;} else {doc.addPage('a4','landscape');} }
   function header(t){doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(10,10,10);doc.text(t,mg,16);doc.setDrawColor(200,197,188);doc.setLineWidth(0.3);doc.line(mg,19,W-mg,19);}
   function fit(url,x,y,mw,mh){try{var p=doc.getImageProperties(url);var r=Math.min(mw/p.width,mh/p.height);var w=p.width*r,hh=p.height*r;var fmt=(String(url).indexOf('image/png')>=0)?'PNG':'JPEG';doc.addImage(url,fmt,x+(mw-w)/2,y+(mh-hh)/2,w,hh);}catch(e){}}
   var titulo=(media.nombre||('LABO Modular '+DNAME[sel]));
-  if(media.plano){doc.addPage('a4','landscape');header(titulo+' — Plano de planta');var pw=Math.min(W-2*mg,200),ph=Math.min(H-34,150);fit(media.plano,(W-pw)/2,28,pw,ph);}
+  if(media.plano){newPage();header(titulo+' — Plano de planta');var pw=Math.min(W-2*mg,200),ph=Math.min(H-34,150);fit(media.plano,(W-pw)/2,28,pw,ph);}
   var rs=media.renders||[]; var cols=2,rows=2,gap=6,y0=24;
   var cw=(W-2*mg-gap*(cols-1))/cols, ch=(H-y0-mg-gap*(rows-1))/rows;
   for(var k=0;k<rs.length;k+=4){
-    doc.addPage('a4','landscape');header(titulo+' — Render'+(rs.length>1?'s':''));
+    newPage();header(titulo+' — Render'+(rs.length>1?'s':''));
     rs.slice(k,k+4).forEach(function(r,i){var cx=mg+(i%cols)*(cw+gap),cy=y0+Math.floor(i/cols)*(ch+gap);fit(r,cx,cy,cw,ch);});
   }
+  return true;
+}
+function _buildMediaDoc(){
+  var media=(window.LABO_MEDIA||{})[sel]; if(!media)return null;
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  _drawMediaPages(doc,false);
+  return doc;
 }
 function buildPreview(){const d=COSTOS[sel];const cant=parseInt(document.getElementById('cant').value)||1;const items=getItems();const tot=items.reduce((s,i)=>s+i.precio,0);const totO=tot*cant;const pago=document.getElementById('oPago').value;const notas=document.getElementById('oNotas').value;const rows=items.map(it=>`<tr><td>${it.label}</td><td style="text-align:center">${cant}</td><td style="text-align:right;font-family:'IBM Plex Mono',monospace">USD ${fmtCot(it.precio)}</td><td style="text-align:right;font-family:'IBM Plex Mono',monospace">USD ${fmtCot(it.precio*cant)}</td></tr>`).join('');const binc=getBINC();const inc=binc.map(i=>`<div class="iitem"><span class="dot"></span><span>${i}</span></div>`).join('');const opDesc=getOpcionalesDesc();const incOpts=opDesc.length>0?opDesc.map(i=>`<div class="iitem"><span class="dot" style="background:var(--black)"></span><span>${i}</span></div>`).join(''):'';const exclList=getExclusiones();const excl=exclList.map(i=>`<div class="iitem"><span class="dot" style="background:var(--red)"></span><span>${i}</span></div>`).join('');const nExcl=incOpts?4:3;const nNotas=nExcl+1;
 document.getElementById('pvw').innerHTML=`
@@ -4559,12 +4568,14 @@ async function _doGeneratePDF(){
   var finalBytes;
   if(hasCatalog&&typeof PDFLib!=='undefined'){
     try{
-      finalBytes=await _buildMergedBytes(doc,linea,catalogKey);
+      finalBytes=await _buildMergedBytes(doc,linea,catalogKey,_buildMediaDoc());
     }catch(e){
       console.error('Merge error, usando oferta sin catálogo:',e);
+      _drawMediaPages(doc,true);
       finalBytes=doc.output('arraybuffer');
     }
   } else {
+    _drawMediaPages(doc,true);
     finalBytes=doc.output('arraybuffer');
   }
   await _finishPDF(finalBytes);
@@ -4593,9 +4604,9 @@ async function _regenerarBytesDesdeSnapshot(snap){
     var hasCatalog=(linea==='madera'||linea==='modular')&&CATALOG_MODEL_PAGES[linea]&&CATALOG_MODEL_PAGES[linea][catalogKey];
     var bytes;
     if(hasCatalog&&typeof PDFLib!=='undefined'){
-      try{bytes=await _buildMergedBytes(doc,linea,catalogKey);}
-      catch(e){console.error('Merge error en regeneración:',e);bytes=doc.output('arraybuffer');}
-    }else{bytes=doc.output('arraybuffer');}
+      try{bytes=await _buildMergedBytes(doc,linea,catalogKey,_buildMediaDoc());}
+      catch(e){console.error('Merge error en regeneración:',e);_drawMediaPages(doc,true);bytes=doc.output('arraybuffer');}
+    }else{_drawMediaPages(doc,true);bytes=doc.output('arraybuffer');}
     return bytes;
   }finally{
     // Restaurar SIEMPRE el estado original
@@ -4673,7 +4684,7 @@ function iniciarNuevaVersion(leadId,cotId){
 }
 
 // Devuelve los bytes del PDF (oferta + catálogo). No descarga ni sube.
-async function _buildMergedBytes(jspdfDoc,linea,modelKey){
+async function _buildMergedBytes(jspdfDoc,linea,modelKey,mediaDoc){
   await _initMSAL();await _getSiteDrive();
   var catFileName=linea==='modular'?'cat_modular.pdf':'cat_madera.pdf';
   var catPath=MSAL_CONFIG.dataFolder+'/'+catFileName;
@@ -4689,22 +4700,29 @@ async function _buildMergedBytes(jspdfDoc,linea,modelKey){
   var offerDoc=await PDFLib.PDFDocument.load(offerBytes);
   var catDoc=await PDFLib.PDFDocument.load(catBuffer);
   var merged=await PDFLib.PDFDocument.create();
+  var catSize=catDoc.getPage(0).getSize();
   var afterPages=linea==='modular'?CATALOG_COMMON_AFTER_MODULAR:CATALOG_COMMON_AFTER_MADERA;
+  function addScaled(p){var s=p.getSize();merged.addPage(p);p.setSize(catSize.width,catSize.height);p.scaleContent(catSize.width/s.width,catSize.height/s.height);}
+  // Presentación (intro del catálogo)
   var introPgs=await merged.copyPages(catDoc,CATALOG_COMMON_BEFORE);
   introPgs.forEach(function(p){merged.addPage(p);});
+  // En el lugar de las páginas de modelo: plano + renders de esta casa (si hay)
+  if(mediaDoc){
+    var mDoc=await PDFLib.PDFDocument.load(mediaDoc.output('arraybuffer'));
+    var mPgs=await merged.copyPages(mDoc,mDoc.getPageIndices());
+    mPgs.forEach(addScaled);
+  }
+  // Páginas de modelo del catálogo (vacías para SE)
   var modPgs=await merged.copyPages(catDoc,CATALOG_MODEL_PAGES[linea][modelKey]);
   modPgs.forEach(function(p){merged.addPage(p);});
+  // Cierre del catálogo
   var closePgs=await merged.copyPages(catDoc,afterPages);
   closePgs.forEach(function(p){merged.addPage(p);});
-  var catPage0=catDoc.getPage(0);
-  var catSize=catPage0.getSize();
+  // Oferta económica (al final)
   var offerIndices=offerDoc.getPageIndices();
   for(var oi=0;oi<offerIndices.length;oi++){
     var cp=await merged.copyPages(offerDoc,[offerIndices[oi]]);
-    var op=cp[0];merged.addPage(op);
-    var os=op.getSize();
-    op.setSize(catSize.width,catSize.height);
-    op.scaleContent(catSize.width/os.width,catSize.height/os.height);
+    addScaled(cp[0]);
   }
   return await merged.save(); // Uint8Array
 }
@@ -5011,7 +5029,6 @@ function _buildOfferPDF(){
   const lineaNombre=LINEA[sel]==='madera'?'LABO Madera':'LABO Modular';
   const modeloNombre='Modelo '+DNAME[sel];
   const fileName=`${numPad} ${clientName} - ${lineaNombre} ${modeloNombre}.pdf`;
-  try{_addModelMediaPages(doc);}catch(e){console.warn('media pages',e);}
   return doc;
 }
 
