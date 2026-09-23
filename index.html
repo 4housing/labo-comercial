@@ -4451,11 +4451,13 @@ function _drawMediaPages(doc,append){
   function fit(url,x,y,mw,mh){try{var p=doc.getImageProperties(url);var r=Math.min(mw/p.width,mh/p.height);var w=p.width*r,hh=p.height*r;var fmt=(String(url).indexOf('image/png')>=0)?'PNG':'JPEG';doc.addImage(url,fmt,x+(mw-w)/2,y+(mh-hh)/2,w,hh);}catch(e){}}
   var titulo=(media.nombre||('LABO Modular '+DNAME[sel]));
   if(media.plano){newPage();header(titulo+' — Plano de planta');var pw=Math.min(W-2*mg,200),ph=Math.min(H-34,150);fit(media.plano,(W-pw)/2,28,pw,ph);}
-  var rs=media.renders||[]; var cols=2,rows=2,gap=6,y0=24;
-  var cw=(W-2*mg-gap*(cols-1))/cols, ch=(H-y0-mg-gap*(rows-1))/rows;
-  for(var k=0;k<rs.length;k+=4){
+  var rs=media.renders||[]; var perPage=2, gap=8, y0=24;
+  var ch=H-y0-mg; // altura completa: cada render ocupa toda la hoja de arriba a abajo
+  for(var k=0;k<rs.length;k+=perPage){
     newPage();header(titulo+' — Render'+(rs.length>1?'s':''));
-    rs.slice(k,k+4).forEach(function(r,i){var cx=mg+(i%cols)*(cw+gap),cy=y0+Math.floor(i/cols)*(ch+gap);fit(r,cx,cy,cw,ch);});
+    var pageItems=rs.slice(k,k+perPage), c=(pageItems.length===1)?1:2;
+    var cw=(W-2*mg-gap*(c-1))/c;
+    pageItems.forEach(function(r,i){fit(r,mg+i*(cw+gap),y0,cw,ch);});
   }
   return true;
 }
