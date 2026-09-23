@@ -36,6 +36,12 @@ var HOJAS = [
 
 var _ULTIMO_ERROR = '';  // último rechazo del CRM, para poder mostrarlo en pantalla
 
+// Resultado de la última corrida automática. Se guarda en las propiedades del
+// script porque el disparador corre sin nadie mirando: sin este registro, un
+// error se pierde en el log y la sincronización queda muerta en silencio durante
+// días. "Ver estado" lo muestra.
+var PROP_ULTIMA_CORRIDA = 'ULTIMA_CORRIDA';
+
 var COL_MARCA = 'CRM';   // columna que agrega el script para marcar lo ya sincronizado
 var LOTE      = 200;     // filas por request
 
@@ -94,13 +100,16 @@ function menuProbar() {
     return;
   }
   if (r.code === 200) {
-    ui.alert('✓ Conectado', 'El Sheet llega al CRM y la tabla de prospectos existe.', ui.ButtonSet.OK);
+    ui.alert('✓ Conectado',
+      'El Sheet llega al CRM y la carga de prospectos funciona.\n\n' +
+      'Esta prueba usa el mismo camino que la sincronización real, con un lote ' +
+      'vacío: si pasa, los leads entran.', ui.ButtonSet.OK);
     return;
   }
   var pista;
   if (r.code === 404) {
-    pista = 'La tabla labocomercial_prospectos no existe en este proyecto.\n' +
-            'Falta correr supabase_prospectos.sql en el SQL Editor de Supabase, ' +
+    pista = 'La función de carga no existe en este proyecto.\n' +
+            'Falta correr supabase_prospectos_sync.sql en el SQL Editor de Supabase, ' +
             'o el proyecto configurado no es el del CRM.';
   } else if (r.code === 401 || r.code === 403) {
     pista = 'El CRM rechazó la clave pública. Puede que la hayan rotado o ' +
@@ -114,20 +123,23 @@ function menuProbar() {
 }
 
 /**
- * Pide una lectura mínima de la tabla. Sirve como prueba de vida: comprueba la
- * URL, la clave y que la tabla exista. Devuelve 200 con una lista vacía aunque
- * este script no tenga permiso de leer — las reglas de la base filtran filas, no
- * rechazan la consulta.
+ * Prueba de vida: llama a la función de carga con un lote VACÍO. Devuelve 0 y no
+ * escribe nada, pero recorre exactamente el mismo camino que la sincronización de
+ * verdad: URL, clave, existencia de la función y permiso para ejecutarla.
  *
- * NO usar un insert vacío ("[]") como prueba: PostgREST deduce las columnas a
- * insertar de las claves del JSON, y con un array sin elementos no tiene de dónde,
- * así que responde 400. Eso hacía fallar la prueba con la base perfectamente bien
- * configurada, y mandaba a buscar el problema donde no estaba.
+ * La versión anterior probaba con una lectura (GET) y daba "conectado" aunque la
+ * carga estuviera rota. Eso fue justamente lo que pasó: la prueba pasaba, y los
+ * leads nuevos rebotaban sin que nadie se enterara. Una prueba tiene que ejercitar
+ * el camino real o no prueba nada.
  */
 function _probarCRM() {
   var cfg = _config();
-  var resp = UrlFetchApp.fetch(cfg.url + '/rest/v1/labocomercial_prospectos?select=id&limit=1', {
-    method: 'get', headers: _headers(cfg), muteHttpExceptions: true
+  var resp = UrlFetchApp.fetch(cfg.url + '/rest/v1/rpc/labocomercial_prospectos_ingest', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: _headers(cfg),
+    payload: JSON.stringify({ filas: [] }),
+    muteHttpExceptions: true
   });
   return { code: resp.getResponseCode(), body: String(resp.getContentText() || '').slice(0, 400) };
 }
@@ -189,10 +201,13 @@ function menuEstado() {
     return '· ' + cfg.hoja + ': ' + enviadas + ' de ' + filas + ' en el CRM';
   }).join('\n');
 
+  var ultima = props.getProperty(PROP_ULTIMA_CORRIDA) || 'todavía no corrió ninguna vez';
+
   ui.alert('Estado de la sincronización',
     (auto ? '✓ Sincronización automática activa (cada 10 min)' : '✗ Sincronización automática apagada (paso 2)') + '\n' +
     (pendiente ? '⚠ Todavía hay una clave vieja guardada: volvé a abrir el Sheet para que se borre.'
                : '✓ El script no guarda ninguna credencial') +
+    '\n\nÚltima corrida: ' + ultima +
     '\n\n' + detalle, ui.ButtonSet.OK);
 }
 
@@ -220,6 +235,7 @@ function _menuCorrer(fn, titulo) {
 // ── Punto de entrada: esto es lo que corre el disparador cada 10 minutos ──────
 function sincronizarProspectos() {
   _limpiarCredencialesViejas();
+  _ULTIMO_ERROR = '';
   var total = 0;
   HOJAS.forEach(function (cfg) {
     try {
@@ -228,8 +244,22 @@ function sincronizarProspectos() {
       Logger.log('Error en hoja "' + cfg.hoja + '": ' + e);
     }
   });
+  _registrarCorrida(total);
   Logger.log('Sincronización terminada. Filas nuevas enviadas: ' + total);
   return total;
+}
+
+/** Deja por escrito cómo terminó la última corrida, para que "Ver estado" lo diga. */
+function _registrarCorrida(total) {
+  var sello = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yy HH:mm');
+  var txt = _ULTIMO_ERROR
+    ? ('✗ ' + sello + ' — FALLÓ: ' + _ULTIMO_ERROR.replace(/\s+/g, ' ').slice(0, 300))
+    : ('✓ ' + sello + ' — ' + total + ' fila(s) nuevas');
+  try {
+    PropertiesService.getScriptProperties().setProperty(PROP_ULTIMA_CORRIDA, txt);
+  } catch (e) {
+    Logger.log('No se pudo guardar el estado de la corrida: ' + e);
+  }
 }
 
 /**
@@ -328,18 +358,24 @@ function _sincronizarHoja(cfg, incluirYaMarcadas) {
 }
 
 /**
- * Manda un lote de filas. 'return=minimal' es a propósito: la cuenta de
- * sincronización sólo puede insertar, así que no puede pedir que le devuelvan lo
- * insertado. 'ignore-duplicates' hace que las filas ya cargadas se salteen solas.
+ * Manda un lote de filas al CRM.
+ *
+ * La carga NO escribe directo en la tabla: entra por la función
+ * labocomercial_prospectos_ingest (ver supabase_prospectos_sql más abajo). El
+ * Sheet no tiene ningún permiso sobre la tabla de prospectos; la validación y la
+ * deduplicación ocurren adentro de la función, que sí puede leer la tabla para
+ * resolver el "on conflict".
+ *
+ * Por qué así: insertar directo con "on conflict" exige poder leer la fila que ya
+ * existe, y este script no puede leer (ni debe). Esa combinación hacía rebotar el
+ * lote entero con un error de RLS. Ver supabase_prospectos_sync.sql.
  */
 function _postProspectos(supa, filas) {
-  // on_conflict nombra las columnas del índice de deduplicación: sin eso PostgREST
-  // mira sólo la clave primaria y las filas repetidas hacen fallar el lote entero.
-  var resp = UrlFetchApp.fetch(supa.url + '/rest/v1/labocomercial_prospectos?on_conflict=fuente,entry_id', {
+  var resp = UrlFetchApp.fetch(supa.url + '/rest/v1/rpc/labocomercial_prospectos_ingest', {
     method: 'post',
     contentType: 'application/json',
-    headers: _headers(supa, 'resolution=ignore-duplicates,return=minimal'),
-    payload: JSON.stringify(filas),
+    headers: _headers(supa),
+    payload: JSON.stringify({ filas: filas }),
     muteHttpExceptions: true
   });
   var code = resp.getResponseCode();
