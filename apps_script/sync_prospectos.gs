@@ -325,7 +325,7 @@ function _sincronizarHoja(cfg, incluirYaMarcadas) {
     var marca = String(fila[colMarca - 1] || '').trim();
     if (marca && !incluirYaMarcadas) return;                 // ya está en el CRM
     if (_filaVacia(fila, mapa)) return;                      // fila en blanco
-    pendientes.push({ fila: nroFila, payload: _filaAProspecto(fila, mapa, cfg, nroFila, encabezados) });
+    pendientes.push({ fila: nroFila, payload: _filaAProspecto(fila, mapa, cfg, encabezados) });
   });
 
   if (!pendientes.length) return 0;
@@ -389,14 +389,20 @@ function _postProspectos(supa, filas) {
 
 // ── Armado del registro ───────────────────────────────────────────────────────
 
-function _filaAProspecto(fila, mapa, cfg, nroFila, encabezados) {
+function _filaAProspecto(fila, mapa, cfg, encabezados) {
   function v(campo) {
     var idx = mapa[campo];
     return (idx === undefined) ? '' : fila[idx];
   }
-  // Sin Entry ID usamos una clave estable por hoja+fila, para que una resincronización
-  // tampoco duplique esas filas.
-  var entryId = _txt(v('entry_id')) || (cfg.fuente + '-r' + nroFila);
+  // Sin Entry ID, la clave sale del contenido de la fila (ver _claveContenido).
+  var entryId = _txt(v('entry_id')) || _claveContenido(cfg.fuente, {
+    fecha:      _fecha(v('fecha')),
+    nombre:     _txt(v('nombre')),
+    email:      _txt(v('email')),
+    telefono:   _tel(v('telefono')),
+    modelo:     _txt(v('modelo')),
+    comentario: _txt(v('comentario'))
+  });
 
   return {
     fuente:        cfg.fuente,
@@ -421,6 +427,38 @@ function _filaAProspecto(fila, mapa, cfg, nroFila, encabezados) {
 
     raw: _raw(fila, encabezados)
   };
+}
+
+/**
+ * Clave de deduplicación para las filas que no traen Entry ID.
+ *
+ * Antes se usaba el número de fila ("formulario-r57"). Eso se rompe solo: basta
+ * con que alguien inserte una fila arriba o reordene la hoja para que una fila
+ * nueva herede la clave de una vieja y la base la descarte como repetida, en
+ * silencio. Ahora la clave sale del contenido de la fila, así que viaja con ella.
+ *
+ * Dos hashes con semillas distintas (64 bits en total): con uno solo, mil filas
+ * ya tienen chance de chocar, y un choque acá significa un lead perdido.
+ *
+ * Efecto de borde asumido: dos filas idénticas en fecha, nombre, mail, teléfono,
+ * modelo y comentario cuentan como una sola. Si difieren en algo, entran las dos.
+ */
+function _hash36(s, semilla) {
+  var h = semilla;
+  for (var i = 0; i < s.length; i++) { h = ((h << 5) + h) ^ s.charCodeAt(i); h = h >>> 0; }
+  return h.toString(36);
+}
+
+function _claveContenido(fuente, d) {
+  var base = [
+    String(d.fecha || '').slice(0, 10),
+    String(d.nombre || '').toLowerCase().trim(),
+    String(d.email || '').toLowerCase().trim(),
+    String(d.telefono || '').replace(/\D/g, '').slice(-8),
+    String(d.modelo || '').toLowerCase().trim(),
+    String(d.comentario || '').toLowerCase().trim()
+  ].join('|');
+  return fuente + '-c' + _hash36(base, 5381) + _hash36(base, 52711);
 }
 
 /** Fila original completa, por si alguna columna del Sheet no está mapeada. */

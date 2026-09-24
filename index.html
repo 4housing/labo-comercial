@@ -3240,7 +3240,7 @@ function importarCSVArchivo(input){
       var vacias=0;
       var registros=[];
       filas.slice(1).forEach(function(fila,i){
-        var r=_csvAProspecto(fila,mapa,fuente,i+2,encabezados);
+        var r=_csvAProspecto(fila,mapa,fuente,encabezados);
         if(!r){vacias++;return;}
         registros.push(r);
       });
@@ -3376,7 +3376,39 @@ function _csvMapear(encabezados){
   });
   return mapa;
 }
-function _csvAProspecto(fila,mapa,fuente,nroFila,encabezados){
+/**
+ * Clave de deduplicación para las filas que no traen Entry ID.
+ *
+ * Antes se usaba el número de fila ("formulario-r57"). Eso se rompe solo: basta
+ * con que alguien inserte una fila arriba o reordene la hoja para que una fila
+ * nueva herede la clave de una vieja y la base la descarte como repetida, en
+ * silencio. Ahora la clave sale del contenido de la fila, así que viaja con ella.
+ *
+ * Dos hashes con semillas distintas (64 bits en total): con uno solo, mil filas
+ * ya tienen chance de chocar, y un choque acá significa un lead perdido.
+ *
+ * Efecto de borde asumido: dos filas idénticas en fecha, nombre, mail, teléfono,
+ * modelo y comentario cuentan como una sola. Si difieren en algo, entran las dos.
+ */
+function _hash36(s,semilla){
+  var h = semilla;
+  for (var i = 0; i < s.length; i++) { h = ((h << 5) + h) ^ s.charCodeAt(i); h = h >>> 0; }
+  return h.toString(36);
+}
+
+function _claveContenido(fuente,d){
+  var base = [
+    String(d.fecha || '').slice(0, 10),
+    String(d.nombre || '').toLowerCase().trim(),
+    String(d.email || '').toLowerCase().trim(),
+    String(d.telefono || '').replace(/\D/g, '').slice(-8),
+    String(d.modelo || '').toLowerCase().trim(),
+    String(d.comentario || '').toLowerCase().trim()
+  ].join('|');
+  return fuente + '-c' + _hash36(base, 5381) + _hash36(base, 52711);
+}
+
+function _csvAProspecto(fila,mapa,fuente,encabezados){
   function v(campo){var i=mapa[campo];return (i===undefined)?'':(fila[i]===undefined?'':fila[i]);}
   function t(x){return String(x===null||x===undefined?'':x).trim();}
   if(!t(v('nombre'))&&!t(v('email'))&&!t(v('telefono')))return null;   // fila vacía
@@ -3387,7 +3419,10 @@ function _csvAProspecto(fila,mapa,fuente,nroFila,encabezados){
   });
   return {
     fuente:fuente,
-    entry_id:t(v('entry_id'))||(fuente+'-r'+nroFila),
+    entry_id:t(v('entry_id'))||_claveContenido(fuente,{
+      fecha:_csvFecha(v('fecha')),nombre:t(v('nombre')),email:t(v('email')),
+      telefono:t(v('telefono')),modelo:t(v('modelo')),comentario:t(v('comentario'))
+    }),
     origen:PROS_ORIGEN[fuente]||'',
     fecha:_csvFecha(v('fecha')),
     url:t(v('url')),
