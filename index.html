@@ -1238,19 +1238,12 @@ tr:hover td{background:#F5F3ED}
 <!-- MOTIVO PÉRDIDA MODAL -->
 <div class="modal-overlay" id="motivoModal">
   <div class="modal-box">
-    <div class="modal-title">¿Por qué se perdió esta oportunidad?</div>
-    <div class="modal-options" id="motivo-options">
-      <div class="modal-opt" onclick="selMotivo(this,'Precio')">Precio muy alto</div>
-      <div class="modal-opt" onclick="selMotivo(this,'Competencia')">Eligió a la competencia</div>
-      <div class="modal-opt" onclick="selMotivo(this,'Timing')">No era el momento</div>
-      <div class="modal-opt" onclick="selMotivo(this,'Financiamiento')">No consiguió financiamiento</div>
-      <div class="modal-opt" onclick="selMotivo(this,'Sin respuesta')">Sin respuesta / desapareció</div>
-      <div class="modal-opt" onclick="selMotivo(this,'Otro')">Otro</div>
-    </div>
+    <div class="modal-title" id="motivo-titulo">¿Por qué se perdió esta oportunidad?</div>
+    <div class="modal-options" id="motivo-options"></div>
     <input class="modal-other" id="motivo-otro" placeholder="Describí el motivo..." style="display:none">
     <div class="modal-actions">
       <button class="btn-modal" onclick="cancelMotivo()">Cancelar</button>
-      <button class="btn-modal primary" onclick="confirmarMotivo()">Confirmar pérdida</button>
+      <button class="btn-modal primary" id="motivo-confirmar" onclick="confirmarMotivo()">Confirmar pérdida</button>
     </div>
   </div>
 </div>
@@ -1686,7 +1679,7 @@ const ACTIVAS=['Cotizado','En negociación'];
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let allLeads=[], activeFilter='all', sortCol='fecha', sortAsc=false, searchVal='';
-let currentLeadId=null, pendingEtapaChange=null, selectedMotivo=null;
+let currentLeadId=null, pendingEtapaChange=null, selectedMotivo=null, pendingProspectoDescarte=null;
 
 // ── Load ──────────────────────────────────────────────────────────────────────
 // ── Cotizaciones archivadas (soft-delete) ──────────────────────────────────────
@@ -2338,7 +2331,7 @@ function closeDetail(e){if(e.target===document.getElementById('detailOverlay'))c
 function changeEtapa(id,etapa,fromDetail){
   if(etapa==='Cerrado perdido'){
     pendingEtapaChange={id,fromDetail};
-    openMotivoModal();
+    openMotivoModal('lead');
     return;
   }
   _applyEtapa(id,etapa,fromDetail);
@@ -2406,13 +2399,57 @@ function toggleDD(id){
 }
 
 // ── Motivo pérdida modal ──────────────────────────────────────────────────────
-function openMotivoModal(){selectedMotivo=null;document.getElementById('motivo-otro').style.display='none';document.querySelectorAll('.modal-opt').forEach(o=>o.classList.remove('selected'));document.getElementById('motivoModal').classList.add('open');}
-function selMotivo(el,val){document.querySelectorAll('.modal-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');selectedMotivo=val;document.getElementById('motivo-otro').style.display=val==='Otro'?'block':'none';}
-function cancelMotivo(){document.getElementById('motivoModal').classList.remove('open');pendingEtapaChange=null;}
+/**
+ * Motivos de descarte. Son listas fijas a propósito: el informe para la agencia
+ * agrupa por texto exacto, así que "no responde" escrito a mano y "No contesta"
+ * salían como dos motivos distintos y el gráfico no decía nada. "Otro" deja
+ * escribir libre para lo que no entre en la lista.
+ *
+ * Son dos listas porque no se pierde lo mismo en cada etapa: un prospecto se cae
+ * antes de que haya un número sobre la mesa; una oportunidad del Pipeline ya tiene
+ * cotización, y ahí sí importa el precio, la competencia o el financiamiento.
+ */
+const MOTIVOS_LEAD=[
+  ['Precio','Precio muy alto'],
+  ['Competencia','Eligió a la competencia'],
+  ['Timing','No era el momento'],
+  ['Financiamiento','No consiguió financiamiento'],
+  ['Sin respuesta','Sin respuesta / desapareció'],
+  ['Otro','Otro']
+];
+const MOTIVOS_PROSPECTO=[
+  ['No responde','No contesta llamadas ni mensajes'],
+  ['Sólo pedía información','Curiosidad, no tiene proyecto'],
+  ['Fuera de zona','No llegamos con la obra hasta ahí'],
+  ['Precio','El precio le quedó lejos'],
+  ['No era el momento','Le interesa, pero más adelante'],
+  ['Dato inválido','Teléfono o mail incorrectos'],
+  ['Otro','Otro']
+];
+
+function openMotivoModal(ctx){
+  const esPros=ctx==='prospecto';
+  selectedMotivo=null;
+  document.getElementById('motivo-titulo').textContent=esPros?'¿Por qué no avanza este prospecto?':'¿Por qué se perdió esta oportunidad?';
+  document.getElementById('motivo-confirmar').textContent=esPros?'Confirmar':'Confirmar pérdida';
+  document.getElementById('motivo-options').innerHTML=(esPros?MOTIVOS_PROSPECTO:MOTIVOS_LEAD).map(function(m){
+    return '<div class="modal-opt" data-val="'+escAttr(m[0])+'" onclick="selMotivo(this,this.dataset.val)">'+esc(m[1])+'</div>';
+  }).join('');
+  const otro=document.getElementById('motivo-otro');
+  otro.style.display='none';otro.value='';
+  document.getElementById('motivoModal').classList.add('open');
+}
+function selMotivo(el,val){document.querySelectorAll('#motivo-options .modal-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');selectedMotivo=val;document.getElementById('motivo-otro').style.display=val==='Otro'?'block':'none';}
+function cancelMotivo(){document.getElementById('motivoModal').classList.remove('open');pendingEtapaChange=null;pendingProspectoDescarte=null;}
 function confirmarMotivo(){
   if(!selectedMotivo){alert('Seleccioná un motivo');return;}
   const motivo=selectedMotivo==='Otro'?document.getElementById('motivo-otro').value.trim()||'Otro':selectedMotivo;
   document.getElementById('motivoModal').classList.remove('open');
+  if(pendingProspectoDescarte){
+    const pid=pendingProspectoDescarte;pendingProspectoDescarte=null;
+    patchProspecto(pid,{etapa:'Descartado'},'Descartado — '+motivo);
+    return;
+  }
   if(pendingEtapaChange){_applyEtapa(pendingEtapaChange.id,'Cerrado perdido',pendingEtapaChange.fromDetail,motivo);pendingEtapaChange=null;}
 }
 
@@ -2878,9 +2915,8 @@ function guardarNotaProspecto(id){
   patchProspecto(id,{},txt);
 }
 function descartarProspecto(id){
-  var motivo=prompt('¿Por qué no avanza? (queda en el historial)','No responde');
-  if(motivo===null)return;
-  patchProspecto(id,{etapa:'Descartado'},'Descartado — '+(motivo||'sin motivo'));
+  pendingProspectoDescarte=String(id);
+  openMotivoModal('prospecto');
 }
 
 /**
