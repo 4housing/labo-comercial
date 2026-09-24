@@ -225,6 +225,10 @@ tr:hover td{background:#F5F3ED}
 .pr-act:hover{background:var(--green);color:var(--white)}
 .pr-act.ghost{border-color:var(--border);color:var(--mid)}
 .pr-act.ghost:hover{background:var(--grey);color:var(--black)}
+.wa-btn{display:inline-flex;align-items:center;justify-content:center;vertical-align:-2px;margin-left:6px;padding:0;border:none;background:transparent;cursor:pointer;color:#25D366}
+.wa-btn:hover{opacity:.65}
+.wa-btn svg{width:13px;height:13px;fill:currentColor;display:block}
+.btn-modal .wa-ico{width:13px;height:13px;fill:currentColor;vertical-align:-2px;margin-right:5px}
 .pr-msg{font-size:12px;line-height:1.5;background:var(--card);border:1px solid var(--border);padding:8px 10px;white-space:pre-wrap;word-break:break-word}
 .pros-alerta{background:#FEF9E7;border:1px solid var(--amber);border-left-width:3px;padding:12px 14px;margin-bottom:16px;font-size:13px;line-height:1.55}
 .pros-alerta-que{margin-top:6px;font-size:12px;color:var(--mid);line-height:1.55}
@@ -1232,6 +1236,21 @@ tr:hover td{background:#F5F3ED}
       <button class="dp-close" onclick="closeDetailPanel()">✕</button>
     </div>
     <div class="dp-body" id="dp-body"></div>
+  </div>
+</div>
+
+<!-- WHATSAPP: confirmar si hubo contacto -->
+<div class="modal-overlay" id="waModal">
+  <div class="modal-box">
+    <div class="modal-title">¿Pudiste escribirle?</div>
+    <div style="font-size:13px;line-height:1.6;margin-bottom:18px">
+      Se abrió el chat de <strong id="wa-modal-nombre">este prospecto</strong> en WhatsApp.
+      Si le mandaste el mensaje, lo registro como contacto.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal" onclick="waConfirmar(false)">Todavía no</button>
+      <button class="btn-modal primary" onclick="waConfirmar(true)">Sí, registrar contacto</button>
+    </div>
   </div>
 </div>
 
@@ -2591,10 +2610,33 @@ let prosVisibles=PROS_PAGINA;
 let _prospectoPendiente=null;
 
 // ── Datos ─────────────────────────────────────────────────────────────────────
+/**
+ * Lee una tabla entera, en tandas.
+ *
+ * PostgREST corta cada respuesta en 1000 filas aunque se pida un limit mayor: es
+ * un tope del servidor, no del pedido, y no avisa — devuelve 1000 y listo. Con
+ * 1000 prospectos exactos la bandeja se quedaba clavada ahí y los que entraban
+ * después no aparecían nunca.
+ *
+ * El orden tiene que ser único (por eso el id al final): si dos filas empatan, el
+ * orden entre tandas puede cambiar y una fila se repite mientras otra se pierde.
+ */
+async function _sbLeerTodo(path,orden){
+  const TANDA=1000, TOPE=50000;
+  var filas=[],desde=0;
+  while(desde<TOPE){
+    const r=await _sbFetch(path+'&order='+orden+'&offset='+desde+'&limit='+TANDA,{method:'GET'});
+    if(!r.ok)throw new Error('Supabase '+r.status+' leyendo '+path);
+    const tanda=await r.json();
+    filas=filas.concat(tanda);
+    if(tanda.length<TANDA)break;
+    desde+=TANDA;
+  }
+  return filas;
+}
+
 async function readProspectos(){
-  const r=await _sbFetch('labocomercial_prospectos?select=*&order=fecha.desc.nullslast&limit=3000',{method:'GET'});
-  if(!r.ok)throw new Error('Supabase prospectos '+r.status);
-  return await r.json();
+  return await _sbLeerTodo('labocomercial_prospectos?select=*','fecha.desc.nullslast,id.desc');
 }
 async function loadProspectos(){
   try{allProspectos=await readProspectos();_prosIdxInvalidar();}
@@ -2859,7 +2901,7 @@ function renderProsTable(){
       : '<button class="pr-act" data-pid="'+pid+'" onclick="event.stopPropagation();convertirProspecto(this.dataset.pid)">Cotizar →</button>';
     return '<tr data-pid="'+pid+'" onclick="openProspecto(this.dataset.pid)" style="cursor:pointer">'+
       '<td style="font-family:IBM Plex Mono,monospace;font-size:11px">'+_prosFecha(p)+'</td>'+
-      '<td><div class="td-bold">'+esc(p.nombre||'—')+avisos+'</div><div class="td-muted" style="font-size:10px">'+esc(contacto||'sin datos de contacto')+'</div></td>'+
+      '<td><div class="td-bold">'+esc(p.nombre||'—')+avisos+'</div><div class="td-muted" style="font-size:10px">'+esc(contacto||'sin datos de contacto')+_waIcono(p)+'</div></td>'+
       '<td><div style="font-size:12px">'+esc(interes)+'</div><div class="td-muted" style="font-size:10px">'+esc(p.region||'')+'</div></td>'+
       '<td><span class="fu fu-'+escAttr(fuente)+'">'+esc(PROS_FUENTE_LABEL[fuente]||fuente)+'</span></td>'+
       '<td onclick="event.stopPropagation()">'+
@@ -2887,6 +2929,112 @@ function renderProsTable(){
     '</tr></thead><tbody>'+filas+'</tbody></table>'+pie;
 }
 
+/* ════════════════ WHATSAPP ════════════════ */
+
+/**
+ * ⚠ EL MENSAJE QUE SE MANDA SE EDITA ACÁ, Y EN NINGÚN OTRO LADO.
+ * Se abre escrito en el chat: el vendedor lo lee, lo retoca si quiere y recién
+ * ahí lo envía. Nada se manda solo.
+ */
+function WA_MENSAJE(p){
+  var nombre=_waPrimerNombre(p.nombre);
+  var sobre=(p.modelo||'').trim()
+    ? 'tu consulta sobre el modelo '+String(p.modelo).trim()
+    : 'tu consulta sobre las viviendas modulares';
+  return (nombre?('Hola '+nombre+', '):'Hola, ')+'¿cómo estás? Te escribo de LABO Modular por '+
+         sobre+'. ¿Tenés unos minutos para que charlemos?';
+}
+
+function _waPrimerNombre(n){
+  var t=String(n||'').trim().split(/\s+/)[0]||'';
+  if(!t)return '';
+  return t.charAt(0).toUpperCase()+t.slice(1).toLowerCase();
+}
+
+/**
+ * Códigos de área argentinos de 3 dígitos. Hacen falta para saber dónde termina
+ * el área y, con eso, dónde está el "15" que hay que sacar: en 2995123456 el 15
+ * es parte del número, en 299154238758 es el prefijo de celular.
+ */
+const WA_AREAS3=['220','221','223','230','236','237','249','260','261','263','264','266','280','291',
+                 '294','297','298','299','336','341','342','343','345','348','351','353','358','362',
+                 '364','370','376','379','380','381','383','385','387','388'];
+
+function _waLargoArea(n){
+  if(n.slice(0,2)==='11')return 2;
+  if(WA_AREAS3.indexOf(n.slice(0,3))>=0)return 3;
+  return 4;
+}
+
+/** El 15 es para llamar desde un fijo local; WhatsApp no lo usa nunca. */
+function _waSinQuince(n){
+  if(n.length!==12)return n;
+  var a=_waLargoArea(n);
+  return n.slice(a,a+2)==='15'?(n.slice(0,a)+n.slice(a+2)):n;
+}
+
+/**
+ * Pasa el teléfono al formato que entiende WhatsApp (país + 9 + área + número,
+ * todo junto y sin signos). El Sheet los trae de todas las formas posibles:
+ * "1162096685", "011 15 6209-6685", "+54 9 299 423-8758", "(0299) 4238758".
+ *
+ * Si no se puede armar un número confiable devuelve vacío, y entonces el botón
+ * ni aparece. Es a propósito: abrir un chat con el número equivocado es escribirle
+ * a un desconocido en nombre de la empresa.
+ */
+function _waNumero(tel){
+  var d=String(tel||'').replace(/\D/g,'').replace(/^00/,'');
+  if(d.length<8)return '';
+  if(d.indexOf('54')===0&&d.length>=12){
+    var r=d.slice(2).replace(/^0/,'');
+    if(r.length===11&&r.charAt(0)==='9')r=r.slice(1);   // el 9 de celular ya venía
+    r=_waSinQuince(r);
+    return r.length===10?('549'+r):'';
+  }
+  // El 0 de adelante es el prefijo para llamar de larga distancia dentro del país:
+  // si está, el número es argentino, por más largo que parezca con el 15 incluido.
+  var nacional=d.charAt(0)==='0';
+  if(nacional)d=d.replace(/^0+/,'');
+  else if(d.length>10)return d;                         // número de otro país, ya internacional
+  var loc=_waSinQuince(d);
+  return loc.length===10?('549'+loc):'';
+}
+
+/** El ícono de la fila. Sin número usable no se dibuja nada. */
+function _waIcono(p){
+  if(!_waNumero(p.telefono))return '';
+  return '<button class="wa-btn" data-pid="'+escAttr(p.id)+'" title="Escribir por WhatsApp" '+
+    'onclick="event.stopPropagation();abrirWhatsApp(this.dataset.pid)">'+WA_SVG+'</button>';
+}
+
+const WA_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>';
+
+let waPendiente=null;
+
+/**
+ * Abre el chat con el mensaje escrito. Sale desde la cuenta con la que esté
+ * logueada esa computadora en WhatsApp Web o en la app de escritorio, así que
+ * para que salga de la empresa hay que estar logueado con el número de la empresa.
+ */
+function abrirWhatsApp(id){
+  var p=allProspectos.find(function(x){return String(x.id)===String(id);});
+  if(!p)return;
+  var num=_waNumero(p.telefono);
+  if(!num){alert('El teléfono de este prospecto no tiene un formato que WhatsApp pueda abrir.');return;}
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(WA_MENSAJE(p)),'_blank','noopener');
+  waPendiente=String(id);
+  var n=document.getElementById('wa-modal-nombre');
+  if(n)n.textContent=p.nombre||'este prospecto';
+  document.getElementById('waModal').classList.add('open');
+}
+
+/** El registro lo confirma la persona: abrir el chat no es haber escrito. */
+function waConfirmar(si){
+  document.getElementById('waModal').classList.remove('open');
+  var id=waPendiente;waPendiente=null;
+  if(si&&id)registrarContacto(id,'WhatsApp');
+}
+
 // ── Acciones ──────────────────────────────────────────────────────────────────
 function asignarResponsable(id,valor){
   patchProspecto(id,{responsable:valor},valor?('Asignado a '+valor):'Sin responsable');
@@ -2900,11 +3048,12 @@ function cambiarEtapaProspecto(id,etapa){
   if(etapa==='Contactado'&&!(p.contactos>0))patch.contactos=1;
   patchProspecto(id,patch,'Etapa → '+etapa);
 }
-function registrarContacto(id){
+function registrarContacto(id,via){
   var p=allProspectos.find(function(x){return String(x.id)===String(id);});
   if(!p)return;
   var n=(p.contactos||0)+1;
-  patchProspecto(id,{contactos:n,etapa:prosEtapa(p)==='Nuevo'?'Contactado':(prosEtapa(p)==='Descartado'?'Contactado':prosEtapa(p))},'Contacto n° '+n);
+  patchProspecto(id,{contactos:n,etapa:prosEtapa(p)==='Nuevo'?'Contactado':(prosEtapa(p)==='Descartado'?'Contactado':prosEtapa(p))},
+    'Contacto n° '+n+(via?' — '+via:''));
 }
 function guardarNotaProspecto(id){
   var el=document.getElementById('pr-nota-input');
@@ -3261,9 +3410,8 @@ async function _subirProspectos(registros,fuente,vacias){
   try{
     // Lo que ya está en el CRM para esa hoja: se compara por Entry ID.
     var yaEstan={};
-    var r=await _sbFetch('labocomercial_prospectos?select=entry_id&fuente=eq.'+encodeURIComponent(fuente)+'&limit=10000',{method:'GET'});
-    if(r.ok){(await r.json()).forEach(function(x){if(x.entry_id)yaEstan[String(x.entry_id)]=true;});}
-    else{_importMsg('No pude consultar el CRM ('+r.status+'). Probá de nuevo.','var(--red)');return;}
+    var yaCargados=await _sbLeerTodo('labocomercial_prospectos?select=entry_id&fuente=eq.'+encodeURIComponent(fuente),'id.asc');
+    yaCargados.forEach(function(x){if(x.entry_id)yaEstan[String(x.entry_id)]=true;});
 
     var nuevos=registros.filter(function(x){return !yaEstan[String(x.entry_id)];});
     var repetidos=registros.length-nuevos.length;
@@ -3519,6 +3667,8 @@ function openProspecto(id){
   var acciones=etapa==='Convertido'
     ? (p.lead_id?'<button class="btn-modal primary" data-lid="'+escAttr(p.lead_id)+'" onclick="openDetail(this.dataset.lid)">Ver lead en el Pipeline →</button>':'')
     : '<button class="btn-modal primary" data-pid="'+escAttr(p.id)+'" onclick="convertirProspecto(this.dataset.pid)">Cotizar →</button>'+
+      (_waNumero(p.telefono)?('<button class="btn-modal" style="white-space:nowrap" data-pid="'+escAttr(p.id)+'" onclick="abrirWhatsApp(this.dataset.pid)">'+
+        WA_SVG.replace('<svg ','<svg class="wa-ico" ')+'WhatsApp</button>'):'')+
       '<button class="btn-modal" data-pid="'+escAttr(p.id)+'" onclick="registrarContacto(this.dataset.pid)">Registrar contacto</button>'+
       '<button class="btn-modal" data-pid="'+escAttr(p.id)+'" onclick="descartarProspecto(this.dataset.pid)">No avanza</button>';
 
