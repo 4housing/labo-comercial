@@ -989,6 +989,7 @@ tr:hover td{background:#F5F3ED}
   <div class="tab" onclick="switchTab('prospectos',this)">Prospectos<span class="tab-badge" id="tab-pros-badge" style="display:none">0</span></div>
   <div class="tab" onclick="switchTab('analisis',this)">Análisis</div>
   <div class="tab" onclick="switchTab('seguimiento',this)">Seguimiento</div>
+  <div class="tab" onclick="switchTab('actividad',this)">Actividad</div>
   <div class="tab" onclick="switchTab('cotizador',this)">+ Cotizador</div>
 </div>
 
@@ -1299,6 +1300,19 @@ tr:hover td{background:#F5F3ED}
       <button class="btn-modal primary" onclick="_resolverVersionModal('version')">Es una versión nueva de esa cotización</button>
     </div>
   </div>
+</div>
+
+<!-- ══ TAB: ACTIVIDAD (auditoría) ═══════════════════════════════════════════════ -->
+<div id="tab-actividad" class="tab-content">
+<div class="page">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+    <h2 style="margin:0;font-size:17px">Actividad</h2>
+    <span style="font-size:12px;color:var(--muted)">Quién hizo qué y cuándo (últimos 200 movimientos)</span>
+    <input id="actBuscar" type="search" placeholder="🔎 filtrar por usuario, acción o dato…" oninput="renderActividad()" style="margin-left:auto;min-width:240px;padding:7px 10px;border:1px solid var(--line,#ddd);border-radius:8px;font-size:13px">
+    <button class="btn" onclick="loadActividad()">↻ Actualizar</button>
+  </div>
+  <div id="actContenido" style="font-size:13px;color:var(--muted)">Cargando…</div>
+</div>
 </div>
 
 <!-- ══ TAB 5: COTIZADOR ═══════════════════════════════════════════════════════ -->
@@ -2510,8 +2524,54 @@ function switchTab(id,el){
   document.getElementById('tab-'+id).classList.add('active');
   el.classList.add('active');
   if(id==='prospectos'){try{loadProspectos();}catch(e){console.warn('loadProspectos:',e);}}
+  if(id==='actividad'){try{loadActividad();}catch(e){console.warn('loadActividad:',e);}}
   _labTab=id;
   actualizarBannerSoloLecturaLabo();
+}
+
+// ── Actividad (auditoría) ───────────────────────────────────────────────────────
+// Lee core_auditoria (sector labocomercial). La RLS ya limita a lo del sector.
+let _actividadRows = [];
+async function loadActividad(){
+  const cont=document.getElementById('actContenido'); if(cont) cont.textContent='Cargando…';
+  try{
+    const r=await _sbFetch('core_auditoria?sector=eq.labocomercial&order=cambiado_en.desc&limit=200',{method:'GET'});
+    _actividadRows = Array.isArray(r) ? r : [];
+  }catch(e){ console.warn('loadActividad:',e); _actividadRows=[]; }
+  renderActividad();
+}
+function _actResumenCambio(row){
+  try{
+    if(row.accion==='UPDATE' && row.datos_antes && row.datos_despues){
+      const a=row.datos_antes, d=row.datos_despues, campos=[];
+      Object.keys(d).forEach(k=>{ if(k!=='updated_at' && JSON.stringify(a[k])!==JSON.stringify(d[k])) campos.push(k); });
+      return campos.length ? 'cambió: '+campos.join(', ') : '—';
+    }
+    const src=row.datos_despues||row.datos_antes||{};
+    return src.cliente || src.nombre || src.num || row.registro_id || '—';
+  }catch(e){ return '—'; }
+}
+function renderActividad(){
+  const cont=document.getElementById('actContenido'); if(!cont) return;
+  const inp=document.getElementById('actBuscar');
+  const q=(inp&&inp.value||'').trim().toLowerCase();
+  let rows=_actividadRows;
+  if(q) rows=rows.filter(r=> JSON.stringify(r).toLowerCase().includes(q));
+  if(!rows.length){ cont.innerHTML='<div style="padding:16px">Sin actividad registrada'+(q?' para ese filtro':' todavía')+'.</div>'; return; }
+  const esc2=(s)=> String(s==null?'':s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+  const fmt=(iso)=>{ try{ return new Date(iso).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return iso||''; } };
+  const badge=(a)=>{ const c=a==='INSERT'?'#1e8449':a==='DELETE'?'#a3372d':'#8a6d1f', t=a==='INSERT'?'alta':a==='DELETE'?'baja':'edición'; return '<span style="background:'+c+'22;color:'+c+';padding:1px 7px;border-radius:6px;font-size:11px;font-weight:600">'+t+'</span>'; };
+  const tablaLbl={ labocomercial_leads:'Cotización / Lead', labocomercial_counters:'Numerador', labocomercial_contactos_web:'Contacto web' };
+  cont.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;color:var(--ink,#222)">'
+    + '<thead><tr style="text-align:left;color:var(--muted)"><th style="padding:6px 8px">Fecha</th><th style="padding:6px 8px">Usuario</th><th style="padding:6px 8px">Acción</th><th style="padding:6px 8px">Qué</th><th style="padding:6px 8px">Detalle</th></tr></thead><tbody>'
+    + rows.map(r=>'<tr style="border-top:1px solid var(--line,#eee)">'
+        + '<td style="padding:6px 8px;white-space:nowrap">'+esc2(fmt(r.cambiado_en))+'</td>'
+        + '<td style="padding:6px 8px">'+esc2(r.usuario_email||'—')+'</td>'
+        + '<td style="padding:6px 8px">'+badge(r.accion)+'</td>'
+        + '<td style="padding:6px 8px">'+esc2(tablaLbl[r.tabla]||r.tabla)+'</td>'
+        + '<td style="padding:6px 8px;color:var(--muted)">'+esc2(_actResumenCambio(r))+'</td>'
+      +'</tr>').join('')
+    + '</tbody></table></div>';
 }
 
 // ── Export CSV ────────────────────────────────────────────────────────────────
