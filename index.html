@@ -1087,6 +1087,11 @@ tr:hover td{background:#F5F3ED}
     </div>
     <div class="s-divider"></div>
     <div class="s-section">
+      <div class="s-label">Calificación</div>
+      <div id="pros-calif-filtros"></div>
+    </div>
+    <div class="s-divider"></div>
+    <div class="s-section">
       <div class="s-label">Origen</div>
       <div class="s-item" onclick="setProsFilter('fuente:formulario',this)">Formulario <span class="s-count" id="pcnt-formulario">0</span></div>
       <div class="s-item" onclick="setProsFilter('fuente:brochure',this)">Brochure <span class="s-count" id="pcnt-brochure">0</span></div>
@@ -1153,7 +1158,7 @@ tr:hover td{background:#F5F3ED}
     <div><div class="sec-title">Modelo que piden</div><div class="bar-chart" id="inf-modelo"></div></div>
     <div><div class="sec-title">Tipo de proyecto</div><div class="bar-chart" id="inf-tipo"></div></div>
     <div><div class="sec-title">Región</div><div class="bar-chart" id="inf-region"></div></div>
-    <div><div class="sec-title">Calidad del lead</div><div class="bar-chart" id="inf-calidad"></div></div>
+    <div><div class="sec-title">Calificación</div><div class="bar-chart" id="inf-calidad"></div></div>
     <div><div class="sec-title">Por qué no avanzan</div><div class="bar-chart" id="inf-motivos"></div></div>
   </div>
 
@@ -2593,6 +2598,28 @@ const PROS_ETAPAS=[
   {key:'Descartado',     cls:'p-descartado',  color:'#9A9690'}
 ];
 const PROS_CLS=Object.fromEntries(PROS_ETAPAS.map(function(e){return [e.key,e.cls];}));
+
+/**
+ * Calificación comercial: las siete combinaciones válidas de Estado × Calidad
+ * del criterio que el equipo venía usando en el Google Sheet. No son dos campos
+ * libres — cada par tiene una lectura y sólo esas siete existen —, así que acá
+ * son una sola lista.
+ *
+ * 'etapa' es la que le corresponde en el CRM: el vendedor elige la calificación
+ * y la etapa se acomoda sola. Un solo lugar donde tocar, y el embudo, los
+ * indicadores y los filtros siguen andando con el vocabulario de siempre.
+ */
+const PROS_CALIF=[
+  {key:'sin_interaccion',corto:'Sin interacción',   estado:'Sin respuesta',calidad:'Malo', etapa:'Descartado',    color:'#9A9690',lectura:'No contesta ni interactúa'},
+  {key:'no_continua',    corto:'No continúa',       estado:'No avanza',    calidad:'Malo', etapa:'Descartado',    color:'#C0392B',lectura:'Responde, pero no continúa'},
+  {key:'sin_calidad',    corto:'Calidad a definir', estado:'En curso',     calidad:'N/A',  etapa:'Contactado',    color:'#D4870A',lectura:'Aún no sabemos la calidad'},
+  {key:'orientado',      corto:'Orientado',         estado:'En curso',     calidad:'Medio',etapa:'En seguimiento',color:'#1A5276',lectura:'Interactúa y está orientado'},
+  {key:'califica',       corto:'Califica',          estado:'En curso',     calidad:'Bueno',etapa:'En seguimiento',color:'#7D3C98',lectura:'Interactúa y cumple con requisitos'},
+  {key:'cotizado',       corto:'Cotizado',          estado:'Cotizado',     calidad:'Bueno',etapa:'Convertido',    color:'#1E8449',lectura:'Cotización realizada'},
+  {key:'venta',          corto:'Venta',             estado:'Venta',        calidad:'Bueno',etapa:'Convertido',    color:'#0E6B3A',lectura:'Compra de casa modular'}
+];
+const PROS_CALIF_MAP=Object.fromEntries(PROS_CALIF.map(function(c){return [c.key,c];}));
+function prosCalif(p){return PROS_CALIF_MAP[p&&p.clasificacion]||null;}
 const PROS_ABIERTAS=['Nuevo','Contactado','En seguimiento'];
 // 'landing_meta' se mantiene en la tabla: es sólo una etiqueta, y si alguna vez
 // entró una fila con esa fuente tiene que seguir mostrándose bien.
@@ -2693,6 +2720,10 @@ function prosFiltered(){
   }
   else if(prosFilter.indexOf('etapa:')===0){var et=prosFilter.slice(6);list=list.filter(function(p){return prosEtapa(p)===et;});}
   else if(prosFilter.indexOf('fuente:')===0){var fu=prosFilter.slice(7);list=list.filter(function(p){return (p.fuente||'')===fu;});}
+  else if(prosFilter.indexOf('calif:')===0){
+    var ck=prosFilter.slice(6);
+    list=list.filter(function(p){return ck==='_sin'?!p.clasificacion:(p.clasificacion===ck);});
+  }
   if(prosSearch){
     list=list.filter(function(p){
       return [p.nombre,p.email,p.telefono,p.modelo,p.tipo_proyecto,p.region,p.responsable,p.comentario]
@@ -2815,6 +2846,24 @@ function renderProsCounts(){
   Object.keys(PROS_FUENTE_LABEL).forEach(function(f){
     set('pcnt-'+f,allProspectos.filter(function(p){return (p.fuente||'')===f;}).length);
   });
+  // Filtros de calificación: se arman solos a partir de PROS_CALIF, así agregar
+  // o cambiar una lectura del cuadro no obliga a tocar el HTML.
+  var cf=document.getElementById('pros-calif-filtros');
+  if(cf){
+    var marcado=prosFilter.indexOf('calif:')===0?prosFilter.slice(6):null;
+    cf.innerHTML=PROS_CALIF.map(function(c){
+      var n=allProspectos.filter(function(x){return x.clasificacion===c.key;}).length;
+      return '<div class="s-item'+(marcado===c.key?' active':'')+'" title="'+escAttr(c.estado+' · '+c.calidad)+'" '+
+        'data-ck="'+escAttr(c.key)+'" onclick="setProsFilter(\'calif:\'+this.dataset.ck,this)">'+
+        esc(c.corto)+' <span class="s-count">'+n+'</span></div>';
+    }).join('')+
+    (function(){
+      var sin=allProspectos.filter(function(x){return !x.clasificacion;}).length;
+      return '<div class="s-item'+(marcado==='_sin'?' active':'')+'" onclick="setProsFilter(\'calif:_sin\',this)">'+
+        'Sin calificar <span class="s-count">'+sin+'</span></div>';
+    })();
+  }
+
   // Badge en la pestaña: cuántos están esperando el primer contacto.
   var nuevos=allProspectos.filter(function(p){return prosEtapa(p)==='Nuevo';}).length;
   var b=document.getElementById('tab-pros-badge');
@@ -2880,10 +2929,14 @@ function renderProsTable(){
     var dias=_prosDias(p);
     var alerta=etapa==='Nuevo'&&dias>3;
     var fuente=p.fuente||'formulario';
-    var menu=PROS_ETAPAS.filter(function(e){return e.key!=='Convertido';}).map(function(e){
-      return '<button class="'+e.cls+'" data-eid="'+e.key+'" data-pid="'+pid+'" onclick="cambiarEtapaProspecto(this.dataset.pid,this.dataset.eid)">'+
-        '<span class="etapa-dot" style="background:'+e.color+'"></span>'+e.key+'</button>';
-    }).join('');
+    var cal=prosCalif(p);
+    var menu=PROS_CALIF.map(function(c){
+      return '<button data-cid="'+c.key+'" data-pid="'+pid+'" title="'+escAttr(c.estado+' · '+c.calidad)+'" '+
+        'onclick="calificarProspecto(this.dataset.pid,this.dataset.cid)">'+
+        '<span class="etapa-dot" style="background:'+c.color+'"></span>'+esc(c.lectura)+'</button>';
+    }).join('')+
+    (cal?('<button data-pid="'+pid+'" onclick="calificarProspecto(this.dataset.pid,\'\')" style="color:var(--mid)">'+
+      '<span class="etapa-dot" style="background:transparent;border:1px solid var(--border)"></span>— sin calificar —</button>'):'');
     var resp=(p.responsable||'').trim();
     var listaVend=PROS_VENDEDORES.slice();
     if(resp&&listaVend.indexOf(resp)<0)listaVend.push(resp);   // alguien que no está en la lista fija
@@ -2909,8 +2962,8 @@ function renderProsTable(){
       '</td>'+
       '<td onclick="event.stopPropagation()">'+
         '<div class="etapa-dropdown" id="pdd_'+pid+'">'+
-          '<button class="etapa '+cls+'" data-did="pdd_'+pid+'" onclick="toggleDD(this.dataset.did)">'+
-            '<span class="etapa-dot" style="background:'+edot.color+'"></span>'+esc(etapa)+
+          '<button class="etapa '+cls+'" data-did="pdd_'+pid+'" title="'+escAttr(cal?(cal.lectura+' — '+cal.estado+' · '+cal.calidad):'Todavía sin calificar')+'" onclick="toggleDD(this.dataset.did)">'+
+            '<span class="etapa-dot" style="background:'+(cal?cal.color:edot.color)+'"></span>'+esc(cal?cal.corto:etapa)+
           '</button>'+
           '<div class="etapa-menu">'+menu+'</div>'+
         '</div>'+
@@ -2925,7 +2978,7 @@ function renderProsTable(){
       Math.min(PROS_PAGINA,total-pagina.length)+' más</button></div>'
     : '';
   cont.innerHTML='<table><thead><tr>'+
-    '<th>Fecha</th><th>Contacto</th><th>Interés</th><th>Origen</th><th>Responsable</th><th>Etapa</th><th style="text-align:center">Días</th><th></th>'+
+    '<th>Fecha</th><th>Contacto</th><th>Interés</th><th>Origen</th><th>Responsable</th><th>Calificación</th><th style="text-align:center">Días</th><th></th>'+
     '</tr></thead><tbody>'+filas+'</tbody></table>'+pie;
 }
 
@@ -3039,6 +3092,36 @@ function waConfirmar(si){
 function asignarResponsable(id,valor){
   patchProspecto(id,{responsable:valor},valor?('Asignado a '+valor):'Sin responsable');
 }
+/**
+ * Guarda la calificación y acomoda la etapa, la calidad y el contador de
+ * contactos de una sola vez.
+ *
+ * La etapa que trae el cuadro es la que corresponde a esa lectura, con una
+ * excepción: "Aún no sabemos la calidad" vale tanto para alguien recién
+ * contactado como para una conversación que ya venía, así que no se usa para
+ * hacerlo retroceder.
+ */
+function calificarProspecto(id,key){
+  document.querySelectorAll('.etapa-dropdown.open').forEach(function(d){d.classList.remove('open');});
+  var p=allProspectos.find(function(x){return String(x.id)===String(id);});
+  if(!p)return;
+  if(!key){
+    if(!p.clasificacion)return;
+    patchProspecto(id,{clasificacion:null},'Calificación borrada');
+    return;
+  }
+  var c=PROS_CALIF_MAP[key];
+  if(!c||p.clasificacion===key)return;
+  var etapa=c.etapa;
+  if(etapa==='Contactado'){
+    var actual=prosEtapa(p);
+    if(actual==='En seguimiento'||actual==='Convertido')etapa=actual;
+  }
+  var patch={clasificacion:key,etapa:etapa,calidad:c.calidad==='N/A'?null:c.calidad};
+  if(etapa!=='Nuevo'&&!(p.contactos>0))patch.contactos=1;
+  patchProspecto(id,patch,'Calificado: '+c.lectura+' ('+c.estado+' · '+c.calidad+')');
+}
+
 function cambiarEtapaProspecto(id,etapa){
   document.querySelectorAll('.etapa-dropdown.open').forEach(function(d){d.classList.remove('open');});
   var p=allProspectos.find(function(x){return String(x.id)===String(id);});
@@ -3232,7 +3315,11 @@ function renderInforme(){
   renderBarChart('inf-modelo', infContar(d,function(p){return p.modelo;}),TINTA,n);
   renderBarChart('inf-tipo',   infContar(d,function(p){return p.tipo_proyecto;}),TINTA,n);
   renderBarChart('inf-region', infContar(d,function(p){return p.region;}),TINTA,n);
-  renderBarChart('inf-calidad',infContar(d,function(p){return p.calidad;}),'#D4870A',n);
+  // Se muestra la lectura completa del cuadro, no la calidad suelta: "Interactúa
+  // y cumple con requisitos" le dice algo a la agencia; "Bueno", poco.
+  renderBarChart('inf-calidad',infContar(d,function(p){
+    var c=prosCalif(p);return c?c.lectura:'';
+  }),'#D4870A',n);
   var motivos=infContar(d.filter(function(p){return prosEtapa(p)==='Descartado';}),infMotivo);
   renderBarChart('inf-motivos',motivos,'#C0392B',n);
 
@@ -3307,7 +3394,8 @@ function imprimirInforme(){
 function exportInformeCSV(){
   var d=infDatos();
   var cols=['entry_id','fecha','origen','hoja','nombre','modelo','tipo_proyecto','region',
-            'calidad','estado','contactos','motivo_no_avanza','paso_a_cotizacion','consulta_del_cliente'];
+            'calificacion','estado_calificacion','calidad','etapa_crm','contactos','motivo_no_avanza',
+            'paso_a_cotizacion','consulta_del_cliente'];
   var filas=d.map(function(p){
     return [
       p.entry_id||'',
@@ -3318,6 +3406,8 @@ function exportInformeCSV(){
       p.modelo||'',
       p.tipo_proyecto||'',
       p.region||'',
+      (prosCalif(p)||{}).lectura||'',
+      (prosCalif(p)||{}).estado||'',
       p.calidad||'',
       prosEtapa(p),
       String(p.contactos||0),
@@ -3664,8 +3754,12 @@ function openProspecto(id){
       '<div class="act-texto-txt">'+esc(a.texto||'')+'</div></div></div>';
   }).join('');
 
-  var acciones=etapa==='Convertido'
-    ? (p.lead_id?'<button class="btn-modal primary" data-lid="'+escAttr(p.lead_id)+'" onclick="openDetail(this.dataset.lid)">Ver lead en el Pipeline →</button>':'')
+  var calP=prosCalif(p);
+  // Un prospecto puede quedar en Convertido sin lead asociado: si lo calificaron
+  // como "Cotización realizada" porque la cotización se hizo por afuera. En ese
+  // caso igual tiene que poder cotizarse desde acá, o queda sin ninguna acción.
+  var acciones=(etapa==='Convertido'&&p.lead_id)
+    ? '<button class="btn-modal primary" data-lid="'+escAttr(p.lead_id)+'" onclick="openDetail(this.dataset.lid)">Ver lead en el Pipeline →</button>'
     : '<button class="btn-modal primary" data-pid="'+escAttr(p.id)+'" onclick="convertirProspecto(this.dataset.pid)">Cotizar →</button>'+
       (_waNumero(p.telefono)?('<button class="btn-modal" style="white-space:nowrap" data-pid="'+escAttr(p.id)+'" onclick="abrirWhatsApp(this.dataset.pid)">'+
         WA_SVG.replace('<svg ','<svg class="wa-ico" ')+'WhatsApp</button>'):'')+
@@ -3675,6 +3769,7 @@ function openProspecto(id){
   document.getElementById('dp-body').innerHTML=
     avisoCliente+avisoHermanos+
     '<div class="dp-badges"><span class="etapa '+cls+'" style="cursor:default">'+esc(etapa)+'</span>'+
+      (calP?('<span class="fu" style="background:'+calP.color+';color:#fff" title="'+escAttr(calP.estado+' · '+calP.calidad)+'">'+esc(calP.corto)+'</span>'):'')+
       '<span class="fu fu-'+escAttr(fuente)+'">'+esc(PROS_FUENTE_LABEL[fuente]||fuente)+'</span>'+
       (p.origen?'<span class="fu" style="background:var(--grey);color:var(--mid)">'+esc(p.origen)+'</span>':'')+'</div>'+
     '<div class="dp-grid">'+
@@ -3686,6 +3781,16 @@ function openProspecto(id){
     '</div>'+
     (urlSegura(p.url)?'<div class="dp-field" style="margin:12px 0 20px"><label>Landing</label><span><a href="'+escAttr(urlSegura(p.url))+'" target="_blank" rel="noopener" style="color:var(--blue);word-break:break-all">'+esc(p.url)+'</a></span></div>':'')+
     consulta+
+    '<div class="dp-section"><div class="dp-section-title">Calificación</div>'+
+      '<select class="pr-sel" style="width:100%;max-width:420px" data-pid="'+escAttr(p.id)+'" onchange="calificarProspecto(this.dataset.pid,this.value)">'+
+        '<option value="">— sin calificar —</option>'+
+        PROS_CALIF.map(function(c){
+          return '<option value="'+escAttr(c.key)+'"'+(calP&&calP.key===c.key?' selected':'')+'>'+
+            esc(c.lectura)+' ('+esc(c.estado)+' · '+esc(c.calidad)+')</option>';
+        }).join('')+
+      '</select>'+
+      '<div class="td-muted" style="font-size:11px;margin-top:6px">Al calificar, la etapa se acomoda sola.</div>'+
+    '</div>'+
     '<div class="dp-section"><div class="dp-section-title">Acciones</div><div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap">'+acciones+'</div></div>'+
     '<div class="dp-section"><div class="dp-section-title">Notas y seguimiento</div>'+
       '<textarea id="pr-nota-input" placeholder="Escribí qué pasó en el contacto..." style="width:100%;min-height:60px;padding:8px 10px;border:1px solid var(--border);background:var(--white);font-family:inherit;font-size:12px;outline:none;resize:vertical"></textarea>'+
