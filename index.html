@@ -989,6 +989,7 @@ tr:hover td{background:#F5F3ED}
   <div class="tab" onclick="switchTab('prospectos',this)">Prospectos<span class="tab-badge" id="tab-pros-badge" style="display:none">0</span></div>
   <div class="tab" onclick="switchTab('analisis',this)">Análisis</div>
   <div class="tab" onclick="switchTab('seguimiento',this)">Seguimiento</div>
+  <div class="tab" onclick="switchTab('actividad',this)">Actividad</div>
   <div class="tab" onclick="switchTab('cotizador',this)">+ Cotizador</div>
 </div>
 
@@ -1306,6 +1307,19 @@ tr:hover td{background:#F5F3ED}
   </div>
 </div>
 
+<!-- ══ TAB: ACTIVIDAD (auditoría) ═══════════════════════════════════════════════ -->
+<div id="tab-actividad" class="tab-content">
+<div class="page">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+    <h2 style="margin:0;font-size:17px">Actividad</h2>
+    <span style="font-size:12px;color:var(--muted)">Quién hizo qué y cuándo (últimos 200 movimientos)</span>
+    <input id="actBuscar" type="search" placeholder="🔎 filtrar por usuario, acción o dato…" oninput="renderActividad()" style="margin-left:auto;min-width:240px;padding:7px 10px;border:1px solid var(--line,#ddd);border-radius:8px;font-size:13px">
+    <button class="btn" onclick="loadActividad()">↻ Actualizar</button>
+  </div>
+  <div id="actContenido" style="font-size:13px;color:var(--muted)">Cargando…</div>
+</div>
+</div>
+
 <!-- ══ TAB 5: COTIZADOR ═══════════════════════════════════════════════════════ -->
 <div id="tab-cotizador" class="tab-content">
 
@@ -1618,6 +1632,14 @@ function _leadToRow(l){
   };
 }
 async function _sbFetch(path,opts){
+  // Guard de edición por sección (Etapa 2): bloquea escrituras si la sección
+  // actual no es editable para el usuario. Lecturas (GET/HEAD) siempre pasan;
+  // externos y usuarios sin config no se ven afectados.
+  var _m=((opts&&opts.method)||'GET').toUpperCase();
+  if(_m!=='GET'&&_m!=='HEAD'&&!labEdicionActual()){
+    try{ if(typeof toast==='function') toast('Solo lectura: no tenés permiso para editar esta sección.'); }catch(e){}
+    return { ok:false, status:403, statusText:'Solo lectura', json:async()=>({}), text:async()=>'' };
+  }
   // Pedir el token de sesión vigente directamente al SDK en cada llamada.
   // Es más confiable que depender de _sbAccessToken (que puede quedar viejo tras
   // recargas o redirects). Si hay sesión, RLS reconoce al usuario @4housing.
@@ -2507,6 +2529,54 @@ function switchTab(id,el){
   document.getElementById('tab-'+id).classList.add('active');
   el.classList.add('active');
   if(id==='prospectos'){try{loadProspectos();}catch(e){console.warn('loadProspectos:',e);}}
+  if(id==='actividad'){try{loadActividad();}catch(e){console.warn('loadActividad:',e);}}
+  _labTab=id;
+  actualizarBannerSoloLecturaLabo();
+}
+
+// ── Actividad (auditoría) ───────────────────────────────────────────────────────
+// Lee core_auditoria (sector labocomercial). La RLS ya limita a lo del sector.
+let _actividadRows = [];
+async function loadActividad(){
+  const cont=document.getElementById('actContenido'); if(cont) cont.textContent='Cargando…';
+  try{
+    const r=await _sbFetch('core_auditoria?sector=eq.labocomercial&order=cambiado_en.desc&limit=200',{method:'GET'});
+    _actividadRows = Array.isArray(r) ? r : [];
+  }catch(e){ console.warn('loadActividad:',e); _actividadRows=[]; }
+  renderActividad();
+}
+function _actResumenCambio(row){
+  try{
+    if(row.accion==='UPDATE' && row.datos_antes && row.datos_despues){
+      const a=row.datos_antes, d=row.datos_despues, campos=[];
+      Object.keys(d).forEach(k=>{ if(k!=='updated_at' && JSON.stringify(a[k])!==JSON.stringify(d[k])) campos.push(k); });
+      return campos.length ? 'cambió: '+campos.join(', ') : '—';
+    }
+    const src=row.datos_despues||row.datos_antes||{};
+    return src.cliente || src.nombre || src.num || row.registro_id || '—';
+  }catch(e){ return '—'; }
+}
+function renderActividad(){
+  const cont=document.getElementById('actContenido'); if(!cont) return;
+  const inp=document.getElementById('actBuscar');
+  const q=(inp&&inp.value||'').trim().toLowerCase();
+  let rows=_actividadRows;
+  if(q) rows=rows.filter(r=> JSON.stringify(r).toLowerCase().includes(q));
+  if(!rows.length){ cont.innerHTML='<div style="padding:16px">Sin actividad registrada'+(q?' para ese filtro':' todavía')+'.</div>'; return; }
+  const esc2=(s)=> String(s==null?'':s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+  const fmt=(iso)=>{ try{ return new Date(iso).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return iso||''; } };
+  const badge=(a)=>{ const c=a==='INSERT'?'#1e8449':a==='DELETE'?'#a3372d':'#8a6d1f', t=a==='INSERT'?'alta':a==='DELETE'?'baja':'edición'; return '<span style="background:'+c+'22;color:'+c+';padding:1px 7px;border-radius:6px;font-size:11px;font-weight:600">'+t+'</span>'; };
+  const tablaLbl={ labocomercial_leads:'Cotización / Lead', labocomercial_counters:'Numerador', labocomercial_contactos_web:'Contacto web' };
+  cont.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;color:var(--ink,#222)">'
+    + '<thead><tr style="text-align:left;color:var(--muted)"><th style="padding:6px 8px">Fecha</th><th style="padding:6px 8px">Usuario</th><th style="padding:6px 8px">Acción</th><th style="padding:6px 8px">Qué</th><th style="padding:6px 8px">Detalle</th></tr></thead><tbody>'
+    + rows.map(r=>'<tr style="border-top:1px solid var(--line,#eee)">'
+        + '<td style="padding:6px 8px;white-space:nowrap">'+esc2(fmt(r.cambiado_en))+'</td>'
+        + '<td style="padding:6px 8px">'+esc2(r.usuario_email||'—')+'</td>'
+        + '<td style="padding:6px 8px">'+badge(r.accion)+'</td>'
+        + '<td style="padding:6px 8px">'+esc2(tablaLbl[r.tabla]||r.tabla)+'</td>'
+        + '<td style="padding:6px 8px;color:var(--muted)">'+esc2(_actResumenCambio(r))+'</td>'
+      +'</tr>').join('')
+    + '</tbody></table></div>';
 }
 
 // ── Export CSV ────────────────────────────────────────────────────────────────
@@ -4523,6 +4593,78 @@ var _userRole='interno';
 var _userEmail='';
 function esExterno(){return _userRole==='externo';}
 var _gateAccount=null;
+
+// ===== Etapa 2 · Permisos por sección (Ver / Editar) para usuarios INTERNOS =====
+// Los externos quedan solo en el cotizador (aplicarModoExterno) y sus INSERT los
+// gobierna la RLS: acá nunca se les restringe. Para internos se lee el perfil del
+// portal; sin config guardada = acceso total (retrocompatible con lo de hoy).
+var _perfilLabo=null;        // { esDir, rol, ver, editar } | null
+var _labTab='pipeline';      // pestaña activa
+var SECCIONES_EDITABLES_LABO={ pipeline:1, prospectos:1, cotizador:1 }; // el resto son reportes
+function _labVerSet(){
+  if(!_perfilLabo||_perfilLabo.esDir) return null;
+  if(Array.isArray(_perfilLabo.ver)) return new Set(_perfilLabo.ver);
+  return null;
+}
+function _labEditSet(){
+  if(!_perfilLabo||_perfilLabo.esDir) return null;
+  if(_perfilLabo.rol==='lector'||_perfilLabo.rol==='lectura') return new Set();
+  if(Array.isArray(_perfilLabo.editar)) return new Set(_perfilLabo.editar);
+  return null;
+}
+function labPuedeVer(sec){ if(esExterno()) return sec==='cotizador'; if(!sec) return true; var s=_labVerSet(); return s===null||s.has(sec); }
+function labPuedeEditar(sec){ if(esExterno()) return true; if(!sec) return true; var s=_labEditSet(); return s===null||s.has(sec); }
+function labEdicionActual(){ return labPuedeEditar(_labTab); }
+
+// Carga el perfil del portal para un INTERNO (rol + permisos.ver/editar del sector
+// labocomercial). Sin fila de sector o sin listas → queda null/arrays null = acceso
+// total (no se rompe a los internos actuales). Nunca deniega el acceso a la app.
+async function cargarPerfilLabo(session){
+  _perfilLabo=null;
+  try{
+    var uid=session&&session.user&&session.user.id; if(!uid) return;
+    var pr=await _sbFetch('perfiles?id=eq.'+uid+'&select=activo,es_direccion',{method:'GET'});
+    var perf=pr.ok?((await pr.json())[0]||null):null;
+    var sr=await _sbFetch('perfiles_sector?perfil_id=eq.'+uid+'&sector=eq.labocomercial&select=cargo,permisos',{method:'GET'});
+    var ps=sr.ok?((await sr.json())[0]||null):null;
+    var esDir=!!(perf&&perf.es_direccion);
+    var perm=(ps&&ps.permisos)||{};
+    _perfilLabo={ esDir:esDir, rol: esDir?'admin':(ps?ps.cargo:null),
+                  ver: Array.isArray(perm.ver)?perm.ver:null,
+                  editar: Array.isArray(perm.editar)?perm.editar:null };
+  }catch(e){ console.warn('cargarPerfilLabo:',e); _perfilLabo=null; }
+}
+// Oculta las pestañas que el interno no puede ver; si la activa queda oculta, salta
+// a la primera visible. (A los externos los maneja aplicarModoExterno.)
+function aplicarVisibilidadTabsLabo(){
+  if(esExterno()) return;
+  var tabs=Array.prototype.slice.call(document.querySelectorAll('.tabs .tab'));
+  var secDe=function(t){ var m=(t.getAttribute('onclick')||'').match(/switchTab\('([a-z]+)'/); return m?m[1]:null; };
+  var firstVisible=null, firstEl=null;
+  tabs.forEach(function(t){
+    var sec=secDe(t), ok=labPuedeVer(sec);
+    t.style.display=ok?'':'none';
+    if(ok&&!firstVisible){ firstVisible=sec; firstEl=t; }
+  });
+  var active=document.querySelector('.tabs .tab.active');
+  var activeSec=active?secDe(active):null;
+  if((!activeSec||!labPuedeVer(activeSec)) && firstEl){ switchTab(firstVisible, firstEl); }
+}
+// Cartel "solo lectura" arriba del contenido de la pestaña activa.
+function actualizarBannerSoloLecturaLabo(){
+  var mostrar = !esExterno() && SECCIONES_EDITABLES_LABO[_labTab] && !labPuedeEditar(_labTab);
+  var b=document.getElementById('banner-solo-lectura-labo');
+  if(!mostrar){ if(b)b.style.display='none'; return; }
+  if(!b){
+    b=document.createElement('div');
+    b.id='banner-solo-lectura-labo';
+    b.style.cssText='background:#FCF4E6;border:1px solid #E9D8B0;color:#8A6D1F;border-radius:9px;padding:8px 12px;margin:10px 0;font-size:13px';
+    b.textContent='👁 Solo lectura — podés ver esta sección pero no editarla. Si necesitás editar, pedile acceso a dirección.';
+  }
+  var host=document.getElementById('tab-'+_labTab);
+  if(host && b.parentNode!==host) host.insertBefore(b, host.firstChild);
+  b.style.display='';
+}
 function _gateShowError(msg){
   var e=document.getElementById('lg-err');
   if(e){e.textContent=msg;e.classList.add('show');}
@@ -4645,7 +4787,9 @@ async function _gateApplySession(session){
   _userEmail=email;
   _sbAccessToken=session.access_token||null;
   _gateAccount={username:email};
+  if(_userRole==='interno'){ try{ await cargarPerfilLabo(session); }catch(e){ console.warn('cargarPerfilLabo:',e); } }
   _gateEnterApp();
+  if(_userRole==='interno') aplicarVisibilidadTabsLabo();
   return true;
 }
 // Al cargar: procesa retorno de login y/o sesión existente de Supabase
