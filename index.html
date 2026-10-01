@@ -2757,7 +2757,15 @@ async function patchProspecto(id,patch,textoActividad){
     const r=await _sbFetch('labocomercial_prospectos?id=eq.'+encodeURIComponent(id),{
       method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify(body)
     });
-    if(!r.ok){console.warn('patchProspecto '+r.status,await r.text());alert('No se pudo guardar el cambio. Revisá la conexión y probá de nuevo.');return false;}
+    if(!r.ok){
+      console.warn('patchProspecto '+r.status,await r.text());
+      // El cambio ya se pintó en pantalla (optimista). Si el servidor lo rechaza
+      // —sin permiso de edición, sin conexión— hay que volver a lo que dice la
+      // base, o queda a la vista algo que no se guardó.
+      if(r.status!==403)alert('No se pudo guardar el cambio. Revisá la conexión y probá de nuevo.');
+      await loadProspectos();
+      return false;
+    }
     return true;
   }catch(e){console.warn('patchProspecto:',e);return false;}
 }
