@@ -225,6 +225,13 @@ tr:hover td{background:#F5F3ED}
 .pr-act:hover{background:var(--green);color:var(--white)}
 .pr-act.ghost{border-color:var(--border);color:var(--mid)}
 .pr-act.ghost:hover{background:var(--grey);color:var(--black)}
+.pr-chk{width:14px;height:14px;cursor:pointer;accent-color:var(--black);margin:0;vertical-align:middle}
+tr.pr-marcada td{background:#F3F1EC}
+.pros-lote{display:none;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--black);color:var(--white);font-family:'IBM Plex Mono',monospace;font-size:10px;position:sticky;top:0;z-index:5}
+.pros-lote.visible{display:flex}
+.pros-lote .pr-sel{max-width:220px}
+.pros-lote .pr-act.ghost{border-color:#666;color:#ccc}
+.pros-lote .pr-act.ghost:hover{background:#333;color:var(--white)}
 .wa-btn{display:inline-flex;align-items:center;justify-content:center;vertical-align:-2px;margin-left:6px;padding:0;border:none;background:transparent;cursor:pointer;color:#25D366}
 .wa-btn:hover{opacity:.65}
 .wa-btn svg{width:13px;height:13px;fill:currentColor;display:block}
@@ -1115,6 +1122,7 @@ tr:hover td{background:#F5F3ED}
           <div class="search-wrap"><input type="text" placeholder="Buscar..." oninput="filterProsSearch(this.value)"></div>
         </div>
       </div>
+      <div class="pros-lote" id="pros-lote"></div>
       <div id="pros-table-container"><div class="empty"><div class="empty-icon">◫</div><div class="empty-text">Cargando...</div></div></div>
     </div>
   </div>
@@ -2705,6 +2713,10 @@ let prosVisibles=PROS_PAGINA;
 // Prospecto que se está cotizando en este momento: lo setea convertirProspecto() y lo
 // consume _spSaveLead() cuando la cotización se guarda de verdad.
 let _prospectoPendiente=null;
+// Selección múltiple de la bandeja (ids como string). Sólo vive mientras las filas
+// están a la vista: renderProsTable() descarta las que salen de pantalla, así una
+// acción en lote nunca toca un prospecto que el usuario no está viendo.
+let prosSel=new Set(), prosSelAncla=null;
 
 // ── Datos ─────────────────────────────────────────────────────────────────────
 /**
@@ -2741,7 +2753,7 @@ async function loadProspectos(){
   renderProspectos();
 }
 // Guarda un cambio puntual del prospecto y deja registro en su historial.
-async function patchProspecto(id,patch,textoActividad){
+async function patchProspecto(id,patch,textoActividad,lote){
   const p=allProspectos.find(function(x){return String(x.id)===String(id);});
   if(!p)return false;
   const body=Object.assign({},patch);
@@ -2751,14 +2763,18 @@ async function patchProspecto(id,patch,textoActividad){
     body.actividad=act;
   }
   Object.assign(p,body);           // optimista: la UI responde ya
-  renderProspectos();
-  if(currentProspectoId===String(id))openProspecto(id);
+  // En lote, quien llama redibuja una sola vez al final.
+  if(!lote){
+    renderProspectos();
+    if(currentProspectoId===String(id))openProspecto(id);
+  }
   try{
     const r=await _sbFetch('labocomercial_prospectos?id=eq.'+encodeURIComponent(id),{
       method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify(body)
     });
     if(!r.ok){
       console.warn('patchProspecto '+r.status,await r.text());
+      if(lote)return false;        // el lote avisa y recarga una sola vez
       // El cambio ya se pintó en pantalla (optimista). Si el servidor lo rechaza
       // —sin permiso de edición, sin conexión— hay que volver a lo que dice la
       // base, o queda a la vista algo que no se guardó.
@@ -2994,11 +3010,18 @@ function renderProsTable(){
     cont.innerHTML='<div class="empty"><div class="empty-icon">◫</div><div class="empty-text">'+
       (allProspectos.length?'Sin resultados':'Todavía no llegó ningún prospecto. La sincronización con el Google Sheet corre cada 10 minutos.')+
       '</div></div>';
+    prosSel.clear();prosSelAncla=null;_prosPintarSel();
     return;
   }
   // Sólo se dibuja la tanda visible: el resto llega con el botón del pie.
   var total=list.length;
   var pagina=list.slice(0,prosVisibles);
+  // La selección sólo conserva lo que sigue a la vista (cambió el filtro, la
+  // búsqueda o alguien lo movió de etapa): nunca se edita algo oculto.
+  var visibles=new Set(pagina.map(function(p){return String(p.id);}));
+  prosSel.forEach(function(id){if(!visibles.has(id))prosSel.delete(id);});
+  if(prosSelAncla!==null&&!visibles.has(prosSelAncla))prosSelAncla=null;
+  var editable=labPuedeEditar('prospectos');
   var filas=pagina.map(function(p){
     var etapa=prosEtapa(p);
     var cls=PROS_CLS[etapa]||'p-nuevo';
@@ -3030,7 +3053,9 @@ function renderProsTable(){
     var accion=etapa==='Convertido'
       ? (p.lead_id?'<button class="pr-act ghost" data-lid="'+escAttr(p.lead_id)+'" onclick="event.stopPropagation();openDetail(this.dataset.lid)">Ver lead →</button>':'<span class="td-muted">cotizado</span>')
       : '<button class="pr-act" data-pid="'+pid+'" onclick="event.stopPropagation();convertirProspecto(this.dataset.pid)">Cotizar →</button>';
-    return '<tr data-pid="'+pid+'" onclick="openProspecto(this.dataset.pid)" style="cursor:pointer">'+
+    var marcada=prosSel.has(String(p.id));
+    return '<tr data-pid="'+pid+'" onclick="openProspecto(this.dataset.pid)" style="cursor:pointer"'+(marcada?' class="pr-marcada"':'')+'>'+
+      (editable?('<td style="width:22px" onclick="event.stopPropagation()"><input type="checkbox" class="pr-chk" data-pid="'+pid+'"'+(marcada?' checked':'')+' onclick="prosToggleSel(this,event)"></td>'):'')+
       '<td style="font-family:IBM Plex Mono,monospace;font-size:11px">'+_prosFecha(p)+'</td>'+
       '<td><div class="td-bold">'+esc(p.nombre||'—')+avisos+'</div><div class="td-muted" style="font-size:10px">'+esc(contacto||'sin datos de contacto')+_waIcono(p)+'</div></td>'+
       '<td><div style="font-size:12px">'+esc(interes)+'</div><div class="td-muted" style="font-size:10px">'+esc(p.region||'')+'</div></td>'+
@@ -3056,8 +3081,10 @@ function renderProsTable(){
       Math.min(PROS_PAGINA,total-pagina.length)+' más</button></div>'
     : '';
   cont.innerHTML='<table><thead><tr>'+
+    (editable?'<th style="width:22px"><input type="checkbox" class="pr-chk" id="pros-chk-todos" title="Seleccionar todos los que están a la vista" onclick="prosToggleSelTodos(this)"></th>':'')+
     '<th>Fecha</th><th>Contacto</th><th>Interés</th><th>Origen</th><th>Responsable</th><th>Calificación</th><th style="text-align:center">Días</th><th></th>'+
     '</tr></thead><tbody>'+filas+'</tbody></table>'+pie;
+  _prosPintarSel();
 }
 
 /* ════════════════ WHATSAPP ════════════════ */
@@ -3183,13 +3210,18 @@ function calificarProspecto(id,key){
   document.querySelectorAll('.etapa-dropdown.open').forEach(function(d){d.classList.remove('open');});
   var p=allProspectos.find(function(x){return String(x.id)===String(id);});
   if(!p)return;
+  var cambio=_prosCambioCalif(p,key);
+  if(cambio)patchProspecto(id,cambio.patch,cambio.texto);
+}
+// Arma el cambio de calificación de un prospecto (o null si no hay nada que
+// cambiar). Lo comparten la fila suelta y la acción en lote.
+function _prosCambioCalif(p,key){
   if(!key){
-    if(!p.clasificacion)return;
-    patchProspecto(id,{clasificacion:null},'Calificación borrada');
-    return;
+    if(!p.clasificacion)return null;
+    return {patch:{clasificacion:null},texto:'Calificación borrada'};
   }
   var c=PROS_CALIF_MAP[key];
-  if(!c||p.clasificacion===key)return;
+  if(!c||p.clasificacion===key)return null;
   var etapa=c.etapa;
   if(etapa==='Contactado'){
     var actual=prosEtapa(p);
@@ -3197,7 +3229,117 @@ function calificarProspecto(id,key){
   }
   var patch={clasificacion:key,etapa:etapa,calidad:c.calidad==='N/A'?null:c.calidad};
   if(etapa!=='Nuevo'&&!(p.contactos>0))patch.contactos=1;
-  patchProspecto(id,patch,'Calificado: '+c.lectura+' ('+c.estado+' · '+c.calidad+')');
+  return {patch:patch,texto:'Calificado: '+c.lectura+' ('+c.estado+' · '+c.calidad+')'};
+}
+
+// ── Selección múltiple y acciones en lote ─────────────────────────────────────
+// Como en el Sheet: tildar varias filas (Shift+click marca el rango desde la
+// última tildada) y calificar o asignar todas de una. Cada prospecto se guarda
+// por separado, con la misma regla de etapa y su propia línea en el historial
+// que si se hubiera cambiado a mano.
+function prosToggleSel(el,ev){
+  var id=el.dataset.pid, marcar=el.checked;
+  var ids=_prosIdsVisibles();
+  var i=ids.indexOf(id), j=prosSelAncla===null?-1:ids.indexOf(prosSelAncla);
+  if(ev&&ev.shiftKey&&j>=0&&i>=0){
+    for(var k=Math.min(i,j);k<=Math.max(i,j);k++){if(marcar)prosSel.add(ids[k]);else prosSel.delete(ids[k]);}
+  }else{
+    if(marcar)prosSel.add(id);else prosSel.delete(id);
+  }
+  prosSelAncla=id;
+  _prosPintarSel();
+}
+function prosToggleSelTodos(el){
+  if(el.checked)_prosIdsVisibles().forEach(function(id){prosSel.add(id);});
+  else prosSel.clear();
+  prosSelAncla=null;
+  _prosPintarSel();
+}
+function prosLimpiarSel(){prosSel.clear();prosSelAncla=null;_prosPintarSel();}
+function _prosIdsVisibles(){
+  return Array.from(document.querySelectorAll('#pros-table-container .pr-chk[data-pid]')).map(function(c){return c.dataset.pid;});
+}
+// Refleja la selección en checkboxes, filas y barra sin redibujar la tabla.
+function _prosPintarSel(){
+  var ids=_prosIdsVisibles();
+  document.querySelectorAll('#pros-table-container .pr-chk[data-pid]').forEach(function(c){
+    var on=prosSel.has(c.dataset.pid);
+    c.checked=on;
+    var tr=c.closest('tr');if(tr)tr.classList.toggle('pr-marcada',on);
+  });
+  var todos=document.getElementById('pros-chk-todos');
+  if(todos){
+    todos.checked=ids.length>0&&prosSel.size===ids.length;
+    todos.indeterminate=prosSel.size>0&&prosSel.size<ids.length;
+  }
+  var bar=document.getElementById('pros-lote');
+  if(!bar)return;
+  if(!prosSel.size||!labPuedeEditar('prospectos')){bar.classList.remove('visible');bar.innerHTML='';bar.dataset.n='';return;}
+  // La tabla se redibuja sola cada 30 s: si la cantidad no cambió, no se rearma la
+  // barra, así no se cierra un desplegable que el usuario tenga abierto.
+  if(bar.dataset.n===String(prosSel.size)&&bar.classList.contains('visible'))return;
+  bar.dataset.n=String(prosSel.size);
+  var optCalif='<option value="">Calificar como…</option>'+PROS_CALIF.map(function(c){
+    return '<option value="'+escAttr(c.key)+'">'+esc(c.lectura)+' ('+esc(c.estado)+' · '+esc(c.calidad)+')</option>';
+  }).join('')+'<option value="_borrar">— sin calificar —</option>';
+  var optResp='<option value="">Asignar a…</option>'+PROS_VENDEDORES.map(function(v){
+    return '<option value="'+escAttr(v)+'">'+esc(v)+'</option>';
+  }).join('')+'<option value="_nadie">— sin asignar —</option>';
+  bar.innerHTML='<strong>'+prosSel.size+' seleccionado'+(prosSel.size===1?'':'s')+'</strong>'+
+    '<select class="pr-sel" onchange="prosLoteCalificar(this)">'+optCalif+'</select>'+
+    '<select class="pr-sel" onchange="prosLoteAsignar(this)">'+optResp+'</select>'+
+    '<button class="pr-act ghost" onclick="prosLimpiarSel()">Quitar selección</button>';
+  bar.classList.add('visible');
+}
+function prosLoteCalificar(sel){
+  var v=sel.value;sel.value='';
+  if(!v)return;
+  var key=v==='_borrar'?'':v;
+  var c=key?PROS_CALIF_MAP[key]:null;
+  if(key&&!c)return;
+  _prosAplicarLote(key?('calificar como "'+c.lectura+'"'):'borrar la calificación de',function(p){
+    return _prosCambioCalif(p,key);
+  });
+}
+function prosLoteAsignar(sel){
+  var v=sel.value;sel.value='';
+  if(!v)return;
+  var valor=v==='_nadie'?'':v;
+  _prosAplicarLote(valor?('asignar a '+valor):'dejar sin responsable a',function(p){
+    if((p.responsable||'').trim()===valor)return null;
+    return {patch:{responsable:valor},texto:valor?('Asignado a '+valor):'Sin responsable'};
+  });
+}
+async function _prosAplicarLote(accion,armar){
+  var ids=Array.from(prosSel);
+  var cambios=[];
+  ids.forEach(function(id){
+    var p=allProspectos.find(function(x){return String(x.id)===id;});
+    var c=p&&armar(p);
+    if(c)cambios.push({id:id,c:c});
+  });
+  if(!cambios.length){alert('Los prospectos seleccionados ya están así. No hay nada que cambiar.');return;}
+  var sinCambio=ids.length-cambios.length;
+  if(!confirm('¿'+accion.charAt(0).toUpperCase()+accion.slice(1)+' '+cambios.length+' prospecto'+(cambios.length===1?'':'s')+'?'+
+    (sinCambio?('\n('+sinCambio+' ya estaba'+(sinCambio===1?'':'n')+' así y no se toca'+(sinCambio===1?'':'n')+'.)'):'')))return;
+  var bar=document.getElementById('pros-lote');
+  if(bar){bar.innerHTML='<strong>Guardando '+cambios.length+'…</strong>';bar.dataset.n='';}
+  // De a 5 en paralelo: rápido sin saturar la conexión ni la API.
+  var fallos=0;
+  for(var i=0;i<cambios.length;i+=5){
+    var res=await Promise.all(cambios.slice(i,i+5).map(function(x){
+      return patchProspecto(x.id,x.c.patch,x.c.texto,true);
+    }));
+    res.forEach(function(ok){if(!ok)fallos++;});
+  }
+  prosSel.clear();prosSelAncla=null;
+  if(fallos){
+    alert('No se pudieron guardar '+fallos+' de '+cambios.length+' cambios. Se recarga la bandeja con lo que quedó guardado.');
+    await loadProspectos();
+  }else{
+    renderProspectos();
+  }
+  if(currentProspectoId)openProspecto(currentProspectoId);
 }
 
 function cambiarEtapaProspecto(id,etapa){
