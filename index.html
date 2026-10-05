@@ -229,6 +229,12 @@ tr:hover td{background:#F5F3ED}
 tr.pr-marcada td{background:#F3F1EC}
 .pros-lote{display:none;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--black);color:var(--white);font-family:'IBM Plex Mono',monospace;font-size:10px;position:sticky;top:0;z-index:5}
 .pros-lote.visible{display:flex}
+.imp-dif-lista{max-height:46vh;overflow:auto;border:1px solid var(--border)}
+.imp-dif-fila{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px;line-height:1.5}
+.imp-dif-fila:last-child{border-bottom:none}
+.imp-dif-fila .pr-chk{margin-top:2px}
+.imp-dif-campo{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mid)}
+.imp-dif-campo b{color:var(--black);font-weight:600}
 .pros-lote .pr-sel{max-width:220px}
 .pros-lote .pr-act.ghost{border-color:#666;color:#ccc}
 .pros-lote .pr-act.ghost:hover{background:#333;color:var(--white)}
@@ -1284,12 +1290,14 @@ tr.pr-marcada td{background:#F3F1EC}
 <!-- VERSIÓN NUEVA vs PROYECTO NUEVO MODAL -->
 <!-- IMPORTAR CSV DEL GOOGLE SHEET -->
 <div class="modal-overlay" id="importModal">
-  <div class="modal-box">
+  <div class="modal-box" id="import-box">
     <div class="modal-title">Importar prospectos desde el Sheet</div>
     <div style="font-size:12px;color:var(--mid);line-height:1.6;margin-bottom:16px">
       En el Google Sheet: <strong>Archivo → Descargar → Valores separados por comas (.csv)</strong>.
       Descarga la hoja que tengas abierta. Elegí abajo cuál es y subí el archivo.<br>
-      Lo que ya esté en el CRM no se duplica ni se pisa.
+      Lo que ya esté en el CRM no se duplica. Si en el Sheet cambió la calificación
+      (Estado + Calidad), la etapa o el contacto asignado, te muestro las diferencias
+      y elegís cuáles actualizar.
     </div>
     <div class="modal-options" id="import-options">
       <div class="modal-opt" onclick="selImportFuente(this,'formulario')">Hoja <strong>Formulario</strong></div>
@@ -1297,6 +1305,7 @@ tr.pr-marcada td{background:#F3F1EC}
     </div>
     <input type="file" id="import-file" accept=".csv,text/csv" style="display:none" onchange="importarCSVArchivo(this)">
     <div id="import-estado" style="font-size:12px;margin-top:14px;display:none"></div>
+    <div id="import-dif" style="display:none;margin-top:14px"></div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="btn-modal" onclick="cerrarImportador()">Cerrar</button>
       <button class="btn-modal primary" id="import-btn" onclick="elegirArchivoCSV()" disabled style="opacity:.5">Elegir archivo…</button>
@@ -3654,6 +3663,9 @@ function abrirImportador(){
   _importFuente=null;
   document.querySelectorAll('#import-options .modal-opt').forEach(function(o){o.classList.remove('selected');});
   var est=document.getElementById('import-estado');est.style.display='none';est.textContent='';
+  var dif=document.getElementById('import-dif');dif.style.display='none';dif.innerHTML='';
+  document.getElementById('import-box').style.width='';
+  _importDif=[];
   _importBtn(false);
   document.getElementById('import-file').value='';
   document.getElementById('importModal').classList.add('open');
@@ -3697,15 +3709,16 @@ function importarCSVArchivo(input){
         return;
       }
       var vacias=0;
-      var registros=[];
+      var registros=[], hoja=[];
       filas.slice(1).forEach(function(fila,i){
         var r=_csvAProspecto(fila,mapa,fuente,encabezados);
         if(!r){vacias++;return;}
         registros.push(r);
+        hoja.push(_csvDatosHoja(fila,mapa,r,i+2));
       });
       if(!registros.length){_importMsg('No había ninguna fila con datos de contacto.','var(--red)');return;}
       _importMsg('Subiendo '+registros.length+' filas…');
-      _subirProspectos(registros,fuente,vacias);
+      _subirProspectos(registros,fuente,vacias,hoja);
     }catch(e){
       console.warn('importarCSV:',e);
       _importMsg('No pude leer el archivo: '+e.message,'var(--red)');
@@ -3716,7 +3729,7 @@ function importarCSVArchivo(input){
   input.value='';
 }
 
-async function _subirProspectos(registros,fuente,vacias){
+async function _subirProspectos(registros,fuente,vacias,hoja){
   try{
     // Lo que ya está en el CRM para esa hoja: se compara por Entry ID.
     var yaEstan={};
@@ -3726,7 +3739,9 @@ async function _subirProspectos(registros,fuente,vacias){
     var nuevos=registros.filter(function(x){return !yaEstan[String(x.entry_id)];});
     var repetidos=registros.length-nuevos.length;
     if(!nuevos.length){
-      _importMsg('✓ Ya estaba todo: las '+registros.length+' filas del archivo están en el CRM.','var(--green)');
+      _importMsg('✓ No hay prospectos nuevos: las '+registros.length+' filas del archivo ya están en el CRM.','var(--green)');
+      await loadProspectos();
+      _importMostrarDif(fuente,hoja);
       return;
     }
     var subidos=0;
@@ -3753,9 +3768,155 @@ async function _subirProspectos(registros,fuente,vacias){
     _importMsg('✓ Listo: <strong>'+subidos+'</strong> prospectos nuevos'+
       (repetidos?' · '+repetidos+' ya estaban':'')+
       (vacias?' · '+vacias+' filas vacías ignoradas':'')+'.','var(--green)');
+    _importMostrarDif(fuente,hoja);
   }catch(e){
     console.warn('_subirProspectos:',e);
     _importMsg('Falló la subida: '+e.message,'var(--red)');
+  }
+}
+
+// ── Actualizar desde el Sheet: vista previa de diferencias ───────────────────
+// Además de cargar los nuevos, el importador compara cada fila del Sheet con lo
+// que hay en el CRM y propone actualizar la calificación (Estado + Calidad), los
+// contactos (columna Etapa) y el responsable (columna Contacto). Nada se guarda
+// sin que el usuario lo confirme en la lista, y una celda vacía en el Sheet no
+// borra nada del CRM.
+let _importDif=[];
+
+/** Lo que la fila del Sheet dice sobre el seguimiento, tal cual vino escrito. */
+function _csvDatosHoja(fila,mapa,r,nFila){
+  function v(campo){var i=mapa[campo];return (i===undefined)?'':String(fila[i]===undefined?'':fila[i]).trim();}
+  return {
+    entry_id:String(r.entry_id),fila:nFila,nombre:r.nombre,
+    estado:v('estado_sheet'),calidad:v('calidad'),etapa:v('etapa_sheet'),
+    responsable:v('responsable')
+  };
+}
+/** Estado + Calidad del Sheet → clave de PROS_CALIF. null si la fila no trae
+    estado (no hay nada que actualizar); false si la combinación no existe. */
+function _csvCalifKey(estado,calidad){
+  var e=_csvNorm(estado);
+  if(!e)return null;
+  var q=_csvNorm(calidad);
+  if(q==='regular')q='medio';
+  if(!q)q='na';
+  var c=PROS_CALIF.find(function(x){return _csvNorm(x.estado)===e&&_csvNorm(x.calidad)===q;});
+  return c?c.key:false;
+}
+function _importArmarDif(fuente,hoja){
+  var porEntry={};
+  allProspectos.forEach(function(p){
+    if((p.fuente||'')===fuente&&p.entry_id)porEntry[String(p.entry_id)]=p;
+  });
+  // Si el mismo Entry ID aparece dos veces en el archivo, vale la última fila.
+  var ultima={};
+  hoja.forEach(function(h){ultima[h.entry_id]=h;});
+  var cambios=[], invalidas=[];
+  Object.keys(ultima).forEach(function(eid){
+    var h=ultima[eid], p=porEntry[eid];
+    if(!p)return;
+    var patch={}, detalle=[], textos=[];
+    var key=_csvCalifKey(h.estado,h.calidad);
+    if(key===false){
+      invalidas.push(h);
+    }else if(key){
+      var cc=_prosCambioCalif(p,key);
+      if(cc){
+        var antes=p.clasificacion&&PROS_CALIF_MAP[p.clasificacion];
+        var c=PROS_CALIF_MAP[key];
+        Object.assign(patch,cc.patch);
+        detalle.push(['Calificación',antes?antes.corto:'sin calificar',c.corto]);
+        if(cc.patch.etapa&&cc.patch.etapa!==prosEtapa(p))detalle.push(['Etapa CRM',prosEtapa(p),cc.patch.etapa]);
+        textos.push(cc.texto);
+      }
+    }
+    var n=_csvContactos(h.etapa);
+    var contActual=('contactos' in patch)?patch.contactos:(p.contactos||0);
+    if(n>0&&n!==contActual){
+      detalle.push(['Contactos',String(p.contactos||0),String(n)]);
+      patch.contactos=n;
+      textos.push('Contactos → '+n);
+    }
+    var resp=_prosVendedor(h.responsable);
+    if(resp&&resp!==(p.responsable||'').trim()){
+      detalle.push(['Responsable',(p.responsable||'').trim()||'sin asignar',resp]);
+      patch.responsable=resp;
+      textos.push('Asignado a '+resp);
+    }
+    if(detalle.length)cambios.push({id:String(p.id),nombre:p.nombre||h.nombre||'—',fila:h.fila,patch:patch,detalle:detalle,
+      texto:'Actualizado desde el Sheet: '+textos.join(' · ')});
+  });
+  return {cambios:cambios,invalidas:invalidas};
+}
+function _importMostrarDif(fuente,hoja){
+  var cont=document.getElementById('import-dif');
+  if(!cont||!hoja||!hoja.length)return;
+  var r=_importArmarDif(fuente,hoja);
+  _importDif=r.cambios;
+  var html='';
+  if(r.cambios.length){
+    html+='<div style="font-size:12px;margin-bottom:8px"><strong>'+r.cambios.length+' prospecto'+(r.cambios.length===1?'':'s')+
+      ' con diferencias</strong> entre el Sheet y el CRM. Destildá los que no quieras actualizar.</div>'+
+      '<label style="font-size:11px;display:flex;gap:6px;align-items:center;margin-bottom:6px;cursor:pointer">'+
+      '<input type="checkbox" class="pr-chk" checked onclick="_importDifTodos(this.checked)"> Todos</label>'+
+      '<div class="imp-dif-lista">'+r.cambios.map(function(c,i){
+        return '<label class="imp-dif-fila"><input type="checkbox" class="pr-chk imp-dif-chk" data-i="'+i+'" checked onchange="_importDifContar()">'+
+          '<div><div class="td-bold">'+esc(c.nombre)+' <span class="td-muted" style="font-size:10px">fila '+c.fila+'</span></div>'+
+          c.detalle.map(function(d){
+            return '<div class="imp-dif-campo">'+esc(d[0])+': '+esc(d[1])+' → <b>'+esc(d[2])+'</b></div>';
+          }).join('')+'</div></label>';
+      }).join('')+'</div>'+
+      '<div style="margin-top:10px"><button class="btn-modal primary" id="import-dif-btn" onclick="_importAplicarDif()"></button></div>';
+  }else{
+    html+='<div style="font-size:12px;color:var(--green)">✓ La calificación, los contactos y el responsable del CRM coinciden con el Sheet.</div>';
+  }
+  if(r.invalidas.length){
+    html+='<div style="font-size:12px;margin-top:12px;color:var(--amber)"><strong>'+r.invalidas.length+' fila'+(r.invalidas.length===1?'':'s')+
+      ' con una combinación de Estado + Calidad que no existe en el CRM</strong> (no se tocó su calificación; corregilas a mano):</div>'+
+      '<div class="imp-dif-lista" style="max-height:20vh;margin-top:6px">'+r.invalidas.map(function(h){
+        return '<div class="imp-dif-fila"><div>'+esc(h.nombre||'—')+' <span class="td-muted" style="font-size:10px">fila '+h.fila+'</span>'+
+          '<div class="imp-dif-campo">'+esc(h.estado)+' + '+esc(h.calidad||'(sin calidad)')+'</div></div></div>';
+      }).join('')+'</div>';
+  }
+  document.getElementById('import-box').style.width='min(640px,94vw)';
+  cont.innerHTML=html;
+  cont.style.display='block';
+  _importDifContar();
+}
+function _importDifTodos(on){
+  document.querySelectorAll('#import-dif .imp-dif-chk').forEach(function(c){c.checked=on;});
+  _importDifContar();
+}
+function _importDifContar(){
+  var b=document.getElementById('import-dif-btn');
+  if(!b)return;
+  var n=document.querySelectorAll('#import-dif .imp-dif-chk:checked').length;
+  b.textContent='Actualizar '+n+' prospecto'+(n===1?'':'s');
+  b.disabled=!n;b.style.opacity=n?'1':'.5';
+}
+async function _importAplicarDif(){
+  var elegidos=Array.from(document.querySelectorAll('#import-dif .imp-dif-chk:checked')).map(function(c){
+    return _importDif[parseInt(c.dataset.i,10)];
+  }).filter(Boolean);
+  if(!elegidos.length)return;
+  var cont=document.getElementById('import-dif');
+  cont.innerHTML='<div style="font-size:12px">Actualizando '+elegidos.length+'…</div>';
+  var fallos=0, hechos=0;
+  for(var i=0;i<elegidos.length;i+=5){
+    var res=await Promise.all(elegidos.slice(i,i+5).map(function(x){
+      return patchProspecto(x.id,x.patch,x.texto,true);
+    }));
+    res.forEach(function(ok){if(ok)hechos++;else fallos++;});
+    cont.innerHTML='<div style="font-size:12px">Actualizando… '+(hechos+fallos)+' de '+elegidos.length+'</div>';
+  }
+  _importDif=[];
+  if(fallos){
+    cont.innerHTML='<div style="font-size:12px;color:var(--red)">Se actualizaron '+hechos+' y fallaron '+fallos+
+      '. Volvé a importar el mismo archivo para reintentar: lo que ya se actualizó no vuelve a aparecer.</div>';
+    await loadProspectos();
+  }else{
+    cont.innerHTML='<div style="font-size:12px;color:var(--green)">✓ Se actualizaron '+hechos+' prospecto'+(hechos===1?'':'s')+'.</div>';
+    renderProspectos();
   }
 }
 
