@@ -1811,6 +1811,7 @@ async function loadData(){
   }catch(e){console.error('loadData error:',e);allLeads=[];}
   _prosIdxInvalidar();             // los leads entran en el cruce de repetidos
   render();
+  try{ _abrirLaboLink(); }catch(_){}   // ¿vino un link directo a una cotización? abrir ese lead
   // La bandeja de prospectos viaja junto al Pipeline: mismo botón Actualizar,
   // mismo auto-refresh. No bloquea el render del CRM.
   try{loadProspectos();}catch(e){console.warn('loadProspectos:',e);}
@@ -2270,6 +2271,39 @@ function renderRanking(){
 }
 
 // ── Detail panel ──────────────────────────────────────────────────────────────
+/* ===== Link directo a una cotización LABO (deep-link) =====
+   Las cotizaciones viven dentro del lead, así que el link abre el LEAD (y ubica la cot):
+   https://.../labo-comercial/?lead=<leadId>&cot=<cotId>   (o solo ?cot=<cotId>)
+   Se guarda en sessionStorage antes del login para sobrevivir el redirect de OAuth. */
+function _laboLinkTarget(){
+  try{
+    var sp=new URLSearchParams(location.search);
+    var lead=sp.get('lead')||sp.get('leadId'); var cot=sp.get('cot')||sp.get('cotId');
+    if(!lead&&!cot&&location.hash){ var hp=new URLSearchParams(location.hash.replace(/^#/,'')); lead=hp.get('lead')||hp.get('leadId'); cot=hp.get('cot')||hp.get('cotId'); }
+    if(lead||cot) return {lead:lead||null, cot:cot||null};
+  }catch(_){}
+  return null;
+}
+function _stashLaboLink(){ try{ var t=_laboLinkTarget(); if(t) sessionStorage.setItem('laboLink', JSON.stringify(t)); }catch(_){} }
+var _laboLinkDone=false;
+function _abrirLaboLink(){
+  if(_laboLinkDone) return;
+  var t=_laboLinkTarget();
+  if(!t){ try{ var s=sessionStorage.getItem('laboLink'); if(s) t=JSON.parse(s); }catch(_){} }
+  if(!t) return;
+  var lead=null;
+  if(t.lead) lead=allLeads.find(function(l){return String(l.id)===String(t.lead);});
+  if(!lead&&t.cot) lead=allLeads.find(function(l){return (l.cotizaciones||[]).some(function(c){return String(c.id)===String(t.cot);});});
+  if(!lead) return;   // todavía no cargó, o no es visible para este usuario
+  _laboLinkDone=true; try{ sessionStorage.removeItem('laboLink'); }catch(_){}
+  try{ history.replaceState(null,'',location.pathname); }catch(_){}
+  openDetail(String(lead.id));
+}
+function copiarLinkLabo(leadId, cotId){
+  var url=location.origin+location.pathname+'?lead='+encodeURIComponent(leadId)+(cotId?('&cot='+encodeURIComponent(cotId)):'');
+  try{ navigator.clipboard.writeText(url); if(typeof toast==='function') toast('Link copiado'); else alert('Link copiado:\n'+url); }
+  catch(e){ prompt('Copiá el link:', url); }
+}
 function openDetail(id){
   var l=allLeads.find(function(x){return x.id===id;});
   if(!l)return;
@@ -2297,6 +2331,7 @@ function openDetail(id){
         ? '<a class="cot-pdf-btn" href="'+esc(c.pdfUrl)+'" target="_blank" rel="noopener" title="Abrir PDF en SharePoint'+(c.pdfName?' ('+esc(c.pdfName)+')':'')+'">PDF ↗</a>'
         : '<span class="cot-pdf-none">sin PDF</span>';
       var delBtn='<button class="cot-del-btn" title="Eliminar esta versión" onclick="archivarCotizacion(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">Eliminar</button>';
+      var lnkBtn=!esExterno()?('<button class="cot-ver-btn" title="Copiar link directo a esta cotización (para el artifact de seguimiento, mail, etc.)" onclick="copiarLinkLabo(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">🔗 Link</button>'):'';
       var spBtn='';
       if(!esExterno()&&c.pendienteSharePoint){
         spBtn='<button class="cot-sp-btn" title="Crear carpeta y subir PDF a SharePoint" onclick="guardarEnSharePoint(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">↑ SharePoint</button>';
@@ -2311,7 +2346,7 @@ function openDetail(id){
         '<div class="cot-card-hdr">'+
           '<span class="cot-card-num">COT N\u00b0 '+_fmtLeadNum(l.leadNum)+' · VER'+String(version).padStart(2,'0')+extBadge+'</span>'+
           '<span style="display:flex;align-items:center;gap:8px">'+
-            '<span class="cot-card-date">'+d+'</span>'+pdfBtn+spBtn+verBtn+delBtn+
+            '<span class="cot-card-date">'+d+'</span>'+pdfBtn+spBtn+verBtn+lnkBtn+delBtn+
           '</span>'+
         '</div>'+
         '<div class="cot-card-body">'+
@@ -4895,6 +4930,7 @@ async function initAll(){
 }
 // Cotizador init: solo construye UI. El login MSAL se difiere hasta generar PDF.
 // El arranque real lo controla el gate de acceso (gateBoot) tras validar el dominio.
+try{ _stashLaboLink(); }catch(_){}   // guardar el link pedido ANTES del login (sobrevive el redirect de OAuth)
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',gateBoot);}else{gateBoot();}
 
 // ── GATE DE ACCESO (login + validación de dominio @4housing.com.ar) ──────────
