@@ -2699,13 +2699,25 @@ function setKpiFilter(type){
 }
 
 // El arranque del CRM (loadData) ahora lo dispara el gate de acceso tras validar el dominio.
-// Auto-refresh cada 30s solo si no hay un panel de detalle abierto (no interrumpe al usuario)
-setInterval(function(){
+// Auto-refresh solo si no hay un panel de detalle abierto (no interrumpe al usuario).
+// Cada refresh baja TODOS los leads (con cotizaciones/actividad) y TODOS los prospectos:
+// cada 30s y con la pestaña en segundo plano eso disparaba el egress de Supabase.
+// Ahora: cada 2 min, nunca con la pestaña oculta, y al volver a la pestaña se
+// refresca una vez si el último dato tiene más de 2 min.
+var _AUTO_REFRESH_MS=120000, _ultimoAutoRefresh=Date.now();
+function _autoRefresh(){
+  if(document.hidden)return;
   var overlay=document.getElementById('detailOverlay');
   var detailOpen=overlay&&overlay.classList.contains('open');
   var modalOpen=document.getElementById('motivoModal')&&document.getElementById('motivoModal').classList.contains('open');
-  if(!detailOpen&&!modalOpen)loadData();
-},30000);
+  if(detailOpen||modalOpen)return;
+  _ultimoAutoRefresh=Date.now();
+  loadData();
+}
+setInterval(_autoRefresh,_AUTO_REFRESH_MS);
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden&&Date.now()-_ultimoAutoRefresh>=_AUTO_REFRESH_MS)_autoRefresh();
+});
 
 /* ════════════════ PROSPECTOS (bandeja de marketing: Ads/Meta → Sheet → CRM) ════════════════
    Un prospecto es un lead ANTES de la cotización: entra solo desde el Google Sheet
