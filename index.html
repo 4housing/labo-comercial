@@ -1695,7 +1695,9 @@ async function readLeads(){
   }
 }
 // Save a SINGLE lead (upsert) — avoids overwriting other vendors' changes
+var _leadSaveSeq=0;   // sube con cada guardado: _refrescarLeadAbierto descarta lecturas que se cruzaron con uno
 async function saveLeadToDB(lead){
+  _leadSaveSeq++;
   try{
     const row=_leadToRow(lead);
     const r=await _sbFetch('labocomercial_leads?on_conflict=id',{
@@ -1813,7 +1815,7 @@ async function loadData(){
   render();
   try{ _abrirLaboLink(); }catch(_){}   // ¿vino un link directo a una cotización? abrir ese lead
   // La bandeja de prospectos viaja junto al Pipeline: mismo botón Actualizar,
-  // mismo auto-refresh. No bloquea el render del CRM.
+  // No bloquea el render del CRM.
   try{loadProspectos();}catch(e){console.warn('loadProspectos:',e);}
 }
 
@@ -2307,6 +2309,9 @@ function copiarLinkLabo(leadId, cotId){
 function openDetail(id){
   var l=allLeads.find(function(x){return x.id===id;});
   if(!l)return;
+  var _ov=document.getElementById('detailOverlay');
+  var _recienAbierto=!(_ov&&_ov.classList.contains('open')&&currentLeadId===id);
+  if(_recienAbierto){try{_refrescarLeadAbierto(id);}catch(e){console.warn('_refrescarLeadAbierto:',e);}}
   currentLeadId=id;currentProspectoId=null;
   document.getElementById('dp-title').textContent=(l.leadNum?'#'+_fmtLeadNum(l.leadNum)+' \u2014 ':'')+( l.cliente||'Lead');
   var cls=ETAPA_CLS[l.etapa]||'e-cotizado';
@@ -2421,6 +2426,35 @@ function openDetail(id){
   document.getElementById('dp-body').innerHTML=html;
   document.getElementById('detailOverlay').classList.add('open');
 }
+// Sin auto-refresh, la lista en memoria puede tener horas. Como el guardado escribe el
+// lead ENTERO (cotizaciones + actividad), editar sobre una copia vieja pisaría lo que
+// cargó otro vendedor. Al abrir el detalle se relee ese lead (una fila) y, si cambió,
+// se reemplaza y se redibuja. Se descarta si mientras tanto hubo un guardado local o
+// se cerró/cambió el panel, para no pisar lo que el usuario acaba de hacer.
+async function _refrescarLeadAbierto(id){
+  var seq=_leadSaveSeq;
+  var r=await _sbFetch('labocomercial_leads?select=*&id=eq.'+encodeURIComponent(id),{method:'GET'});
+  if(!r.ok)return;
+  var rows=await r.json();
+  if(!rows||!rows.length)return;
+  var fresco=_rowToLead(rows[0]);
+  // Formato viejo o cotizaciones sin id único: lo resuelve loadData; acá no se toca.
+  if(!Array.isArray(fresco.cotizaciones))return;
+  var ids={},okIds=fresco.cotizaciones.every(function(c){if(!c||!c.id||ids[c.id])return false;ids[c.id]=true;return true;});
+  if(!okIds||leadArchivado(fresco))return;
+  if(seq!==_leadSaveSeq)return;
+  var ov=document.getElementById('detailOverlay');
+  if(currentLeadId!==id||!(ov&&ov.classList.contains('open')))return;
+  var idx=allLeads.findIndex(function(x){return x.id===id;});
+  if(idx<0)return;
+  if(!fresco.leadNum)fresco.leadNum=null;
+  if(JSON.stringify(_leadToRow(fresco),_sinUpdatedAt)===JSON.stringify(_leadToRow(allLeads[idx]),_sinUpdatedAt))return;
+  allLeads[idx]=fresco;
+  _prosIdxInvalidar();
+  renderFast();
+  openDetail(id);
+}
+function _sinUpdatedAt(k,v){return k==='updated_at'?undefined:v;}
 function field(l,v){return '<div class="dp-field"><label>'+l+'</label><span>'+v+'</span></div>';}
 function closeDetailPanel(){document.getElementById('detailOverlay').classList.remove('open');currentLeadId=null;currentProspectoId=null;}
 function closeDetail(e){if(e.target===document.getElementById('detailOverlay'))closeDetailPanel();}
@@ -2699,13 +2733,10 @@ function setKpiFilter(type){
 }
 
 // El arranque del CRM (loadData) ahora lo dispara el gate de acceso tras validar el dominio.
-// Auto-refresh cada 30s solo si no hay un panel de detalle abierto (no interrumpe al usuario)
-setInterval(function(){
-  var overlay=document.getElementById('detailOverlay');
-  var detailOpen=overlay&&overlay.classList.contains('open');
-  var modalOpen=document.getElementById('motivoModal')&&document.getElementById('motivoModal').classList.contains('open');
-  if(!detailOpen&&!modalOpen)loadData();
-},30000);
+// Sin auto-refresh (igual que el CRM de 4housing): cada refresh bajaba TODOS los leads y
+// TODOS los prospectos y eso agotaba el egress de Supabase. Los datos se leen al entrar,
+// con el botón Actualizar, al entrar a Prospectos y, el lead puntual, al abrir su detalle
+// (ver _refrescarLeadAbierto).
 
 /* ════════════════ PROSPECTOS (bandeja de marketing: Ads/Meta → Sheet → CRM) ════════════════
    Un prospecto es un lead ANTES de la cotización: entra solo desde el Google Sheet
