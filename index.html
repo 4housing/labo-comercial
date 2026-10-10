@@ -1634,7 +1634,8 @@ function _rowToLead(r){
     email:r.email, tel:r.tel, terreno:r.terreno, vendedor:r.vendedor, lugar:r.lugar,
     etapa:r.etapa, motivoPerdida:r.motivo_perdida, cotizaciones:r.cotizaciones||[],
     actividad:r.actividad||[], totalPipeline:r.total_pipeline,
-    ultimaCot:r.ultima_cot, fechaUltimaCot:r.fecha_ultima_cot
+    ultimaCot:r.ultima_cot, fechaUltimaCot:r.fecha_ultima_cot,
+    _srvUpd:r.updated_at   // versión del servidor que se leyó: saveLeadToDB la usa para detectar choques
   };
 }
 // Convert app lead (camelCase) → Supabase row (snake_case)
@@ -1696,18 +1697,63 @@ async function readLeads(){
 }
 // Save a SINGLE lead (upsert) — avoids overwriting other vendors' changes
 var _leadSaveSeq=0;   // sube con cada guardado: _refrescarLeadAbierto descarta lecturas que se cruzaron con uno
-async function saveLeadToDB(lead){
+// El guardado escribe el lead ENTERO (cotizaciones + actividad). Para no borrar en
+// silencio lo que cargó otro vendedor, antes de guardar se compara el updated_at del
+// servidor con el que tenía este lead al leerlo: si cambió, NO se guarda, se avisa y se
+// recarga. Los guardados de un mismo lead van en fila (uno espera al anterior) para que
+// dos cambios rápidos propios no se tomen como choque.
+var _leadSaveChain={};
+function saveLeadToDB(lead){
   _leadSaveSeq++;
+  var id=lead.id;
+  var p=(_leadSaveChain[id]||Promise.resolve()).then(function(){return _saveLeadToDBAhora(lead);});
+  _leadSaveChain[id]=p.catch(function(){});
+  return p;
+}
+function _tsIgual(a,b){
+  if(a==null||b==null)return a==b;
+  return new Date(a).getTime()===new Date(b).getTime();
+}
+async function _saveLeadToDBAhora(lead){
   try{
+    // _srvUpd undefined = no sabemos qué versión se leyó (dato viejo de caché): se guarda como antes.
+    if(lead._srvUpd!==undefined){
+      const q=await _sbFetch('labocomercial_leads?select=updated_at&id=eq.'+encodeURIComponent(lead.id),{method:'GET'});
+      if(q.ok){
+        const rs=await q.json();
+        if(rs&&rs.length&&!_tsIgual(rs[0].updated_at,lead._srvUpd)){
+          _avisarChoqueLead(lead.id);
+          return false;
+        }
+      }
+    }
     const row=_leadToRow(lead);
-    const r=await _sbFetch('labocomercial_leads?on_conflict=id',{
+    const r=await _sbFetch('labocomercial_leads?on_conflict=id&select=updated_at',{
       method:'POST',
-      headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
+      headers:{'Prefer':'resolution=merge-duplicates,return=representation'},
       body:JSON.stringify(row)
     });
-    if(!r.ok){console.warn('Supabase save '+r.status,await r.text());}
-    return r.ok;
+    if(!r.ok){console.warn('Supabase save '+r.status,await r.text());return false;}
+    try{const out=await r.json();if(out&&out[0])lead._srvUpd=out[0].updated_at;}catch(e){}
+    return true;
   }catch(e){console.warn('saveLeadToDB error:',e);return false;}
+}
+// Choque: otra persona guardó este lead después de que lo leímos. Se avisa una vez y se
+// recarga todo (loadData) para que el usuario rehaga su cambio sobre la versión actual.
+var _avisandoChoque=false;
+async function _avisarChoqueLead(id){
+  if(_avisandoChoque)return;
+  _avisandoChoque=true;
+  try{
+    alert('Otra persona modificó este lead mientras lo tenías abierto.\n\nTu último cambio NO se guardó, para no borrar lo que cargó la otra persona. '+
+          'Se va a recargar con la versión actual: volvé a hacer tu cambio.');
+    await loadData();
+    var ov=document.getElementById('detailOverlay');
+    if(currentLeadId===id&&ov&&ov.classList.contains('open')){
+      if(allLeads.some(function(x){return x.id===id;}))openDetail(id);
+      else closeDetailPanel();
+    }
+  }finally{_avisandoChoque=false;}
 }
 // Legacy compatibility — writeLeads now upserts each lead individually
 async function writeLeads(leads){
@@ -2448,7 +2494,10 @@ async function _refrescarLeadAbierto(id){
   var idx=allLeads.findIndex(function(x){return x.id===id;});
   if(idx<0)return;
   if(!fresco.leadNum)fresco.leadNum=null;
-  if(JSON.stringify(_leadToRow(fresco),_sinUpdatedAt)===JSON.stringify(_leadToRow(allLeads[idx]),_sinUpdatedAt))return;
+  if(JSON.stringify(_leadToRow(fresco),_sinUpdatedAt)===JSON.stringify(_leadToRow(allLeads[idx]),_sinUpdatedAt)){
+    allLeads[idx]._srvUpd=fresco._srvUpd;   // mismo contenido, pero la versión del servidor puede ser otra
+    return;
+  }
   allLeads[idx]=fresco;
   _prosIdxInvalidar();
   renderFast();
