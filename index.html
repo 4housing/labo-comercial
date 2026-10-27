@@ -225,7 +225,26 @@ tr:hover td{background:#F5F3ED}
 .pr-act:hover{background:var(--green);color:var(--white)}
 .pr-act.ghost{border-color:var(--border);color:var(--mid)}
 .pr-act.ghost:hover{background:var(--grey);color:var(--black)}
+.pr-chk{width:14px;height:14px;cursor:pointer;accent-color:var(--black);margin:0;vertical-align:middle}
+tr.pr-marcada td{background:#F3F1EC}
+.pros-lote{display:none;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--black);color:var(--white);font-family:'IBM Plex Mono',monospace;font-size:10px;position:sticky;top:0;z-index:5}
+.pros-lote.visible{display:flex}
+.imp-dif-lista{max-height:46vh;overflow:auto;border:1px solid var(--border)}
+.imp-dif-fila{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px;line-height:1.5}
+.imp-dif-fila:last-child{border-bottom:none}
+.imp-dif-fila .pr-chk{margin-top:2px}
+.imp-dif-campo{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mid)}
+.imp-dif-campo b{color:var(--black);font-weight:600}
+.pros-lote .pr-sel{max-width:220px}
+.pros-lote .pr-act.ghost{border-color:#666;color:#ccc}
+.pros-lote .pr-act.ghost:hover{background:#333;color:var(--white)}
+.wa-btn{display:inline-flex;align-items:center;justify-content:center;vertical-align:-2px;margin-left:6px;padding:0;border:none;background:transparent;cursor:pointer;color:#25D366}
+.wa-btn:hover{opacity:.65}
+.wa-btn svg{width:13px;height:13px;fill:currentColor;display:block}
+.btn-modal .wa-ico{width:13px;height:13px;fill:currentColor;vertical-align:-2px;margin-right:5px}
 .pr-msg{font-size:12px;line-height:1.5;background:var(--card);border:1px solid var(--border);padding:8px 10px;white-space:pre-wrap;word-break:break-word}
+.pros-alerta{background:#FEF9E7;border:1px solid var(--amber);border-left-width:3px;padding:12px 14px;margin-bottom:16px;font-size:13px;line-height:1.55}
+.pros-alerta-que{margin-top:6px;font-size:12px;color:var(--mid);line-height:1.55}
 .pros-vistas{display:flex;gap:0;border-bottom:1px solid var(--border);background:#F0EEE8;padding:0 24px}
 .pv-btn{padding:11px 18px;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .pv-btn:hover{color:var(--black)}
@@ -983,6 +1002,7 @@ tr:hover td{background:#F5F3ED}
   <div class="tab" onclick="switchTab('prospectos',this)">Prospectos<span class="tab-badge" id="tab-pros-badge" style="display:none">0</span></div>
   <div class="tab" onclick="switchTab('analisis',this)">Análisis</div>
   <div class="tab" onclick="switchTab('seguimiento',this)">Seguimiento</div>
+  <div class="tab" onclick="switchTab('actividad',this)">Actividad</div>
   <div class="tab" onclick="switchTab('cotizador',this)">+ Cotizador</div>
 </div>
 
@@ -1081,12 +1101,18 @@ tr:hover td{background:#F5F3ED}
     </div>
     <div class="s-divider"></div>
     <div class="s-section">
+      <div class="s-label">Calificación</div>
+      <div id="pros-calif-filtros"></div>
+    </div>
+    <div class="s-divider"></div>
+    <div class="s-section">
       <div class="s-label">Origen</div>
       <div class="s-item" onclick="setProsFilter('fuente:formulario',this)">Formulario <span class="s-count" id="pcnt-formulario">0</span></div>
       <div class="s-item" onclick="setProsFilter('fuente:brochure',this)">Brochure <span class="s-count" id="pcnt-brochure">0</span></div>
     </div>
   </div>
   <div class="content">
+    <div class="pros-alerta" id="pros-alerta" style="display:none"></div>
     <div class="kpi-grid">
       <div class="kpi amber clickable" onclick="setProsFilter('etapa:Nuevo')" title="Click para filtrar"><div class="kpi-label">Sin contactar</div><div class="kpi-value" id="pkpi-nuevos">0</div><div class="kpi-explain">Todavía nadie los tocó</div><div class="kpi-sub" id="pkpi-nuevos-sub">—</div></div>
       <div class="kpi clickable" onclick="setProsFilter('etapa:En seguimiento')" title="Click para filtrar"><div class="kpi-label">En seguimiento</div><div class="kpi-value" id="pkpi-seguimiento">0</div><div class="kpi-explain">Contactados y activos</div><div class="kpi-sub">conversaciones abiertas</div></div>
@@ -1102,6 +1128,7 @@ tr:hover td{background:#F5F3ED}
           <div class="search-wrap"><input type="text" placeholder="Buscar..." oninput="filterProsSearch(this.value)"></div>
         </div>
       </div>
+      <div class="pros-lote" id="pros-lote"></div>
       <div id="pros-table-container"><div class="empty"><div class="empty-icon">◫</div><div class="empty-text">Cargando...</div></div></div>
     </div>
   </div>
@@ -1146,7 +1173,7 @@ tr:hover td{background:#F5F3ED}
     <div><div class="sec-title">Modelo que piden</div><div class="bar-chart" id="inf-modelo"></div></div>
     <div><div class="sec-title">Tipo de proyecto</div><div class="bar-chart" id="inf-tipo"></div></div>
     <div><div class="sec-title">Región</div><div class="bar-chart" id="inf-region"></div></div>
-    <div><div class="sec-title">Calidad del lead</div><div class="bar-chart" id="inf-calidad"></div></div>
+    <div><div class="sec-title">Calificación</div><div class="bar-chart" id="inf-calidad"></div></div>
     <div><div class="sec-title">Por qué no avanzan</div><div class="bar-chart" id="inf-motivos"></div></div>
   </div>
 
@@ -1232,22 +1259,30 @@ tr:hover td{background:#F5F3ED}
   </div>
 </div>
 
+<!-- WHATSAPP: confirmar si hubo contacto -->
+<div class="modal-overlay" id="waModal">
+  <div class="modal-box">
+    <div class="modal-title">¿Pudiste escribirle?</div>
+    <div style="font-size:13px;line-height:1.6;margin-bottom:18px">
+      Se abrió el chat de <strong id="wa-modal-nombre">este prospecto</strong> en WhatsApp.
+      Si le mandaste el mensaje, lo registro como contacto.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal" onclick="waConfirmar(false)">Todavía no</button>
+      <button class="btn-modal primary" onclick="waConfirmar(true)">Sí, registrar contacto</button>
+    </div>
+  </div>
+</div>
+
 <!-- MOTIVO PÉRDIDA MODAL -->
 <div class="modal-overlay" id="motivoModal">
   <div class="modal-box">
-    <div class="modal-title">¿Por qué se perdió esta oportunidad?</div>
-    <div class="modal-options" id="motivo-options">
-      <div class="modal-opt" onclick="selMotivo(this,'Precio')">Precio muy alto</div>
-      <div class="modal-opt" onclick="selMotivo(this,'Competencia')">Eligió a la competencia</div>
-      <div class="modal-opt" onclick="selMotivo(this,'Timing')">No era el momento</div>
-      <div class="modal-opt" onclick="selMotivo(this,'Financiamiento')">No consiguió financiamiento</div>
-      <div class="modal-opt" onclick="selMotivo(this,'Sin respuesta')">Sin respuesta / desapareció</div>
-      <div class="modal-opt" onclick="selMotivo(this,'Otro')">Otro</div>
-    </div>
+    <div class="modal-title" id="motivo-titulo">¿Por qué se perdió esta oportunidad?</div>
+    <div class="modal-options" id="motivo-options"></div>
     <input class="modal-other" id="motivo-otro" placeholder="Describí el motivo..." style="display:none">
     <div class="modal-actions">
       <button class="btn-modal" onclick="cancelMotivo()">Cancelar</button>
-      <button class="btn-modal primary" onclick="confirmarMotivo()">Confirmar pérdida</button>
+      <button class="btn-modal primary" id="motivo-confirmar" onclick="confirmarMotivo()">Confirmar pérdida</button>
     </div>
   </div>
 </div>
@@ -1255,12 +1290,14 @@ tr:hover td{background:#F5F3ED}
 <!-- VERSIÓN NUEVA vs PROYECTO NUEVO MODAL -->
 <!-- IMPORTAR CSV DEL GOOGLE SHEET -->
 <div class="modal-overlay" id="importModal">
-  <div class="modal-box">
+  <div class="modal-box" id="import-box">
     <div class="modal-title">Importar prospectos desde el Sheet</div>
     <div style="font-size:12px;color:var(--mid);line-height:1.6;margin-bottom:16px">
       En el Google Sheet: <strong>Archivo → Descargar → Valores separados por comas (.csv)</strong>.
       Descarga la hoja que tengas abierta. Elegí abajo cuál es y subí el archivo.<br>
-      Lo que ya esté en el CRM no se duplica ni se pisa.
+      Lo que ya esté en el CRM no se duplica. Si en el Sheet cambió la calificación
+      (Estado + Calidad), la etapa o el contacto asignado, te muestro las diferencias
+      y elegís cuáles actualizar.
     </div>
     <div class="modal-options" id="import-options">
       <div class="modal-opt" onclick="selImportFuente(this,'formulario')">Hoja <strong>Formulario</strong></div>
@@ -1268,6 +1305,7 @@ tr:hover td{background:#F5F3ED}
     </div>
     <input type="file" id="import-file" accept=".csv,text/csv" style="display:none" onchange="importarCSVArchivo(this)">
     <div id="import-estado" style="font-size:12px;margin-top:14px;display:none"></div>
+    <div id="import-dif" style="display:none;margin-top:14px"></div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="btn-modal" onclick="cerrarImportador()">Cerrar</button>
       <button class="btn-modal primary" id="import-btn" onclick="elegirArchivoCSV()" disabled style="opacity:.5">Elegir archivo…</button>
@@ -1284,6 +1322,19 @@ tr:hover td{background:#F5F3ED}
       <button class="btn-modal primary" onclick="_resolverVersionModal('version')">Es una versión nueva de esa cotización</button>
     </div>
   </div>
+</div>
+
+<!-- ══ TAB: ACTIVIDAD (auditoría) ═══════════════════════════════════════════════ -->
+<div id="tab-actividad" class="tab-content">
+<div class="page">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+    <h2 style="margin:0;font-size:17px">Actividad</h2>
+    <span style="font-size:12px;color:var(--muted)">Quién hizo qué y cuándo (últimos 200 movimientos)</span>
+    <input id="actBuscar" type="search" placeholder="🔎 filtrar por usuario, acción o dato…" oninput="renderActividad()" style="margin-left:auto;min-width:240px;padding:7px 10px;border:1px solid var(--line,#ddd);border-radius:8px;font-size:13px">
+    <button class="btn" onclick="loadActividad()">↻ Actualizar</button>
+  </div>
+  <div id="actContenido" style="font-size:13px;color:var(--muted)">Cargando…</div>
+</div>
 </div>
 
 <!-- ══ TAB 5: COTIZADOR ═══════════════════════════════════════════════════════ -->
@@ -1583,7 +1634,8 @@ function _rowToLead(r){
     email:r.email, tel:r.tel, terreno:r.terreno, vendedor:r.vendedor, lugar:r.lugar,
     etapa:r.etapa, motivoPerdida:r.motivo_perdida, cotizaciones:r.cotizaciones||[],
     actividad:r.actividad||[], totalPipeline:r.total_pipeline,
-    ultimaCot:r.ultima_cot, fechaUltimaCot:r.fecha_ultima_cot
+    ultimaCot:r.ultima_cot, fechaUltimaCot:r.fecha_ultima_cot,
+    _srvUpd:r.updated_at   // versión del servidor que se leyó: saveLeadToDB la usa para detectar choques
   };
 }
 // Convert app lead (camelCase) → Supabase row (snake_case)
@@ -1598,6 +1650,14 @@ function _leadToRow(l){
   };
 }
 async function _sbFetch(path,opts){
+  // Guard de edición por sección (Etapa 2): bloquea escrituras si la sección
+  // actual no es editable para el usuario. Lecturas (GET/HEAD) siempre pasan;
+  // externos y usuarios sin config no se ven afectados.
+  var _m=((opts&&opts.method)||'GET').toUpperCase();
+  if(_m!=='GET'&&_m!=='HEAD'&&!labEdicionActual()){
+    try{ if(typeof toast==='function') toast('Solo lectura: no tenés permiso para editar esta sección.'); }catch(e){}
+    return { ok:false, status:403, statusText:'Solo lectura', json:async()=>({}), text:async()=>'' };
+  }
   // Pedir el token de sesión vigente directamente al SDK en cada llamada.
   // Es más confiable que depender de _sbAccessToken (que puede quedar viejo tras
   // recargas o redirects). Si hay sesión, RLS reconoce al usuario @4housing.
@@ -1636,17 +1696,64 @@ async function readLeads(){
   }
 }
 // Save a SINGLE lead (upsert) — avoids overwriting other vendors' changes
-async function saveLeadToDB(lead){
+var _leadSaveSeq=0;   // sube con cada guardado: _refrescarLeadAbierto descarta lecturas que se cruzaron con uno
+// El guardado escribe el lead ENTERO (cotizaciones + actividad). Para no borrar en
+// silencio lo que cargó otro vendedor, antes de guardar se compara el updated_at del
+// servidor con el que tenía este lead al leerlo: si cambió, NO se guarda, se avisa y se
+// recarga. Los guardados de un mismo lead van en fila (uno espera al anterior) para que
+// dos cambios rápidos propios no se tomen como choque.
+var _leadSaveChain={};
+function saveLeadToDB(lead){
+  _leadSaveSeq++;
+  var id=lead.id;
+  var p=(_leadSaveChain[id]||Promise.resolve()).then(function(){return _saveLeadToDBAhora(lead);});
+  _leadSaveChain[id]=p.catch(function(){});
+  return p;
+}
+function _tsIgual(a,b){
+  if(a==null||b==null)return a==b;
+  return new Date(a).getTime()===new Date(b).getTime();
+}
+async function _saveLeadToDBAhora(lead){
   try{
+    // _srvUpd undefined = no sabemos qué versión se leyó (dato viejo de caché): se guarda como antes.
+    if(lead._srvUpd!==undefined){
+      const q=await _sbFetch('labocomercial_leads?select=updated_at&id=eq.'+encodeURIComponent(lead.id),{method:'GET'});
+      if(q.ok){
+        const rs=await q.json();
+        if(rs&&rs.length&&!_tsIgual(rs[0].updated_at,lead._srvUpd)){
+          _avisarChoqueLead(lead.id);
+          return false;
+        }
+      }
+    }
     const row=_leadToRow(lead);
-    const r=await _sbFetch('labocomercial_leads?on_conflict=id',{
+    const r=await _sbFetch('labocomercial_leads?on_conflict=id&select=updated_at',{
       method:'POST',
-      headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
+      headers:{'Prefer':'resolution=merge-duplicates,return=representation'},
       body:JSON.stringify(row)
     });
-    if(!r.ok){console.warn('Supabase save '+r.status,await r.text());}
-    return r.ok;
+    if(!r.ok){console.warn('Supabase save '+r.status,await r.text());return false;}
+    try{const out=await r.json();if(out&&out[0])lead._srvUpd=out[0].updated_at;}catch(e){}
+    return true;
   }catch(e){console.warn('saveLeadToDB error:',e);return false;}
+}
+// Choque: otra persona guardó este lead después de que lo leímos. Se avisa una vez y se
+// recarga todo (loadData) para que el usuario rehaga su cambio sobre la versión actual.
+var _avisandoChoque=false;
+async function _avisarChoqueLead(id){
+  if(_avisandoChoque)return;
+  _avisandoChoque=true;
+  try{
+    alert('Otra persona modificó este lead mientras lo tenías abierto.\n\nTu último cambio NO se guardó, para no borrar lo que cargó la otra persona. '+
+          'Se va a recargar con la versión actual: volvé a hacer tu cambio.');
+    await loadData();
+    var ov=document.getElementById('detailOverlay');
+    if(currentLeadId===id&&ov&&ov.classList.contains('open')){
+      if(allLeads.some(function(x){return x.id===id;}))openDetail(id);
+      else closeDetailPanel();
+    }
+  }finally{_avisandoChoque=false;}
 }
 // Legacy compatibility — writeLeads now upserts each lead individually
 async function writeLeads(leads){
@@ -1683,7 +1790,7 @@ const ACTIVAS=['Cotizado','En negociación'];
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let allLeads=[], activeFilter='all', sortCol='fecha', sortAsc=false, searchVal='';
-let currentLeadId=null, pendingEtapaChange=null, selectedMotivo=null;
+let currentLeadId=null, pendingEtapaChange=null, selectedMotivo=null, pendingProspectoDescarte=null;
 
 // ── Load ──────────────────────────────────────────────────────────────────────
 // ── Cotizaciones archivadas (soft-delete) ──────────────────────────────────────
@@ -1752,8 +1859,9 @@ async function loadData(){
   }catch(e){console.error('loadData error:',e);allLeads=[];}
   _prosIdxInvalidar();             // los leads entran en el cruce de repetidos
   render();
+  try{ _abrirLaboLink(); }catch(_){}   // ¿vino un link directo a una cotización? abrir ese lead
   // La bandeja de prospectos viaja junto al Pipeline: mismo botón Actualizar,
-  // mismo auto-refresh. No bloquea el render del CRM.
+  // No bloquea el render del CRM.
   try{loadProspectos();}catch(e){console.warn('loadProspectos:',e);}
 }
 
@@ -2211,9 +2319,45 @@ function renderRanking(){
 }
 
 // ── Detail panel ──────────────────────────────────────────────────────────────
+/* ===== Link directo a una cotización LABO (deep-link) =====
+   Las cotizaciones viven dentro del lead, así que el link abre el LEAD (y ubica la cot):
+   https://.../labo-comercial/?lead=<leadId>&cot=<cotId>   (o solo ?cot=<cotId>)
+   Se guarda en sessionStorage antes del login para sobrevivir el redirect de OAuth. */
+function _laboLinkTarget(){
+  try{
+    var sp=new URLSearchParams(location.search);
+    var lead=sp.get('lead')||sp.get('leadId'); var cot=sp.get('cot')||sp.get('cotId');
+    if(!lead&&!cot&&location.hash){ var hp=new URLSearchParams(location.hash.replace(/^#/,'')); lead=hp.get('lead')||hp.get('leadId'); cot=hp.get('cot')||hp.get('cotId'); }
+    if(lead||cot) return {lead:lead||null, cot:cot||null};
+  }catch(_){}
+  return null;
+}
+function _stashLaboLink(){ try{ var t=_laboLinkTarget(); if(t) sessionStorage.setItem('laboLink', JSON.stringify(t)); }catch(_){} }
+var _laboLinkDone=false;
+function _abrirLaboLink(){
+  if(_laboLinkDone) return;
+  var t=_laboLinkTarget();
+  if(!t){ try{ var s=sessionStorage.getItem('laboLink'); if(s) t=JSON.parse(s); }catch(_){} }
+  if(!t) return;
+  var lead=null;
+  if(t.lead) lead=allLeads.find(function(l){return String(l.id)===String(t.lead);});
+  if(!lead&&t.cot) lead=allLeads.find(function(l){return (l.cotizaciones||[]).some(function(c){return String(c.id)===String(t.cot);});});
+  if(!lead) return;   // todavía no cargó, o no es visible para este usuario
+  _laboLinkDone=true; try{ sessionStorage.removeItem('laboLink'); }catch(_){}
+  try{ history.replaceState(null,'',location.pathname); }catch(_){}
+  openDetail(String(lead.id));
+}
+function copiarLinkLabo(leadId, cotId){
+  var url=location.origin+location.pathname+'?lead='+encodeURIComponent(leadId)+(cotId?('&cot='+encodeURIComponent(cotId)):'');
+  try{ navigator.clipboard.writeText(url); if(typeof toast==='function') toast('Link copiado'); else alert('Link copiado:\n'+url); }
+  catch(e){ prompt('Copiá el link:', url); }
+}
 function openDetail(id){
   var l=allLeads.find(function(x){return x.id===id;});
   if(!l)return;
+  var _ov=document.getElementById('detailOverlay');
+  var _recienAbierto=!(_ov&&_ov.classList.contains('open')&&currentLeadId===id);
+  if(_recienAbierto){try{_refrescarLeadAbierto(id);}catch(e){console.warn('_refrescarLeadAbierto:',e);}}
   currentLeadId=id;currentProspectoId=null;
   document.getElementById('dp-title').textContent=(l.leadNum?'#'+_fmtLeadNum(l.leadNum)+' \u2014 ':'')+( l.cliente||'Lead');
   var cls=ETAPA_CLS[l.etapa]||'e-cotizado';
@@ -2238,6 +2382,7 @@ function openDetail(id){
         ? '<a class="cot-pdf-btn" href="'+esc(c.pdfUrl)+'" target="_blank" rel="noopener" title="Abrir PDF en SharePoint'+(c.pdfName?' ('+esc(c.pdfName)+')':'')+'">PDF ↗</a>'
         : '<span class="cot-pdf-none">sin PDF</span>';
       var delBtn='<button class="cot-del-btn" title="Eliminar esta versión" onclick="archivarCotizacion(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">Eliminar</button>';
+      var lnkBtn=!esExterno()?('<button class="cot-ver-btn" title="Copiar link directo a esta cotización (para el artifact de seguimiento, mail, etc.)" onclick="copiarLinkLabo(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">🔗 Link</button>'):'';
       var spBtn='';
       if(!esExterno()&&c.pendienteSharePoint){
         spBtn='<button class="cot-sp-btn" title="Crear carpeta y subir PDF a SharePoint" onclick="guardarEnSharePoint(\''+esc(String(l.id))+'\',\''+esc(String(c.id))+'\')">↑ SharePoint</button>';
@@ -2252,7 +2397,7 @@ function openDetail(id){
         '<div class="cot-card-hdr">'+
           '<span class="cot-card-num">COT N\u00b0 '+_fmtLeadNum(l.leadNum)+' · VER'+String(version).padStart(2,'0')+extBadge+'</span>'+
           '<span style="display:flex;align-items:center;gap:8px">'+
-            '<span class="cot-card-date">'+d+'</span>'+pdfBtn+spBtn+verBtn+delBtn+
+            '<span class="cot-card-date">'+d+'</span>'+pdfBtn+spBtn+verBtn+lnkBtn+delBtn+
           '</span>'+
         '</div>'+
         '<div class="cot-card-body">'+
@@ -2327,6 +2472,38 @@ function openDetail(id){
   document.getElementById('dp-body').innerHTML=html;
   document.getElementById('detailOverlay').classList.add('open');
 }
+// Sin auto-refresh, la lista en memoria puede tener horas. Como el guardado escribe el
+// lead ENTERO (cotizaciones + actividad), editar sobre una copia vieja pisaría lo que
+// cargó otro vendedor. Al abrir el detalle se relee ese lead (una fila) y, si cambió,
+// se reemplaza y se redibuja. Se descarta si mientras tanto hubo un guardado local o
+// se cerró/cambió el panel, para no pisar lo que el usuario acaba de hacer.
+async function _refrescarLeadAbierto(id){
+  var seq=_leadSaveSeq;
+  var r=await _sbFetch('labocomercial_leads?select=*&id=eq.'+encodeURIComponent(id),{method:'GET'});
+  if(!r.ok)return;
+  var rows=await r.json();
+  if(!rows||!rows.length)return;
+  var fresco=_rowToLead(rows[0]);
+  // Formato viejo o cotizaciones sin id único: lo resuelve loadData; acá no se toca.
+  if(!Array.isArray(fresco.cotizaciones))return;
+  var ids={},okIds=fresco.cotizaciones.every(function(c){if(!c||!c.id||ids[c.id])return false;ids[c.id]=true;return true;});
+  if(!okIds||leadArchivado(fresco))return;
+  if(seq!==_leadSaveSeq)return;
+  var ov=document.getElementById('detailOverlay');
+  if(currentLeadId!==id||!(ov&&ov.classList.contains('open')))return;
+  var idx=allLeads.findIndex(function(x){return x.id===id;});
+  if(idx<0)return;
+  if(!fresco.leadNum)fresco.leadNum=null;
+  if(JSON.stringify(_leadToRow(fresco),_sinUpdatedAt)===JSON.stringify(_leadToRow(allLeads[idx]),_sinUpdatedAt)){
+    allLeads[idx]._srvUpd=fresco._srvUpd;   // mismo contenido, pero la versión del servidor puede ser otra
+    return;
+  }
+  allLeads[idx]=fresco;
+  _prosIdxInvalidar();
+  renderFast();
+  openDetail(id);
+}
+function _sinUpdatedAt(k,v){return k==='updated_at'?undefined:v;}
 function field(l,v){return '<div class="dp-field"><label>'+l+'</label><span>'+v+'</span></div>';}
 function closeDetailPanel(){document.getElementById('detailOverlay').classList.remove('open');currentLeadId=null;currentProspectoId=null;}
 function closeDetail(e){if(e.target===document.getElementById('detailOverlay'))closeDetailPanel();}
@@ -2335,7 +2512,7 @@ function closeDetail(e){if(e.target===document.getElementById('detailOverlay'))c
 function changeEtapa(id,etapa,fromDetail){
   if(etapa==='Cerrado perdido'){
     pendingEtapaChange={id,fromDetail};
-    openMotivoModal();
+    openMotivoModal('lead');
     return;
   }
   _applyEtapa(id,etapa,fromDetail);
@@ -2403,13 +2580,57 @@ function toggleDD(id){
 }
 
 // ── Motivo pérdida modal ──────────────────────────────────────────────────────
-function openMotivoModal(){selectedMotivo=null;document.getElementById('motivo-otro').style.display='none';document.querySelectorAll('.modal-opt').forEach(o=>o.classList.remove('selected'));document.getElementById('motivoModal').classList.add('open');}
-function selMotivo(el,val){document.querySelectorAll('.modal-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');selectedMotivo=val;document.getElementById('motivo-otro').style.display=val==='Otro'?'block':'none';}
-function cancelMotivo(){document.getElementById('motivoModal').classList.remove('open');pendingEtapaChange=null;}
+/**
+ * Motivos de descarte. Son listas fijas a propósito: el informe para la agencia
+ * agrupa por texto exacto, así que "no responde" escrito a mano y "No contesta"
+ * salían como dos motivos distintos y el gráfico no decía nada. "Otro" deja
+ * escribir libre para lo que no entre en la lista.
+ *
+ * Son dos listas porque no se pierde lo mismo en cada etapa: un prospecto se cae
+ * antes de que haya un número sobre la mesa; una oportunidad del Pipeline ya tiene
+ * cotización, y ahí sí importa el precio, la competencia o el financiamiento.
+ */
+const MOTIVOS_LEAD=[
+  ['Precio','Precio muy alto'],
+  ['Competencia','Eligió a la competencia'],
+  ['Timing','No era el momento'],
+  ['Financiamiento','No consiguió financiamiento'],
+  ['Sin respuesta','Sin respuesta / desapareció'],
+  ['Otro','Otro']
+];
+const MOTIVOS_PROSPECTO=[
+  ['No responde','No contesta llamadas ni mensajes'],
+  ['Sólo pedía información','Curiosidad, no tiene proyecto'],
+  ['Fuera de zona','No llegamos con la obra hasta ahí'],
+  ['Precio','El precio le quedó lejos'],
+  ['No era el momento','Le interesa, pero más adelante'],
+  ['Dato inválido','Teléfono o mail incorrectos'],
+  ['Otro','Otro']
+];
+
+function openMotivoModal(ctx){
+  const esPros=ctx==='prospecto';
+  selectedMotivo=null;
+  document.getElementById('motivo-titulo').textContent=esPros?'¿Por qué no avanza este prospecto?':'¿Por qué se perdió esta oportunidad?';
+  document.getElementById('motivo-confirmar').textContent=esPros?'Confirmar':'Confirmar pérdida';
+  document.getElementById('motivo-options').innerHTML=(esPros?MOTIVOS_PROSPECTO:MOTIVOS_LEAD).map(function(m){
+    return '<div class="modal-opt" data-val="'+escAttr(m[0])+'" onclick="selMotivo(this,this.dataset.val)">'+esc(m[1])+'</div>';
+  }).join('');
+  const otro=document.getElementById('motivo-otro');
+  otro.style.display='none';otro.value='';
+  document.getElementById('motivoModal').classList.add('open');
+}
+function selMotivo(el,val){document.querySelectorAll('#motivo-options .modal-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');selectedMotivo=val;document.getElementById('motivo-otro').style.display=val==='Otro'?'block':'none';}
+function cancelMotivo(){document.getElementById('motivoModal').classList.remove('open');pendingEtapaChange=null;pendingProspectoDescarte=null;}
 function confirmarMotivo(){
   if(!selectedMotivo){alert('Seleccioná un motivo');return;}
   const motivo=selectedMotivo==='Otro'?document.getElementById('motivo-otro').value.trim()||'Otro':selectedMotivo;
   document.getElementById('motivoModal').classList.remove('open');
+  if(pendingProspectoDescarte){
+    const pid=pendingProspectoDescarte;pendingProspectoDescarte=null;
+    patchProspecto(pid,{etapa:'Descartado'},'Descartado — '+motivo);
+    return;
+  }
   if(pendingEtapaChange){_applyEtapa(pendingEtapaChange.id,'Cerrado perdido',pendingEtapaChange.fromDetail,motivo);pendingEtapaChange=null;}
 }
 
@@ -2443,6 +2664,54 @@ function switchTab(id,el){
   document.getElementById('tab-'+id).classList.add('active');
   el.classList.add('active');
   if(id==='prospectos'){try{loadProspectos();}catch(e){console.warn('loadProspectos:',e);}}
+  if(id==='actividad'){try{loadActividad();}catch(e){console.warn('loadActividad:',e);}}
+  _labTab=id;
+  actualizarBannerSoloLecturaLabo();
+}
+
+// ── Actividad (auditoría) ───────────────────────────────────────────────────────
+// Lee core_auditoria (sector labocomercial). La RLS ya limita a lo del sector.
+let _actividadRows = [];
+async function loadActividad(){
+  const cont=document.getElementById('actContenido'); if(cont) cont.textContent='Cargando…';
+  try{
+    const r=await _sbFetch('core_auditoria?sector=eq.labocomercial&order=cambiado_en.desc&limit=200',{method:'GET'});
+    _actividadRows = Array.isArray(r) ? r : [];
+  }catch(e){ console.warn('loadActividad:',e); _actividadRows=[]; }
+  renderActividad();
+}
+function _actResumenCambio(row){
+  try{
+    if(row.accion==='UPDATE' && row.datos_antes && row.datos_despues){
+      const a=row.datos_antes, d=row.datos_despues, campos=[];
+      Object.keys(d).forEach(k=>{ if(k!=='updated_at' && JSON.stringify(a[k])!==JSON.stringify(d[k])) campos.push(k); });
+      return campos.length ? 'cambió: '+campos.join(', ') : '—';
+    }
+    const src=row.datos_despues||row.datos_antes||{};
+    return src.cliente || src.nombre || src.num || row.registro_id || '—';
+  }catch(e){ return '—'; }
+}
+function renderActividad(){
+  const cont=document.getElementById('actContenido'); if(!cont) return;
+  const inp=document.getElementById('actBuscar');
+  const q=(inp&&inp.value||'').trim().toLowerCase();
+  let rows=_actividadRows;
+  if(q) rows=rows.filter(r=> JSON.stringify(r).toLowerCase().includes(q));
+  if(!rows.length){ cont.innerHTML='<div style="padding:16px">Sin actividad registrada'+(q?' para ese filtro':' todavía')+'.</div>'; return; }
+  const esc2=(s)=> String(s==null?'':s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+  const fmt=(iso)=>{ try{ return new Date(iso).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return iso||''; } };
+  const badge=(a)=>{ const c=a==='INSERT'?'#1e8449':a==='DELETE'?'#a3372d':'#8a6d1f', t=a==='INSERT'?'alta':a==='DELETE'?'baja':'edición'; return '<span style="background:'+c+'22;color:'+c+';padding:1px 7px;border-radius:6px;font-size:11px;font-weight:600">'+t+'</span>'; };
+  const tablaLbl={ labocomercial_leads:'Cotización / Lead', labocomercial_counters:'Numerador', labocomercial_contactos_web:'Contacto web' };
+  cont.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;color:var(--ink,#222)">'
+    + '<thead><tr style="text-align:left;color:var(--muted)"><th style="padding:6px 8px">Fecha</th><th style="padding:6px 8px">Usuario</th><th style="padding:6px 8px">Acción</th><th style="padding:6px 8px">Qué</th><th style="padding:6px 8px">Detalle</th></tr></thead><tbody>'
+    + rows.map(r=>'<tr style="border-top:1px solid var(--line,#eee)">'
+        + '<td style="padding:6px 8px;white-space:nowrap">'+esc2(fmt(r.cambiado_en))+'</td>'
+        + '<td style="padding:6px 8px">'+esc2(r.usuario_email||'—')+'</td>'
+        + '<td style="padding:6px 8px">'+badge(r.accion)+'</td>'
+        + '<td style="padding:6px 8px">'+esc2(tablaLbl[r.tabla]||r.tabla)+'</td>'
+        + '<td style="padding:6px 8px;color:var(--muted)">'+esc2(_actResumenCambio(r))+'</td>'
+      +'</tr>').join('')
+    + '</tbody></table></div>';
 }
 
 // ── Export CSV ────────────────────────────────────────────────────────────────
@@ -2513,13 +2782,10 @@ function setKpiFilter(type){
 }
 
 // El arranque del CRM (loadData) ahora lo dispara el gate de acceso tras validar el dominio.
-// Auto-refresh cada 30s solo si no hay un panel de detalle abierto (no interrumpe al usuario)
-setInterval(function(){
-  var overlay=document.getElementById('detailOverlay');
-  var detailOpen=overlay&&overlay.classList.contains('open');
-  var modalOpen=document.getElementById('motivoModal')&&document.getElementById('motivoModal').classList.contains('open');
-  if(!detailOpen&&!modalOpen)loadData();
-},30000);
+// Sin auto-refresh (igual que el CRM de 4housing): cada refresh bajaba TODOS los leads y
+// TODOS los prospectos y eso agotaba el egress de Supabase. Los datos se leen al entrar,
+// con el botón Actualizar, al entrar a Prospectos y, el lead puntual, al abrir su detalle
+// (ver _refrescarLeadAbierto).
 
 /* ════════════════ PROSPECTOS (bandeja de marketing: Ads/Meta → Sheet → CRM) ════════════════
    Un prospecto es un lead ANTES de la cotización: entra solo desde el Google Sheet
@@ -2534,6 +2800,28 @@ const PROS_ETAPAS=[
   {key:'Descartado',     cls:'p-descartado',  color:'#9A9690'}
 ];
 const PROS_CLS=Object.fromEntries(PROS_ETAPAS.map(function(e){return [e.key,e.cls];}));
+
+/**
+ * Calificación comercial: las siete combinaciones válidas de Estado × Calidad
+ * del criterio que el equipo venía usando en el Google Sheet. No son dos campos
+ * libres — cada par tiene una lectura y sólo esas siete existen —, así que acá
+ * son una sola lista.
+ *
+ * 'etapa' es la que le corresponde en el CRM: el vendedor elige la calificación
+ * y la etapa se acomoda sola. Un solo lugar donde tocar, y el embudo, los
+ * indicadores y los filtros siguen andando con el vocabulario de siempre.
+ */
+const PROS_CALIF=[
+  {key:'sin_interaccion',corto:'Sin interacción',   estado:'Sin respuesta',calidad:'Malo', etapa:'Descartado',    color:'#9A9690',lectura:'No contesta ni interactúa'},
+  {key:'no_continua',    corto:'No continúa',       estado:'No avanza',    calidad:'Malo', etapa:'Descartado',    color:'#C0392B',lectura:'Responde, pero no continúa'},
+  {key:'sin_calidad',    corto:'Calidad a definir', estado:'En curso',     calidad:'N/A',  etapa:'Contactado',    color:'#D4870A',lectura:'Aún no sabemos la calidad'},
+  {key:'orientado',      corto:'Orientado',         estado:'En curso',     calidad:'Medio',etapa:'En seguimiento',color:'#1A5276',lectura:'Interactúa y está orientado'},
+  {key:'califica',       corto:'Califica',          estado:'En curso',     calidad:'Bueno',etapa:'En seguimiento',color:'#7D3C98',lectura:'Interactúa y cumple con requisitos'},
+  {key:'cotizado',       corto:'Cotizado',          estado:'Cotizado',     calidad:'Bueno',etapa:'Convertido',    color:'#1E8449',lectura:'Cotización realizada'},
+  {key:'venta',          corto:'Venta',             estado:'Venta',        calidad:'Bueno',etapa:'Convertido',    color:'#0E6B3A',lectura:'Compra de casa modular'}
+];
+const PROS_CALIF_MAP=Object.fromEntries(PROS_CALIF.map(function(c){return [c.key,c];}));
+function prosCalif(p){return PROS_CALIF_MAP[p&&p.clasificacion]||null;}
 const PROS_ABIERTAS=['Nuevo','Contactado','En seguimiento'];
 // 'landing_meta' se mantiene en la tabla: es sólo una etiqueta, y si alguna vez
 // entró una fila con esa fuente tiene que seguir mostrándose bien.
@@ -2549,12 +2837,39 @@ let prosVisibles=PROS_PAGINA;
 // Prospecto que se está cotizando en este momento: lo setea convertirProspecto() y lo
 // consume _spSaveLead() cuando la cotización se guarda de verdad.
 let _prospectoPendiente=null;
+// Selección múltiple de la bandeja (ids como string). Sólo vive mientras las filas
+// están a la vista: renderProsTable() descarta las que salen de pantalla, así una
+// acción en lote nunca toca un prospecto que el usuario no está viendo.
+let prosSel=new Set(), prosSelAncla=null;
 
 // ── Datos ─────────────────────────────────────────────────────────────────────
+/**
+ * Lee una tabla entera, en tandas.
+ *
+ * PostgREST corta cada respuesta en 1000 filas aunque se pida un limit mayor: es
+ * un tope del servidor, no del pedido, y no avisa — devuelve 1000 y listo. Con
+ * 1000 prospectos exactos la bandeja se quedaba clavada ahí y los que entraban
+ * después no aparecían nunca.
+ *
+ * El orden tiene que ser único (por eso el id al final): si dos filas empatan, el
+ * orden entre tandas puede cambiar y una fila se repite mientras otra se pierde.
+ */
+async function _sbLeerTodo(path,orden){
+  const TANDA=1000, TOPE=50000;
+  var filas=[],desde=0;
+  while(desde<TOPE){
+    const r=await _sbFetch(path+'&order='+orden+'&offset='+desde+'&limit='+TANDA,{method:'GET'});
+    if(!r.ok)throw new Error('Supabase '+r.status+' leyendo '+path);
+    const tanda=await r.json();
+    filas=filas.concat(tanda);
+    if(tanda.length<TANDA)break;
+    desde+=TANDA;
+  }
+  return filas;
+}
+
 async function readProspectos(){
-  const r=await _sbFetch('labocomercial_prospectos?select=*&order=fecha.desc.nullslast&limit=3000',{method:'GET'});
-  if(!r.ok)throw new Error('Supabase prospectos '+r.status);
-  return await r.json();
+  return await _sbLeerTodo('labocomercial_prospectos?select=*','fecha.desc.nullslast,id.desc');
 }
 async function loadProspectos(){
   try{allProspectos=await readProspectos();_prosIdxInvalidar();}
@@ -2562,7 +2877,7 @@ async function loadProspectos(){
   renderProspectos();
 }
 // Guarda un cambio puntual del prospecto y deja registro en su historial.
-async function patchProspecto(id,patch,textoActividad){
+async function patchProspecto(id,patch,textoActividad,lote){
   const p=allProspectos.find(function(x){return String(x.id)===String(id);});
   if(!p)return false;
   const body=Object.assign({},patch);
@@ -2572,13 +2887,25 @@ async function patchProspecto(id,patch,textoActividad){
     body.actividad=act;
   }
   Object.assign(p,body);           // optimista: la UI responde ya
-  renderProspectos();
-  if(currentProspectoId===String(id))openProspecto(id);
+  // En lote, quien llama redibuja una sola vez al final.
+  if(!lote){
+    renderProspectos();
+    if(currentProspectoId===String(id))openProspecto(id);
+  }
   try{
     const r=await _sbFetch('labocomercial_prospectos?id=eq.'+encodeURIComponent(id),{
       method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify(body)
     });
-    if(!r.ok){console.warn('patchProspecto '+r.status,await r.text());alert('No se pudo guardar el cambio. Revisá la conexión y probá de nuevo.');return false;}
+    if(!r.ok){
+      console.warn('patchProspecto '+r.status,await r.text());
+      if(lote)return false;        // el lote avisa y recarga una sola vez
+      // El cambio ya se pintó en pantalla (optimista). Si el servidor lo rechaza
+      // —sin permiso de edición, sin conexión— hay que volver a lo que dice la
+      // base, o queda a la vista algo que no se guardó.
+      if(r.status!==403)alert('No se pudo guardar el cambio. Revisá la conexión y probá de nuevo.');
+      await loadProspectos();
+      return false;
+    }
     return true;
   }catch(e){console.warn('patchProspecto:',e);return false;}
 }
@@ -2611,6 +2938,10 @@ function prosFiltered(){
   }
   else if(prosFilter.indexOf('etapa:')===0){var et=prosFilter.slice(6);list=list.filter(function(p){return prosEtapa(p)===et;});}
   else if(prosFilter.indexOf('fuente:')===0){var fu=prosFilter.slice(7);list=list.filter(function(p){return (p.fuente||'')===fu;});}
+  else if(prosFilter.indexOf('calif:')===0){
+    var ck=prosFilter.slice(6);
+    list=list.filter(function(p){return ck==='_sin'?!p.clasificacion:(p.clasificacion===ck);});
+  }
   if(prosSearch){
     list=list.filter(function(p){
       return [p.nombre,p.email,p.telefono,p.modelo,p.tipo_proyecto,p.region,p.responsable,p.comentario]
@@ -2671,7 +3002,54 @@ function prosHermanos(p){
   return out;
 }
 
-function renderProspectos(){renderProsCounts();renderProsKpis();renderProsTable();}
+function renderProspectos(){renderProsCounts();renderProsKpis();renderProsAlerta();renderProsTable();}
+
+/**
+ * Detecta que dejaron de entrar leads y lo dice acá, que es donde el equipo
+ * trabaja. El script del Google Sheet corre solo cada 10 minutos, sin nadie
+ * mirando: cuando se corta no avisa, y en septiembre de 2026 estuvo días caído
+ * hasta que alguien comparó el Sheet con el CRM de casualidad.
+ *
+ * Mira created_at (cuándo llegó el lead al CRM), no fecha (cuándo completó el
+ * formulario): lo que interesa es si la puerta de entrada sigue abierta.
+ *
+ * El umbral no es un número fijo, sale del ritmo propio de la campaña (leads de
+ * los últimos 60 días). Con 3 leads por día, 3 días en blanco es una señal; con
+ * uno por semana, no es nada. Así no grita en temporada baja ni se queda callado
+ * cuando la campaña está andando fuerte.
+ */
+function prosAlertaDatos(){
+  if(!allProspectos.length)return null;
+  var DIA=86400000, ahora=Date.now(), ultimo=0, recientes=0;
+  allProspectos.forEach(function(p){
+    var c=p.created_at?new Date(p.created_at).getTime():0;
+    if(c&&!isNaN(c)&&c>ultimo)ultimo=c;
+    var f=p.fecha?new Date(p.fecha).getTime():0;
+    if(f&&!isNaN(f)&&f<=ahora&&ahora-f<=60*DIA)recientes++;
+  });
+  if(!ultimo)return null;
+  var dias=Math.floor((ahora-ultimo)/DIA);
+  var porDia=recientes/60;
+  var umbral=porDia>0?Math.min(14,Math.max(3,Math.ceil(3/porDia))):7;
+  if(dias<umbral)return null;
+  var sem=porDia*7;
+  return {dias:dias,ultimo:new Date(ultimo),porSemana:sem>=3?Math.round(sem):Math.round(sem*10)/10};
+}
+
+function renderProsAlerta(){
+  var el=document.getElementById('pros-alerta');
+  if(!el)return;
+  var a=prosAlertaDatos();
+  if(!a){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='';
+  el.innerHTML='<strong>Hace '+a.dias+' d\u00edas que no entra ning\u00fan lead nuevo.</strong> El \u00faltimo lleg\u00f3 el '+
+    esc(a.ultimo.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'}))+
+    (a.porSemana>=0.5?(' y ven\u00edamos recibiendo alrededor de '+esc(String(a.porSemana))+' por semana.'):'.')+
+    '<div class="pros-alerta-que">Puede que la sincronizaci\u00f3n con el Google Sheet se haya cortado. '+
+    'Para chequearlo: abr\u00ed el Sheet <strong>Env\u00edos Formularios - Labo Modular</strong> \u2192 men\u00fa '+
+    '<strong>LABO CRM</strong> \u2192 <strong>Ver estado</strong>. Ah\u00ed dice si la sincronizaci\u00f3n autom\u00e1tica ' +
+    'est\u00e1 activa y c\u00f3mo termin\u00f3 la \u00faltima corrida. Si la campa\u00f1a est\u00e1 pausada, este aviso es esperable.</div>';
+}
 
 function renderProsCounts(){
   function set(id,n){var el=document.getElementById(id);if(el)el.textContent=n;}
@@ -2686,6 +3064,24 @@ function renderProsCounts(){
   Object.keys(PROS_FUENTE_LABEL).forEach(function(f){
     set('pcnt-'+f,allProspectos.filter(function(p){return (p.fuente||'')===f;}).length);
   });
+  // Filtros de calificación: se arman solos a partir de PROS_CALIF, así agregar
+  // o cambiar una lectura del cuadro no obliga a tocar el HTML.
+  var cf=document.getElementById('pros-calif-filtros');
+  if(cf){
+    var marcado=prosFilter.indexOf('calif:')===0?prosFilter.slice(6):null;
+    cf.innerHTML=PROS_CALIF.map(function(c){
+      var n=allProspectos.filter(function(x){return x.clasificacion===c.key;}).length;
+      return '<div class="s-item'+(marcado===c.key?' active':'')+'" title="'+escAttr(c.estado+' · '+c.calidad)+'" '+
+        'data-ck="'+escAttr(c.key)+'" onclick="setProsFilter(\'calif:\'+this.dataset.ck,this)">'+
+        esc(c.corto)+' <span class="s-count">'+n+'</span></div>';
+    }).join('')+
+    (function(){
+      var sin=allProspectos.filter(function(x){return !x.clasificacion;}).length;
+      return '<div class="s-item'+(marcado==='_sin'?' active':'')+'" onclick="setProsFilter(\'calif:_sin\',this)">'+
+        'Sin calificar <span class="s-count">'+sin+'</span></div>';
+    })();
+  }
+
   // Badge en la pestaña: cuántos están esperando el primer contacto.
   var nuevos=allProspectos.filter(function(p){return prosEtapa(p)==='Nuevo';}).length;
   var b=document.getElementById('tab-pros-badge');
@@ -2738,11 +3134,18 @@ function renderProsTable(){
     cont.innerHTML='<div class="empty"><div class="empty-icon">◫</div><div class="empty-text">'+
       (allProspectos.length?'Sin resultados':'Todavía no llegó ningún prospecto. La sincronización con el Google Sheet corre cada 10 minutos.')+
       '</div></div>';
+    prosSel.clear();prosSelAncla=null;_prosPintarSel();
     return;
   }
   // Sólo se dibuja la tanda visible: el resto llega con el botón del pie.
   var total=list.length;
   var pagina=list.slice(0,prosVisibles);
+  // La selección sólo conserva lo que sigue a la vista (cambió el filtro, la
+  // búsqueda o alguien lo movió de etapa): nunca se edita algo oculto.
+  var visibles=new Set(pagina.map(function(p){return String(p.id);}));
+  prosSel.forEach(function(id){if(!visibles.has(id))prosSel.delete(id);});
+  if(prosSelAncla!==null&&!visibles.has(prosSelAncla))prosSelAncla=null;
+  var editable=labPuedeEditar('prospectos');
   var filas=pagina.map(function(p){
     var etapa=prosEtapa(p);
     var cls=PROS_CLS[etapa]||'p-nuevo';
@@ -2751,10 +3154,14 @@ function renderProsTable(){
     var dias=_prosDias(p);
     var alerta=etapa==='Nuevo'&&dias>3;
     var fuente=p.fuente||'formulario';
-    var menu=PROS_ETAPAS.filter(function(e){return e.key!=='Convertido';}).map(function(e){
-      return '<button class="'+e.cls+'" data-eid="'+e.key+'" data-pid="'+pid+'" onclick="cambiarEtapaProspecto(this.dataset.pid,this.dataset.eid)">'+
-        '<span class="etapa-dot" style="background:'+e.color+'"></span>'+e.key+'</button>';
-    }).join('');
+    var cal=prosCalif(p);
+    var menu=PROS_CALIF.map(function(c){
+      return '<button data-cid="'+c.key+'" data-pid="'+pid+'" title="'+escAttr(c.estado+' · '+c.calidad)+'" '+
+        'onclick="calificarProspecto(this.dataset.pid,this.dataset.cid)">'+
+        '<span class="etapa-dot" style="background:'+c.color+'"></span>'+esc(c.lectura)+'</button>';
+    }).join('')+
+    (cal?('<button data-pid="'+pid+'" onclick="calificarProspecto(this.dataset.pid,\'\')" style="color:var(--mid)">'+
+      '<span class="etapa-dot" style="background:transparent;border:1px solid var(--border)"></span>— sin calificar —</button>'):'');
     var resp=(p.responsable||'').trim();
     var listaVend=PROS_VENDEDORES.slice();
     if(resp&&listaVend.indexOf(resp)<0)listaVend.push(resp);   // alguien que no está en la lista fija
@@ -2770,9 +3177,11 @@ function renderProsTable(){
     var accion=etapa==='Convertido'
       ? (p.lead_id?'<button class="pr-act ghost" data-lid="'+escAttr(p.lead_id)+'" onclick="event.stopPropagation();openDetail(this.dataset.lid)">Ver lead →</button>':'<span class="td-muted">cotizado</span>')
       : '<button class="pr-act" data-pid="'+pid+'" onclick="event.stopPropagation();convertirProspecto(this.dataset.pid)">Cotizar →</button>';
-    return '<tr data-pid="'+pid+'" onclick="openProspecto(this.dataset.pid)" style="cursor:pointer">'+
+    var marcada=prosSel.has(String(p.id));
+    return '<tr data-pid="'+pid+'" onclick="openProspecto(this.dataset.pid)" style="cursor:pointer"'+(marcada?' class="pr-marcada"':'')+'>'+
+      (editable?('<td style="width:22px" onclick="event.stopPropagation()"><input type="checkbox" class="pr-chk" data-pid="'+pid+'"'+(marcada?' checked':'')+' onclick="prosToggleSel(this,event)"></td>'):'')+
       '<td style="font-family:IBM Plex Mono,monospace;font-size:11px">'+_prosFecha(p)+'</td>'+
-      '<td><div class="td-bold">'+esc(p.nombre||'—')+avisos+'</div><div class="td-muted" style="font-size:10px">'+esc(contacto||'sin datos de contacto')+'</div></td>'+
+      '<td><div class="td-bold">'+esc(p.nombre||'—')+avisos+'</div><div class="td-muted" style="font-size:10px">'+esc(contacto||'sin datos de contacto')+_waIcono(p)+'</div></td>'+
       '<td><div style="font-size:12px">'+esc(interes)+'</div><div class="td-muted" style="font-size:10px">'+esc(p.region||'')+'</div></td>'+
       '<td><span class="fu fu-'+escAttr(fuente)+'">'+esc(PROS_FUENTE_LABEL[fuente]||fuente)+'</span></td>'+
       '<td onclick="event.stopPropagation()">'+
@@ -2780,8 +3189,8 @@ function renderProsTable(){
       '</td>'+
       '<td onclick="event.stopPropagation()">'+
         '<div class="etapa-dropdown" id="pdd_'+pid+'">'+
-          '<button class="etapa '+cls+'" data-did="pdd_'+pid+'" onclick="toggleDD(this.dataset.did)">'+
-            '<span class="etapa-dot" style="background:'+edot.color+'"></span>'+esc(etapa)+
+          '<button class="etapa '+cls+'" data-did="pdd_'+pid+'" title="'+escAttr(cal?(cal.lectura+' — '+cal.estado+' · '+cal.calidad):'Todavía sin calificar')+'" onclick="toggleDD(this.dataset.did)">'+
+            '<span class="etapa-dot" style="background:'+(cal?cal.color:edot.color)+'"></span>'+esc(cal?cal.corto:etapa)+
           '</button>'+
           '<div class="etapa-menu">'+menu+'</div>'+
         '</div>'+
@@ -2796,14 +3205,267 @@ function renderProsTable(){
       Math.min(PROS_PAGINA,total-pagina.length)+' más</button></div>'
     : '';
   cont.innerHTML='<table><thead><tr>'+
-    '<th>Fecha</th><th>Contacto</th><th>Interés</th><th>Origen</th><th>Responsable</th><th>Etapa</th><th style="text-align:center">Días</th><th></th>'+
+    (editable?'<th style="width:22px"><input type="checkbox" class="pr-chk" id="pros-chk-todos" title="Seleccionar todos los que están a la vista" onclick="prosToggleSelTodos(this)"></th>':'')+
+    '<th>Fecha</th><th>Contacto</th><th>Interés</th><th>Origen</th><th>Responsable</th><th>Calificación</th><th style="text-align:center">Días</th><th></th>'+
     '</tr></thead><tbody>'+filas+'</tbody></table>'+pie;
+  _prosPintarSel();
+}
+
+/* ════════════════ WHATSAPP ════════════════ */
+
+/**
+ * ⚠ EL MENSAJE QUE SE MANDA SE EDITA ACÁ, Y EN NINGÚN OTRO LADO.
+ * Se abre escrito en el chat: el vendedor lo lee, lo retoca si quiere y recién
+ * ahí lo envía. Nada se manda solo.
+ */
+function WA_MENSAJE(p){
+  var nombre=_waPrimerNombre(p.nombre);
+  var sobre=(p.modelo||'').trim()
+    ? 'tu consulta sobre el modelo '+String(p.modelo).trim()
+    : 'tu consulta sobre las viviendas modulares';
+  return (nombre?('Hola '+nombre+', '):'Hola, ')+'¿cómo estás? Te escribo de LABO Modular por '+
+         sobre+'. ¿Tenés unos minutos para que charlemos?';
+}
+
+function _waPrimerNombre(n){
+  var t=String(n||'').trim().split(/\s+/)[0]||'';
+  if(!t)return '';
+  return t.charAt(0).toUpperCase()+t.slice(1).toLowerCase();
+}
+
+/**
+ * Códigos de área argentinos de 3 dígitos. Hacen falta para saber dónde termina
+ * el área y, con eso, dónde está el "15" que hay que sacar: en 2995123456 el 15
+ * es parte del número, en 299154238758 es el prefijo de celular.
+ */
+const WA_AREAS3=['220','221','223','230','236','237','249','260','261','263','264','266','280','291',
+                 '294','297','298','299','336','341','342','343','345','348','351','353','358','362',
+                 '364','370','376','379','380','381','383','385','387','388'];
+
+function _waLargoArea(n){
+  if(n.slice(0,2)==='11')return 2;
+  if(WA_AREAS3.indexOf(n.slice(0,3))>=0)return 3;
+  return 4;
+}
+
+/** El 15 es para llamar desde un fijo local; WhatsApp no lo usa nunca. */
+function _waSinQuince(n){
+  if(n.length!==12)return n;
+  var a=_waLargoArea(n);
+  return n.slice(a,a+2)==='15'?(n.slice(0,a)+n.slice(a+2)):n;
+}
+
+/**
+ * Pasa el teléfono al formato que entiende WhatsApp (país + 9 + área + número,
+ * todo junto y sin signos). El Sheet los trae de todas las formas posibles:
+ * "1162096685", "011 15 6209-6685", "+54 9 299 423-8758", "(0299) 4238758".
+ *
+ * Si no se puede armar un número confiable devuelve vacío, y entonces el botón
+ * ni aparece. Es a propósito: abrir un chat con el número equivocado es escribirle
+ * a un desconocido en nombre de la empresa.
+ */
+function _waNumero(tel){
+  var d=String(tel||'').replace(/\D/g,'').replace(/^00/,'');
+  if(d.length<8)return '';
+  if(d.indexOf('54')===0&&d.length>=12){
+    var r=d.slice(2).replace(/^0/,'');
+    if(r.length===11&&r.charAt(0)==='9')r=r.slice(1);   // el 9 de celular ya venía
+    r=_waSinQuince(r);
+    return r.length===10?('549'+r):'';
+  }
+  // El 0 de adelante es el prefijo para llamar de larga distancia dentro del país:
+  // si está, el número es argentino, por más largo que parezca con el 15 incluido.
+  var nacional=d.charAt(0)==='0';
+  if(nacional)d=d.replace(/^0+/,'');
+  else if(d.length>10)return d;                         // número de otro país, ya internacional
+  var loc=_waSinQuince(d);
+  return loc.length===10?('549'+loc):'';
+}
+
+/** El ícono de la fila. Sin número usable no se dibuja nada. */
+function _waIcono(p){
+  if(!_waNumero(p.telefono))return '';
+  return '<button class="wa-btn" data-pid="'+escAttr(p.id)+'" title="Escribir por WhatsApp" '+
+    'onclick="event.stopPropagation();abrirWhatsApp(this.dataset.pid)">'+WA_SVG+'</button>';
+}
+
+const WA_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>';
+
+let waPendiente=null;
+
+/**
+ * Abre el chat con el mensaje escrito. Sale desde la cuenta con la que esté
+ * logueada esa computadora en WhatsApp Web o en la app de escritorio, así que
+ * para que salga de la empresa hay que estar logueado con el número de la empresa.
+ */
+function abrirWhatsApp(id){
+  var p=allProspectos.find(function(x){return String(x.id)===String(id);});
+  if(!p)return;
+  var num=_waNumero(p.telefono);
+  if(!num){alert('El teléfono de este prospecto no tiene un formato que WhatsApp pueda abrir.');return;}
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(WA_MENSAJE(p)),'_blank','noopener');
+  waPendiente=String(id);
+  var n=document.getElementById('wa-modal-nombre');
+  if(n)n.textContent=p.nombre||'este prospecto';
+  document.getElementById('waModal').classList.add('open');
+}
+
+/** El registro lo confirma la persona: abrir el chat no es haber escrito. */
+function waConfirmar(si){
+  document.getElementById('waModal').classList.remove('open');
+  var id=waPendiente;waPendiente=null;
+  if(si&&id)registrarContacto(id,'WhatsApp');
 }
 
 // ── Acciones ──────────────────────────────────────────────────────────────────
 function asignarResponsable(id,valor){
   patchProspecto(id,{responsable:valor},valor?('Asignado a '+valor):'Sin responsable');
 }
+/**
+ * Guarda la calificación y acomoda la etapa, la calidad y el contador de
+ * contactos de una sola vez.
+ *
+ * La etapa que trae el cuadro es la que corresponde a esa lectura, con una
+ * excepción: "Aún no sabemos la calidad" vale tanto para alguien recién
+ * contactado como para una conversación que ya venía, así que no se usa para
+ * hacerlo retroceder.
+ */
+function calificarProspecto(id,key){
+  document.querySelectorAll('.etapa-dropdown.open').forEach(function(d){d.classList.remove('open');});
+  var p=allProspectos.find(function(x){return String(x.id)===String(id);});
+  if(!p)return;
+  var cambio=_prosCambioCalif(p,key);
+  if(cambio)patchProspecto(id,cambio.patch,cambio.texto);
+}
+// Arma el cambio de calificación de un prospecto (o null si no hay nada que
+// cambiar). Lo comparten la fila suelta y la acción en lote.
+function _prosCambioCalif(p,key){
+  if(!key){
+    if(!p.clasificacion)return null;
+    return {patch:{clasificacion:null},texto:'Calificación borrada'};
+  }
+  var c=PROS_CALIF_MAP[key];
+  if(!c||p.clasificacion===key)return null;
+  var etapa=c.etapa;
+  if(etapa==='Contactado'){
+    var actual=prosEtapa(p);
+    if(actual==='En seguimiento'||actual==='Convertido')etapa=actual;
+  }
+  var patch={clasificacion:key,etapa:etapa,calidad:c.calidad==='N/A'?null:c.calidad};
+  if(etapa!=='Nuevo'&&!(p.contactos>0))patch.contactos=1;
+  return {patch:patch,texto:'Calificado: '+c.lectura+' ('+c.estado+' · '+c.calidad+')'};
+}
+
+// ── Selección múltiple y acciones en lote ─────────────────────────────────────
+// Como en el Sheet: tildar varias filas (Shift+click marca el rango desde la
+// última tildada) y calificar o asignar todas de una. Cada prospecto se guarda
+// por separado, con la misma regla de etapa y su propia línea en el historial
+// que si se hubiera cambiado a mano.
+function prosToggleSel(el,ev){
+  var id=el.dataset.pid, marcar=el.checked;
+  var ids=_prosIdsVisibles();
+  var i=ids.indexOf(id), j=prosSelAncla===null?-1:ids.indexOf(prosSelAncla);
+  if(ev&&ev.shiftKey&&j>=0&&i>=0){
+    for(var k=Math.min(i,j);k<=Math.max(i,j);k++){if(marcar)prosSel.add(ids[k]);else prosSel.delete(ids[k]);}
+  }else{
+    if(marcar)prosSel.add(id);else prosSel.delete(id);
+  }
+  prosSelAncla=id;
+  _prosPintarSel();
+}
+function prosToggleSelTodos(el){
+  if(el.checked)_prosIdsVisibles().forEach(function(id){prosSel.add(id);});
+  else prosSel.clear();
+  prosSelAncla=null;
+  _prosPintarSel();
+}
+function prosLimpiarSel(){prosSel.clear();prosSelAncla=null;_prosPintarSel();}
+function _prosIdsVisibles(){
+  return Array.from(document.querySelectorAll('#pros-table-container .pr-chk[data-pid]')).map(function(c){return c.dataset.pid;});
+}
+// Refleja la selección en checkboxes, filas y barra sin redibujar la tabla.
+function _prosPintarSel(){
+  var ids=_prosIdsVisibles();
+  document.querySelectorAll('#pros-table-container .pr-chk[data-pid]').forEach(function(c){
+    var on=prosSel.has(c.dataset.pid);
+    c.checked=on;
+    var tr=c.closest('tr');if(tr)tr.classList.toggle('pr-marcada',on);
+  });
+  var todos=document.getElementById('pros-chk-todos');
+  if(todos){
+    todos.checked=ids.length>0&&prosSel.size===ids.length;
+    todos.indeterminate=prosSel.size>0&&prosSel.size<ids.length;
+  }
+  var bar=document.getElementById('pros-lote');
+  if(!bar)return;
+  if(!prosSel.size||!labPuedeEditar('prospectos')){bar.classList.remove('visible');bar.innerHTML='';bar.dataset.n='';return;}
+  // La tabla se redibuja sola cada 30 s: si la cantidad no cambió, no se rearma la
+  // barra, así no se cierra un desplegable que el usuario tenga abierto.
+  if(bar.dataset.n===String(prosSel.size)&&bar.classList.contains('visible'))return;
+  bar.dataset.n=String(prosSel.size);
+  var optCalif='<option value="">Calificar como…</option>'+PROS_CALIF.map(function(c){
+    return '<option value="'+escAttr(c.key)+'">'+esc(c.lectura)+' ('+esc(c.estado)+' · '+esc(c.calidad)+')</option>';
+  }).join('')+'<option value="_borrar">— sin calificar —</option>';
+  var optResp='<option value="">Asignar a…</option>'+PROS_VENDEDORES.map(function(v){
+    return '<option value="'+escAttr(v)+'">'+esc(v)+'</option>';
+  }).join('')+'<option value="_nadie">— sin asignar —</option>';
+  bar.innerHTML='<strong>'+prosSel.size+' seleccionado'+(prosSel.size===1?'':'s')+'</strong>'+
+    '<select class="pr-sel" onchange="prosLoteCalificar(this)">'+optCalif+'</select>'+
+    '<select class="pr-sel" onchange="prosLoteAsignar(this)">'+optResp+'</select>'+
+    '<button class="pr-act ghost" onclick="prosLimpiarSel()">Quitar selección</button>';
+  bar.classList.add('visible');
+}
+function prosLoteCalificar(sel){
+  var v=sel.value;sel.value='';
+  if(!v)return;
+  var key=v==='_borrar'?'':v;
+  var c=key?PROS_CALIF_MAP[key]:null;
+  if(key&&!c)return;
+  _prosAplicarLote(key?('calificar como "'+c.lectura+'"'):'borrar la calificación de',function(p){
+    return _prosCambioCalif(p,key);
+  });
+}
+function prosLoteAsignar(sel){
+  var v=sel.value;sel.value='';
+  if(!v)return;
+  var valor=v==='_nadie'?'':v;
+  _prosAplicarLote(valor?('asignar a '+valor):'dejar sin responsable a',function(p){
+    if((p.responsable||'').trim()===valor)return null;
+    return {patch:{responsable:valor},texto:valor?('Asignado a '+valor):'Sin responsable'};
+  });
+}
+async function _prosAplicarLote(accion,armar){
+  var ids=Array.from(prosSel);
+  var cambios=[];
+  ids.forEach(function(id){
+    var p=allProspectos.find(function(x){return String(x.id)===id;});
+    var c=p&&armar(p);
+    if(c)cambios.push({id:id,c:c});
+  });
+  if(!cambios.length){alert('Los prospectos seleccionados ya están así. No hay nada que cambiar.');return;}
+  var sinCambio=ids.length-cambios.length;
+  if(!confirm('¿'+accion.charAt(0).toUpperCase()+accion.slice(1)+' '+cambios.length+' prospecto'+(cambios.length===1?'':'s')+'?'+
+    (sinCambio?('\n('+sinCambio+' ya estaba'+(sinCambio===1?'':'n')+' así y no se toca'+(sinCambio===1?'':'n')+'.)'):'')))return;
+  var bar=document.getElementById('pros-lote');
+  if(bar){bar.innerHTML='<strong>Guardando '+cambios.length+'…</strong>';bar.dataset.n='';}
+  // De a 5 en paralelo: rápido sin saturar la conexión ni la API.
+  var fallos=0;
+  for(var i=0;i<cambios.length;i+=5){
+    var res=await Promise.all(cambios.slice(i,i+5).map(function(x){
+      return patchProspecto(x.id,x.c.patch,x.c.texto,true);
+    }));
+    res.forEach(function(ok){if(!ok)fallos++;});
+  }
+  prosSel.clear();prosSelAncla=null;
+  if(fallos){
+    alert('No se pudieron guardar '+fallos+' de '+cambios.length+' cambios. Se recarga la bandeja con lo que quedó guardado.');
+    await loadProspectos();
+  }else{
+    renderProspectos();
+  }
+  if(currentProspectoId)openProspecto(currentProspectoId);
+}
+
 function cambiarEtapaProspecto(id,etapa){
   document.querySelectorAll('.etapa-dropdown.open').forEach(function(d){d.classList.remove('open');});
   var p=allProspectos.find(function(x){return String(x.id)===String(id);});
@@ -2813,11 +3475,12 @@ function cambiarEtapaProspecto(id,etapa){
   if(etapa==='Contactado'&&!(p.contactos>0))patch.contactos=1;
   patchProspecto(id,patch,'Etapa → '+etapa);
 }
-function registrarContacto(id){
+function registrarContacto(id,via){
   var p=allProspectos.find(function(x){return String(x.id)===String(id);});
   if(!p)return;
   var n=(p.contactos||0)+1;
-  patchProspecto(id,{contactos:n,etapa:prosEtapa(p)==='Nuevo'?'Contactado':(prosEtapa(p)==='Descartado'?'Contactado':prosEtapa(p))},'Contacto n° '+n);
+  patchProspecto(id,{contactos:n,etapa:prosEtapa(p)==='Nuevo'?'Contactado':(prosEtapa(p)==='Descartado'?'Contactado':prosEtapa(p))},
+    'Contacto n° '+n+(via?' — '+via:''));
 }
 function guardarNotaProspecto(id){
   var el=document.getElementById('pr-nota-input');
@@ -2828,9 +3491,8 @@ function guardarNotaProspecto(id){
   patchProspecto(id,{},txt);
 }
 function descartarProspecto(id){
-  var motivo=prompt('¿Por qué no avanza? (queda en el historial)','No responde');
-  if(motivo===null)return;
-  patchProspecto(id,{etapa:'Descartado'},'Descartado — '+(motivo||'sin motivo'));
+  pendingProspectoDescarte=String(id);
+  openMotivoModal('prospecto');
 }
 
 /**
@@ -2997,7 +3659,11 @@ function renderInforme(){
   renderBarChart('inf-modelo', infContar(d,function(p){return p.modelo;}),TINTA,n);
   renderBarChart('inf-tipo',   infContar(d,function(p){return p.tipo_proyecto;}),TINTA,n);
   renderBarChart('inf-region', infContar(d,function(p){return p.region;}),TINTA,n);
-  renderBarChart('inf-calidad',infContar(d,function(p){return p.calidad;}),'#D4870A',n);
+  // Se muestra la lectura completa del cuadro, no la calidad suelta: "Interactúa
+  // y cumple con requisitos" le dice algo a la agencia; "Bueno", poco.
+  renderBarChart('inf-calidad',infContar(d,function(p){
+    var c=prosCalif(p);return c?c.lectura:'';
+  }),'#D4870A',n);
   var motivos=infContar(d.filter(function(p){return prosEtapa(p)==='Descartado';}),infMotivo);
   renderBarChart('inf-motivos',motivos,'#C0392B',n);
 
@@ -3072,7 +3738,8 @@ function imprimirInforme(){
 function exportInformeCSV(){
   var d=infDatos();
   var cols=['entry_id','fecha','origen','hoja','nombre','modelo','tipo_proyecto','region',
-            'calidad','estado','contactos','motivo_no_avanza','paso_a_cotizacion','consulta_del_cliente'];
+            'calificacion','estado_calificacion','calidad','etapa_crm','contactos','motivo_no_avanza',
+            'paso_a_cotizacion','consulta_del_cliente'];
   var filas=d.map(function(p){
     return [
       p.entry_id||'',
@@ -3083,6 +3750,8 @@ function exportInformeCSV(){
       p.modelo||'',
       p.tipo_proyecto||'',
       p.region||'',
+      (prosCalif(p)||{}).lectura||'',
+      (prosCalif(p)||{}).estado||'',
       p.calidad||'',
       prosEtapa(p),
       String(p.contactos||0),
@@ -3109,6 +3778,9 @@ function abrirImportador(){
   _importFuente=null;
   document.querySelectorAll('#import-options .modal-opt').forEach(function(o){o.classList.remove('selected');});
   var est=document.getElementById('import-estado');est.style.display='none';est.textContent='';
+  var dif=document.getElementById('import-dif');dif.style.display='none';dif.innerHTML='';
+  document.getElementById('import-box').style.width='';
+  _importDif=[];
   _importBtn(false);
   document.getElementById('import-file').value='';
   document.getElementById('importModal').classList.add('open');
@@ -3152,15 +3824,16 @@ function importarCSVArchivo(input){
         return;
       }
       var vacias=0;
-      var registros=[];
+      var registros=[], hoja=[];
       filas.slice(1).forEach(function(fila,i){
-        var r=_csvAProspecto(fila,mapa,fuente,i+2,encabezados);
+        var r=_csvAProspecto(fila,mapa,fuente,encabezados);
         if(!r){vacias++;return;}
         registros.push(r);
+        hoja.push(_csvDatosHoja(fila,mapa,r,i+2));
       });
       if(!registros.length){_importMsg('No había ninguna fila con datos de contacto.','var(--red)');return;}
       _importMsg('Subiendo '+registros.length+' filas…');
-      _subirProspectos(registros,fuente,vacias);
+      _subirProspectos(registros,fuente,vacias,hoja);
     }catch(e){
       console.warn('importarCSV:',e);
       _importMsg('No pude leer el archivo: '+e.message,'var(--red)');
@@ -3171,18 +3844,19 @@ function importarCSVArchivo(input){
   input.value='';
 }
 
-async function _subirProspectos(registros,fuente,vacias){
+async function _subirProspectos(registros,fuente,vacias,hoja){
   try{
     // Lo que ya está en el CRM para esa hoja: se compara por Entry ID.
     var yaEstan={};
-    var r=await _sbFetch('labocomercial_prospectos?select=entry_id&fuente=eq.'+encodeURIComponent(fuente)+'&limit=10000',{method:'GET'});
-    if(r.ok){(await r.json()).forEach(function(x){if(x.entry_id)yaEstan[String(x.entry_id)]=true;});}
-    else{_importMsg('No pude consultar el CRM ('+r.status+'). Probá de nuevo.','var(--red)');return;}
+    var yaCargados=await _sbLeerTodo('labocomercial_prospectos?select=entry_id&fuente=eq.'+encodeURIComponent(fuente),'id.asc');
+    yaCargados.forEach(function(x){if(x.entry_id)yaEstan[String(x.entry_id)]=true;});
 
     var nuevos=registros.filter(function(x){return !yaEstan[String(x.entry_id)];});
     var repetidos=registros.length-nuevos.length;
     if(!nuevos.length){
-      _importMsg('✓ Ya estaba todo: las '+registros.length+' filas del archivo están en el CRM.','var(--green)');
+      _importMsg('✓ No hay prospectos nuevos: las '+registros.length+' filas del archivo ya están en el CRM.','var(--green)');
+      await loadProspectos();
+      _importMostrarDif(fuente,hoja);
       return;
     }
     var subidos=0;
@@ -3209,9 +3883,155 @@ async function _subirProspectos(registros,fuente,vacias){
     _importMsg('✓ Listo: <strong>'+subidos+'</strong> prospectos nuevos'+
       (repetidos?' · '+repetidos+' ya estaban':'')+
       (vacias?' · '+vacias+' filas vacías ignoradas':'')+'.','var(--green)');
+    _importMostrarDif(fuente,hoja);
   }catch(e){
     console.warn('_subirProspectos:',e);
     _importMsg('Falló la subida: '+e.message,'var(--red)');
+  }
+}
+
+// ── Actualizar desde el Sheet: vista previa de diferencias ───────────────────
+// Además de cargar los nuevos, el importador compara cada fila del Sheet con lo
+// que hay en el CRM y propone actualizar la calificación (Estado + Calidad), los
+// contactos (columna Etapa) y el responsable (columna Contacto). Nada se guarda
+// sin que el usuario lo confirme en la lista, y una celda vacía en el Sheet no
+// borra nada del CRM.
+let _importDif=[];
+
+/** Lo que la fila del Sheet dice sobre el seguimiento, tal cual vino escrito. */
+function _csvDatosHoja(fila,mapa,r,nFila){
+  function v(campo){var i=mapa[campo];return (i===undefined)?'':String(fila[i]===undefined?'':fila[i]).trim();}
+  return {
+    entry_id:String(r.entry_id),fila:nFila,nombre:r.nombre,
+    estado:v('estado_sheet'),calidad:v('calidad'),etapa:v('etapa_sheet'),
+    responsable:v('responsable')
+  };
+}
+/** Estado + Calidad del Sheet → clave de PROS_CALIF. null si la fila no trae
+    estado (no hay nada que actualizar); false si la combinación no existe. */
+function _csvCalifKey(estado,calidad){
+  var e=_csvNorm(estado);
+  if(!e)return null;
+  var q=_csvNorm(calidad);
+  if(q==='regular')q='medio';
+  if(!q)q='na';
+  var c=PROS_CALIF.find(function(x){return _csvNorm(x.estado)===e&&_csvNorm(x.calidad)===q;});
+  return c?c.key:false;
+}
+function _importArmarDif(fuente,hoja){
+  var porEntry={};
+  allProspectos.forEach(function(p){
+    if((p.fuente||'')===fuente&&p.entry_id)porEntry[String(p.entry_id)]=p;
+  });
+  // Si el mismo Entry ID aparece dos veces en el archivo, vale la última fila.
+  var ultima={};
+  hoja.forEach(function(h){ultima[h.entry_id]=h;});
+  var cambios=[], invalidas=[];
+  Object.keys(ultima).forEach(function(eid){
+    var h=ultima[eid], p=porEntry[eid];
+    if(!p)return;
+    var patch={}, detalle=[], textos=[];
+    var key=_csvCalifKey(h.estado,h.calidad);
+    if(key===false){
+      invalidas.push(h);
+    }else if(key){
+      var cc=_prosCambioCalif(p,key);
+      if(cc){
+        var antes=p.clasificacion&&PROS_CALIF_MAP[p.clasificacion];
+        var c=PROS_CALIF_MAP[key];
+        Object.assign(patch,cc.patch);
+        detalle.push(['Calificación',antes?antes.corto:'sin calificar',c.corto]);
+        if(cc.patch.etapa&&cc.patch.etapa!==prosEtapa(p))detalle.push(['Etapa CRM',prosEtapa(p),cc.patch.etapa]);
+        textos.push(cc.texto);
+      }
+    }
+    var n=_csvContactos(h.etapa);
+    var contActual=('contactos' in patch)?patch.contactos:(p.contactos||0);
+    if(n>0&&n!==contActual){
+      detalle.push(['Contactos',String(p.contactos||0),String(n)]);
+      patch.contactos=n;
+      textos.push('Contactos → '+n);
+    }
+    var resp=_prosVendedor(h.responsable);
+    if(resp&&resp!==(p.responsable||'').trim()){
+      detalle.push(['Responsable',(p.responsable||'').trim()||'sin asignar',resp]);
+      patch.responsable=resp;
+      textos.push('Asignado a '+resp);
+    }
+    if(detalle.length)cambios.push({id:String(p.id),nombre:p.nombre||h.nombre||'—',fila:h.fila,patch:patch,detalle:detalle,
+      texto:'Actualizado desde el Sheet: '+textos.join(' · ')});
+  });
+  return {cambios:cambios,invalidas:invalidas};
+}
+function _importMostrarDif(fuente,hoja){
+  var cont=document.getElementById('import-dif');
+  if(!cont||!hoja||!hoja.length)return;
+  var r=_importArmarDif(fuente,hoja);
+  _importDif=r.cambios;
+  var html='';
+  if(r.cambios.length){
+    html+='<div style="font-size:12px;margin-bottom:8px"><strong>'+r.cambios.length+' prospecto'+(r.cambios.length===1?'':'s')+
+      ' con diferencias</strong> entre el Sheet y el CRM. Destildá los que no quieras actualizar.</div>'+
+      '<label style="font-size:11px;display:flex;gap:6px;align-items:center;margin-bottom:6px;cursor:pointer">'+
+      '<input type="checkbox" class="pr-chk" checked onclick="_importDifTodos(this.checked)"> Todos</label>'+
+      '<div class="imp-dif-lista">'+r.cambios.map(function(c,i){
+        return '<label class="imp-dif-fila"><input type="checkbox" class="pr-chk imp-dif-chk" data-i="'+i+'" checked onchange="_importDifContar()">'+
+          '<div><div class="td-bold">'+esc(c.nombre)+' <span class="td-muted" style="font-size:10px">fila '+c.fila+'</span></div>'+
+          c.detalle.map(function(d){
+            return '<div class="imp-dif-campo">'+esc(d[0])+': '+esc(d[1])+' → <b>'+esc(d[2])+'</b></div>';
+          }).join('')+'</div></label>';
+      }).join('')+'</div>'+
+      '<div style="margin-top:10px"><button class="btn-modal primary" id="import-dif-btn" onclick="_importAplicarDif()"></button></div>';
+  }else{
+    html+='<div style="font-size:12px;color:var(--green)">✓ La calificación, los contactos y el responsable del CRM coinciden con el Sheet.</div>';
+  }
+  if(r.invalidas.length){
+    html+='<div style="font-size:12px;margin-top:12px;color:var(--amber)"><strong>'+r.invalidas.length+' fila'+(r.invalidas.length===1?'':'s')+
+      ' con una combinación de Estado + Calidad que no existe en el CRM</strong> (no se tocó su calificación; corregilas a mano):</div>'+
+      '<div class="imp-dif-lista" style="max-height:20vh;margin-top:6px">'+r.invalidas.map(function(h){
+        return '<div class="imp-dif-fila"><div>'+esc(h.nombre||'—')+' <span class="td-muted" style="font-size:10px">fila '+h.fila+'</span>'+
+          '<div class="imp-dif-campo">'+esc(h.estado)+' + '+esc(h.calidad||'(sin calidad)')+'</div></div></div>';
+      }).join('')+'</div>';
+  }
+  document.getElementById('import-box').style.width='min(640px,94vw)';
+  cont.innerHTML=html;
+  cont.style.display='block';
+  _importDifContar();
+}
+function _importDifTodos(on){
+  document.querySelectorAll('#import-dif .imp-dif-chk').forEach(function(c){c.checked=on;});
+  _importDifContar();
+}
+function _importDifContar(){
+  var b=document.getElementById('import-dif-btn');
+  if(!b)return;
+  var n=document.querySelectorAll('#import-dif .imp-dif-chk:checked').length;
+  b.textContent='Actualizar '+n+' prospecto'+(n===1?'':'s');
+  b.disabled=!n;b.style.opacity=n?'1':'.5';
+}
+async function _importAplicarDif(){
+  var elegidos=Array.from(document.querySelectorAll('#import-dif .imp-dif-chk:checked')).map(function(c){
+    return _importDif[parseInt(c.dataset.i,10)];
+  }).filter(Boolean);
+  if(!elegidos.length)return;
+  var cont=document.getElementById('import-dif');
+  cont.innerHTML='<div style="font-size:12px">Actualizando '+elegidos.length+'…</div>';
+  var fallos=0, hechos=0;
+  for(var i=0;i<elegidos.length;i+=5){
+    var res=await Promise.all(elegidos.slice(i,i+5).map(function(x){
+      return patchProspecto(x.id,x.patch,x.texto,true);
+    }));
+    res.forEach(function(ok){if(ok)hechos++;else fallos++;});
+    cont.innerHTML='<div style="font-size:12px">Actualizando… '+(hechos+fallos)+' de '+elegidos.length+'</div>';
+  }
+  _importDif=[];
+  if(fallos){
+    cont.innerHTML='<div style="font-size:12px;color:var(--red)">Se actualizaron '+hechos+' y fallaron '+fallos+
+      '. Volvé a importar el mismo archivo para reintentar: lo que ya se actualizó no vuelve a aparecer.</div>';
+    await loadProspectos();
+  }else{
+    cont.innerHTML='<div style="font-size:12px;color:var(--green)">✓ Se actualizaron '+hechos+' prospecto'+(hechos===1?'':'s')+'.</div>';
+    renderProspectos();
   }
 }
 
@@ -3290,7 +4110,39 @@ function _csvMapear(encabezados){
   });
   return mapa;
 }
-function _csvAProspecto(fila,mapa,fuente,nroFila,encabezados){
+/**
+ * Clave de deduplicación para las filas que no traen Entry ID.
+ *
+ * Antes se usaba el número de fila ("formulario-r57"). Eso se rompe solo: basta
+ * con que alguien inserte una fila arriba o reordene la hoja para que una fila
+ * nueva herede la clave de una vieja y la base la descarte como repetida, en
+ * silencio. Ahora la clave sale del contenido de la fila, así que viaja con ella.
+ *
+ * Dos hashes con semillas distintas (64 bits en total): con uno solo, mil filas
+ * ya tienen chance de chocar, y un choque acá significa un lead perdido.
+ *
+ * Efecto de borde asumido: dos filas idénticas en fecha, nombre, mail, teléfono,
+ * modelo y comentario cuentan como una sola. Si difieren en algo, entran las dos.
+ */
+function _hash36(s,semilla){
+  var h = semilla;
+  for (var i = 0; i < s.length; i++) { h = ((h << 5) + h) ^ s.charCodeAt(i); h = h >>> 0; }
+  return h.toString(36);
+}
+
+function _claveContenido(fuente,d){
+  var base = [
+    String(d.fecha || '').slice(0, 10),
+    String(d.nombre || '').toLowerCase().trim(),
+    String(d.email || '').toLowerCase().trim(),
+    String(d.telefono || '').replace(/\D/g, '').slice(-8),
+    String(d.modelo || '').toLowerCase().trim(),
+    String(d.comentario || '').toLowerCase().trim()
+  ].join('|');
+  return fuente + '-c' + _hash36(base, 5381) + _hash36(base, 52711);
+}
+
+function _csvAProspecto(fila,mapa,fuente,encabezados){
   function v(campo){var i=mapa[campo];return (i===undefined)?'':(fila[i]===undefined?'':fila[i]);}
   function t(x){return String(x===null||x===undefined?'':x).trim();}
   if(!t(v('nombre'))&&!t(v('email'))&&!t(v('telefono')))return null;   // fila vacía
@@ -3301,7 +4153,10 @@ function _csvAProspecto(fila,mapa,fuente,nroFila,encabezados){
   });
   return {
     fuente:fuente,
-    entry_id:t(v('entry_id'))||(fuente+'-r'+nroFila),
+    entry_id:t(v('entry_id'))||_claveContenido(fuente,{
+      fecha:_csvFecha(v('fecha')),nombre:t(v('nombre')),email:t(v('email')),
+      telefono:t(v('telefono')),modelo:t(v('modelo')),comentario:t(v('comentario'))
+    }),
     origen:PROS_ORIGEN[fuente]||'',
     fecha:_csvFecha(v('fecha')),
     url:t(v('url')),
@@ -3395,15 +4250,22 @@ function openProspecto(id){
       '<div class="act-texto-txt">'+esc(a.texto||'')+'</div></div></div>';
   }).join('');
 
-  var acciones=etapa==='Convertido'
-    ? (p.lead_id?'<button class="btn-modal primary" data-lid="'+escAttr(p.lead_id)+'" onclick="openDetail(this.dataset.lid)">Ver lead en el Pipeline →</button>':'')
+  var calP=prosCalif(p);
+  // Un prospecto puede quedar en Convertido sin lead asociado: si lo calificaron
+  // como "Cotización realizada" porque la cotización se hizo por afuera. En ese
+  // caso igual tiene que poder cotizarse desde acá, o queda sin ninguna acción.
+  var acciones=(etapa==='Convertido'&&p.lead_id)
+    ? '<button class="btn-modal primary" data-lid="'+escAttr(p.lead_id)+'" onclick="openDetail(this.dataset.lid)">Ver lead en el Pipeline →</button>'
     : '<button class="btn-modal primary" data-pid="'+escAttr(p.id)+'" onclick="convertirProspecto(this.dataset.pid)">Cotizar →</button>'+
+      (_waNumero(p.telefono)?('<button class="btn-modal" style="white-space:nowrap" data-pid="'+escAttr(p.id)+'" onclick="abrirWhatsApp(this.dataset.pid)">'+
+        WA_SVG.replace('<svg ','<svg class="wa-ico" ')+'WhatsApp</button>'):'')+
       '<button class="btn-modal" data-pid="'+escAttr(p.id)+'" onclick="registrarContacto(this.dataset.pid)">Registrar contacto</button>'+
       '<button class="btn-modal" data-pid="'+escAttr(p.id)+'" onclick="descartarProspecto(this.dataset.pid)">No avanza</button>';
 
   document.getElementById('dp-body').innerHTML=
     avisoCliente+avisoHermanos+
     '<div class="dp-badges"><span class="etapa '+cls+'" style="cursor:default">'+esc(etapa)+'</span>'+
+      (calP?('<span class="fu" style="background:'+calP.color+';color:#fff" title="'+escAttr(calP.estado+' · '+calP.calidad)+'">'+esc(calP.corto)+'</span>'):'')+
       '<span class="fu fu-'+escAttr(fuente)+'">'+esc(PROS_FUENTE_LABEL[fuente]||fuente)+'</span>'+
       (p.origen?'<span class="fu" style="background:var(--grey);color:var(--mid)">'+esc(p.origen)+'</span>':'')+'</div>'+
     '<div class="dp-grid">'+
@@ -3415,6 +4277,16 @@ function openProspecto(id){
     '</div>'+
     (urlSegura(p.url)?'<div class="dp-field" style="margin:12px 0 20px"><label>Landing</label><span><a href="'+escAttr(urlSegura(p.url))+'" target="_blank" rel="noopener" style="color:var(--blue);word-break:break-all">'+esc(p.url)+'</a></span></div>':'')+
     consulta+
+    '<div class="dp-section"><div class="dp-section-title">Calificación</div>'+
+      '<select class="pr-sel" style="width:100%;max-width:420px" data-pid="'+escAttr(p.id)+'" onchange="calificarProspecto(this.dataset.pid,this.value)">'+
+        '<option value="">— sin calificar —</option>'+
+        PROS_CALIF.map(function(c){
+          return '<option value="'+escAttr(c.key)+'"'+(calP&&calP.key===c.key?' selected':'')+'>'+
+            esc(c.lectura)+' ('+esc(c.estado)+' · '+esc(c.calidad)+')</option>';
+        }).join('')+
+      '</select>'+
+      '<div class="td-muted" style="font-size:11px;margin-top:6px">Al calificar, la etapa se acomoda sola.</div>'+
+    '</div>'+
     '<div class="dp-section"><div class="dp-section-title">Acciones</div><div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap">'+acciones+'</div></div>'+
     '<div class="dp-section"><div class="dp-section-title">Notas y seguimiento</div>'+
       '<textarea id="pr-nota-input" placeholder="Escribí qué pasó en el contacto..." style="width:100%;min-height:60px;padding:8px 10px;border:1px solid var(--border);background:var(--white);font-family:inherit;font-size:12px;outline:none;resize:vertical"></textarea>'+
@@ -4180,6 +5052,7 @@ async function initAll(){
 }
 // Cotizador init: solo construye UI. El login MSAL se difiere hasta generar PDF.
 // El arranque real lo controla el gate de acceso (gateBoot) tras validar el dominio.
+try{ _stashLaboLink(); }catch(_){}   // guardar el link pedido ANTES del login (sobrevive el redirect de OAuth)
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',gateBoot);}else{gateBoot();}
 
 // ── GATE DE ACCESO (login + validación de dominio @4housing.com.ar) ──────────
@@ -4189,6 +5062,78 @@ var _userRole='interno';
 var _userEmail='';
 function esExterno(){return _userRole==='externo';}
 var _gateAccount=null;
+
+// ===== Etapa 2 · Permisos por sección (Ver / Editar) para usuarios INTERNOS =====
+// Los externos quedan solo en el cotizador (aplicarModoExterno) y sus INSERT los
+// gobierna la RLS: acá nunca se les restringe. Para internos se lee el perfil del
+// portal; sin config guardada = acceso total (retrocompatible con lo de hoy).
+var _perfilLabo=null;        // { esDir, rol, ver, editar } | null
+var _labTab='pipeline';      // pestaña activa
+var SECCIONES_EDITABLES_LABO={ pipeline:1, prospectos:1, cotizador:1 }; // el resto son reportes
+function _labVerSet(){
+  if(!_perfilLabo||_perfilLabo.esDir) return null;
+  if(Array.isArray(_perfilLabo.ver)) return new Set(_perfilLabo.ver);
+  return null;
+}
+function _labEditSet(){
+  if(!_perfilLabo||_perfilLabo.esDir) return null;
+  if(_perfilLabo.rol==='lector'||_perfilLabo.rol==='lectura') return new Set();
+  if(Array.isArray(_perfilLabo.editar)) return new Set(_perfilLabo.editar);
+  return null;
+}
+function labPuedeVer(sec){ if(esExterno()) return sec==='cotizador'; if(!sec) return true; var s=_labVerSet(); return s===null||s.has(sec); }
+function labPuedeEditar(sec){ if(esExterno()) return true; if(!sec) return true; var s=_labEditSet(); return s===null||s.has(sec); }
+function labEdicionActual(){ return labPuedeEditar(_labTab); }
+
+// Carga el perfil del portal para un INTERNO (rol + permisos.ver/editar del sector
+// labocomercial). Sin fila de sector o sin listas → queda null/arrays null = acceso
+// total (no se rompe a los internos actuales). Nunca deniega el acceso a la app.
+async function cargarPerfilLabo(session){
+  _perfilLabo=null;
+  try{
+    var uid=session&&session.user&&session.user.id; if(!uid) return;
+    var pr=await _sbFetch('perfiles?id=eq.'+uid+'&select=activo,es_direccion',{method:'GET'});
+    var perf=pr.ok?((await pr.json())[0]||null):null;
+    var sr=await _sbFetch('perfiles_sector?perfil_id=eq.'+uid+'&sector=eq.labocomercial&select=cargo,permisos',{method:'GET'});
+    var ps=sr.ok?((await sr.json())[0]||null):null;
+    var esDir=!!(perf&&perf.es_direccion);
+    var perm=(ps&&ps.permisos)||{};
+    _perfilLabo={ esDir:esDir, rol: esDir?'admin':(ps?ps.cargo:null),
+                  ver: Array.isArray(perm.ver)?perm.ver:null,
+                  editar: Array.isArray(perm.editar)?perm.editar:null };
+  }catch(e){ console.warn('cargarPerfilLabo:',e); _perfilLabo=null; }
+}
+// Oculta las pestañas que el interno no puede ver; si la activa queda oculta, salta
+// a la primera visible. (A los externos los maneja aplicarModoExterno.)
+function aplicarVisibilidadTabsLabo(){
+  if(esExterno()) return;
+  var tabs=Array.prototype.slice.call(document.querySelectorAll('.tabs .tab'));
+  var secDe=function(t){ var m=(t.getAttribute('onclick')||'').match(/switchTab\('([a-z]+)'/); return m?m[1]:null; };
+  var firstVisible=null, firstEl=null;
+  tabs.forEach(function(t){
+    var sec=secDe(t), ok=labPuedeVer(sec);
+    t.style.display=ok?'':'none';
+    if(ok&&!firstVisible){ firstVisible=sec; firstEl=t; }
+  });
+  var active=document.querySelector('.tabs .tab.active');
+  var activeSec=active?secDe(active):null;
+  if((!activeSec||!labPuedeVer(activeSec)) && firstEl){ switchTab(firstVisible, firstEl); }
+}
+// Cartel "solo lectura" arriba del contenido de la pestaña activa.
+function actualizarBannerSoloLecturaLabo(){
+  var mostrar = !esExterno() && SECCIONES_EDITABLES_LABO[_labTab] && !labPuedeEditar(_labTab);
+  var b=document.getElementById('banner-solo-lectura-labo');
+  if(!mostrar){ if(b)b.style.display='none'; return; }
+  if(!b){
+    b=document.createElement('div');
+    b.id='banner-solo-lectura-labo';
+    b.style.cssText='background:#FCF4E6;border:1px solid #E9D8B0;color:#8A6D1F;border-radius:9px;padding:8px 12px;margin:10px 0;font-size:13px';
+    b.textContent='👁 Solo lectura — podés ver esta sección pero no editarla. Si necesitás editar, pedile acceso a dirección.';
+  }
+  var host=document.getElementById('tab-'+_labTab);
+  if(host && b.parentNode!==host) host.insertBefore(b, host.firstChild);
+  b.style.display='';
+}
 function _gateShowError(msg){
   var e=document.getElementById('lg-err');
   if(e){e.textContent=msg;e.classList.add('show');}
@@ -4311,7 +5256,9 @@ async function _gateApplySession(session){
   _userEmail=email;
   _sbAccessToken=session.access_token||null;
   _gateAccount={username:email};
+  if(_userRole==='interno'){ try{ await cargarPerfilLabo(session); }catch(e){ console.warn('cargarPerfilLabo:',e); } }
   _gateEnterApp();
+  if(_userRole==='interno') aplicarVisibilidadTabsLabo();
   return true;
 }
 // Al cargar: procesa retorno de login y/o sesión existente de Supabase
