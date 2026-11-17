@@ -2938,6 +2938,8 @@ function setConvFilter(f,el){convFilter=f;document.querySelectorAll('#tab-conver
 function setConvCanal(c,el){convCanal=c;document.querySelectorAll('#tab-conversaciones .s-section:last-child .s-item').forEach(function(x){x.classList.remove('active');});if(el)el.classList.add('active');renderConversaciones();}
 function filterConvSearch(v){convSearch=(v||'').toLowerCase();renderConversaciones();}
 function _cvContacto(c){var p=c.prospecto||{};return p.nombre||p.telefono||c.canal_user_id||'(sin nombre)';}
+function _cvNombre(c){var p=c.prospecto||{};return p.nombre||'(sin nombre)';}
+function _cvTel(c){var p=c.prospecto||{};return p.telefono||c.canal_user_id||'—';}
 function _cvFiltradas(){
   return allConversaciones.filter(function(c){
     if(convCanal!=='todos'&&c.canal!==convCanal)return false;
@@ -2964,7 +2966,7 @@ function renderConversaciones(){
     var sen=c.senales||{};var chips=Object.keys(sen).slice(0,4).join(' · ');
     h+='<tr data-cid="'+c.id+'" onclick="openConversacion(this.dataset.cid)">'+
        '<td class="td-mono">'+_cvFecha(c.ultimo_msg_at)+'</td>'+
-       '<td class="td-bold">'+_cvEsc(_cvContacto(c))+'</td>'+
+       '<td><div class="td-bold">'+_cvEsc(_cvNombre(c))+'</div><div class="td-muted" style="font-size:11px">'+_cvEsc(_cvTel(c))+'</div></td>'+
        '<td class="td-muted">'+_cvEsc(c.canal||'')+'</td>'+
        '<td>'+_cvEstadoChip(c.estado)+'</td>'+
        '<td class="td-muted">'+_cvEsc(c.clasif_sugerida||'—')+'</td>'+
@@ -2975,7 +2977,7 @@ function renderConversaciones(){
 async function openConversacion(id){
   currentConvId=String(id);
   var c=allConversaciones.find(function(x){return String(x.id)===String(id);});if(!c)return;
-  document.getElementById('dp-title').textContent='Chat · '+_cvContacto(c);
+  document.getElementById('dp-title').textContent='Chat · '+_cvNombre(c)+' · '+_cvTel(c);
   var sen=c.senales||{};
   var senHtml=Object.keys(sen).length?('<div class="dp-section"><div class="dp-section-title">Señales capturadas</div>'+Object.keys(sen).map(function(k){return '<div class="dp-field"><label>'+_cvEsc(k)+'</label><span>'+_cvEsc(String(sen[k]))+'</span></div>';}).join('')+'</div>'):'';
   var resumen=c.resumen?('<div class="dp-section"><div class="dp-section-title">Resumen para el asesor</div><div>'+_cvEsc(c.resumen)+'</div></div>'):'';
