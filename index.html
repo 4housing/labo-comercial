@@ -4748,7 +4748,9 @@ function laboListaMontaje(m,km){
   return ((L.montaje.normal[m]||[])[i])||0;
 }
 function laboEsEditorLabo(){
-  return !esExterno() && !!_perfilLabo && (_perfilLabo.esDir || (!!_perfilLabo.rol && _perfilLabo.rol!=='lector' && _perfilLabo.rol!=='lectura'));
+  if(esExterno()||!_perfilLabo) return false;
+  if(_perfilLabo.editaCostos===true||_perfilLabo.editaCostos===false) return _perfilLabo.editaCostos;
+  return _perfilLabo.esDir || (!!_perfilLabo.rol && _perfilLabo.rol!=='lector' && _perfilLabo.rol!=='lectura');
 }
 // Publica la lista si cambió respecto de la última (la firma no depende del orden de claves).
 async function laboPublicarListaSiCambio(){
@@ -5354,7 +5356,13 @@ async function cargarPerfilLabo(session){
     var perm=(ps&&ps.permisos)||{};
     _perfilLabo={ esDir:esDir, rol: esDir?'admin':(ps?ps.cargo:null),
                   ver: Array.isArray(perm.ver)?perm.ver:null,
-                  editar: Array.isArray(perm.editar)?perm.editar:null };
+                  editar: Array.isArray(perm.editar)?perm.editar:null,
+                  editaCostos: null };
+    // Permiso "Edita costos" (panel de Usuarios). Lo decide la base; null si la función no existe aún.
+    try{
+      var ec=await _sbFetchRaw('rpc/labocomercial_edita_costos',{method:'POST',body:'{}'});
+      if(ec.ok){ var v=await ec.json(); if(v===true||v===false) _perfilLabo.editaCostos=v; }
+    }catch(_){}
   }catch(e){ console.warn('cargarPerfilLabo:',e); _perfilLabo=null; }
 }
 // Oculta las pestañas que el interno no puede ver; si la activa queda oculta, salta
@@ -6360,6 +6368,10 @@ const PASS_KEY='bGFibzIwMjQ=';
 
 let _passTarget=4;
 function askPass(step){_passTarget=step||4;
+  if(_passTarget===4&&_perfilLabo&&_perfilLabo.editaCostos===false){
+    alert('No tenés permiso para editar los costos de LABO.\nLo habilita dirección desde el panel de Usuarios del portal («Edita costos»).');
+    return;
+  }
   document.getElementById('passInput').value='';
   document.getElementById('passError').classList.remove('show');
   document.getElementById('passInput').classList.remove('error');
