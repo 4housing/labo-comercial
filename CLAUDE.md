@@ -15,8 +15,15 @@ CRM y cotizador de la línea **LABO** de 4housing. Parte del portal unificado.
 - Tablas con prefijo **`labocomercial_`** (`labocomercial_leads`, `labocomercial_counters`,
   `labocomercial_contactos_web`) + vista de agencia + RPCs `labocomercial_next_counter` /
   `ingest_contacto_web`. RLS por sector `labocomercial`.
-- **Vendedor externo** (gmail, ej. Nicolás Tovo): entra por email/contraseña al cotizador,
-  sin sector; RLS lo contiene; registra su cotización vía política INSERT-only.
+- **Acceso (fase 2, nov 2026):** al entrar, la app pregunta `labocomercial_mi_acceso()`:
+  `interno` = sector `labocomercial` en el panel de Usuarios (o dirección); `externo` = está en
+  `labocomercial_cotizadores_externos` (lista explícita, la maneja dirección); `ninguno` = afuera.
+- **Vendedor externo:** entra por email/contraseña, solo cotizador. **Nunca recibe costos:**
+  cotiza con `labocomercial_lista_precios` (precios de venta que genera el mismo motor y publica
+  la app cuando un editor de LABO abre el cotizador o guarda costos). Registra su cotización
+  vía política INSERT-only en leads.
+- **Maestro de costos:** solo en `labocomercial_costos_versiones` (RLS: sector LABO). NO volver a
+  embeberlo en `index.html` ni subir JSON de costos al repo (es público).
 
 ## Reglas de trabajo — NO NEGOCIABLES
 
