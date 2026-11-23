@@ -4747,6 +4747,12 @@ function laboListaMontaje(m,km){
   var i=0;(L.montaje.km_desde||[]).forEach(function(d,j){if(km>=d)i=j;});
   return ((L.montaje.normal[m]||[])[i])||0;
 }
+// ¿Esta sesión recibe el maestro de costos? Solo quien tiene "Edita costos" (panel de Usuarios).
+// El resto del equipo y el vendedor externo cotizan con la lista de precios de venta.
+function laboRecibeCostos(){ return laboEsEditorLabo(); }
+function laboAvisoSinPermisoCostos(que){
+  alert('No tenés permiso para '+que+'.\nLo habilita dirección desde el panel de Usuarios del portal («Edita costos» en LABO).');
+}
 function laboEsEditorLabo(){
   if(esExterno()||!_perfilLabo) return false;
   if(_perfilLabo.editaCostos===true||_perfilLabo.editaCostos===false) return _perfilLabo.editaCostos;
@@ -5239,13 +5245,13 @@ function initApp(){
   (async function(){
     var ok=false;
     try{
-      if(esExterno()){ ok=await laboCargarLista(); if(!ok) ok=await laboLoadCostos(); }   // sin lista publicada: comportamiento anterior
+      if(!laboRecibeCostos()){ ok=await laboCargarLista(); if(!ok) ok=await laboLoadCostos(); }   // sin lista publicada: comportamiento anterior
       else{ ok=await laboLoadCostos(); }
     }catch(e){console.warn('Carga de precios:',e);}
     laboCfg=laboCfgDefault();laboBuildModularCostos();buildGrid();
     if(ok||LABO_MADERA_HABILITADA){ try{selModel(LABO_MADERA_HABILITADA?'MAD_S':'SE');}catch(e){console.warn('selModel:',e);} }
     else{ try{ if(typeof toast==='function') toast('No se pudieron cargar los precios del cotizador. Recargá la página.'); }catch(e){} }
-    if(!esExterno()) laboPublicarListaSiCambio();
+    if(laboRecibeCostos()) laboPublicarListaSiCambio();
   })();
   try{const saved=localStorage.getItem('labo_sheets_url');if(saved){const el=document.getElementById('sheetsUrl');if(el)el.value=saved;}}catch(e){}
 }
@@ -6368,8 +6374,8 @@ const PASS_KEY='bGFibzIwMjQ=';
 
 let _passTarget=4;
 function askPass(step){_passTarget=step||4;
-  if(_passTarget===4&&_perfilLabo&&_perfilLabo.editaCostos===false){
-    alert('No tenés permiso para editar los costos de LABO.\nLo habilita dirección desde el panel de Usuarios del portal («Edita costos»).');
+  if(!laboRecibeCostos()){
+    laboAvisoSinPermisoCostos(_passTarget===5?'ver el Análisis de rentabilidad (costos y márgenes) de LABO':'editar los costos de LABO');
     return;
   }
   document.getElementById('passInput').value='';
