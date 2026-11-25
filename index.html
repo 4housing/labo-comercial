@@ -2930,6 +2930,7 @@ async function readConversaciones(){
   return await _sbLeerTodo('labocomercial_conversaciones?select=*,prospecto:labocomercial_prospectos(nombre,telefono,email)','ultimo_msg_at.desc.nullslast,id.desc');
 }
 async function loadConversaciones(){
+  _cvRealtimeInit();
   try{allConversaciones=await readConversaciones();}catch(e){console.warn('loadConversaciones:',e);}
   _cvCostoHoy();
   renderConversaciones();
@@ -3021,6 +3022,31 @@ function _cvFecha(iso){if(!iso)return '—';var d=new Date(iso);if(isNaN(d.getTi
 function _cvEstadoChip(e){var map={activa:'var(--green)',derivada:'var(--amber)',en_espera:'var(--blue)',cerrada:'var(--grey)'};return '<span class="etapa"><span class="etapa-dot" style="background:'+(map[e]||'var(--grey)')+'"></span>'+_cvEsc(e||'—')+'</span>';}
 async function _cvCostoHoy(){
   try{var hoy=new Date().toISOString().slice(0,10);var r=await _sbFetch('labocomercial_bot_uso?fecha=eq.'+hoy+'&select=costo_usd_estimado');if(r.ok){var d=await r.json();var c=(d&&d[0])?Number(d[0].costo_usd_estimado||0):0;_cvTxt('ckpi-costo','USD '+c.toFixed(2));}}catch(e){}
+}
+// Realtime: push instantáneo de cambios (RLS respetado por el token del usuario).
+let _cvChannel=null, _cvRefrescarTO=null;
+async function _cvRealtimeInit(){
+  if(_cvChannel)return;
+  try{
+    await _ensureSbClient();
+    if(typeof _sbAccessToken!=='undefined'&&_sbAccessToken&&_sbClient.realtime&&_sbClient.realtime.setAuth)_sbClient.realtime.setAuth(_sbAccessToken);
+    _cvChannel=_sbClient.channel('cv-bandeja')
+      .on('postgres_changes',{event:'*',schema:'public',table:'labocomercial_conversaciones'},function(){_cvRealtimeRefrescarLista();})
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'labocomercial_mensajes'},function(payload){
+        _cvRealtimeRefrescarLista();
+        var cid=payload&&payload.new&&payload.new.conversacion_id;
+        var ov=document.getElementById('detailOverlay');
+        if(cid&&currentConvId===String(cid)&&ov&&ov.classList.contains('open'))_cvCargarMsgs(cid);
+      })
+      .subscribe();
+  }catch(e){console.warn('realtime init:',e);}
+}
+function _cvRealtimeRefrescarLista(){
+  if(_cvRefrescarTO)clearTimeout(_cvRefrescarTO);
+  _cvRefrescarTO=setTimeout(function(){
+    var tab=document.getElementById('tab-conversaciones');
+    if(tab&&tab.classList.contains('active'))loadConversaciones();
+  },1200);
 }
 // Guarda un cambio puntual del prospecto y deja registro en su historial.
 async function patchProspecto(id,patch,textoActividad,lote){
